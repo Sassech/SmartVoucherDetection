@@ -13,9 +13,9 @@
 ## Estado Actual
 
 - **Última fase activa:** Fase 0 — Infraestructura y DevOps
-- **Última tarea completada:** `0.1.1` — Estructura monorepo creada
-- **Próximo paso:** `0.1.2 Actualizar pyproject.toml a Python 3.12 y renombrar a smartvoucher-api`
-- **Bloqueadores:** ninguno (nota: `.venv` quedó inválido tras el move; se regenera en 0.1.2)
+- **Última tarea completada:** `0.1.5` — Ramas `main`/`develop` creadas, `docs/git-flow.md` documentado. Sección `0.1` cerrada.
+- **Próximo paso:** `0.2.1 Agregar dependencias base a api/pyproject.toml`
+- **Bloqueadores:** ninguno
 
 ---
 
@@ -55,13 +55,15 @@
   - Mover `main.py` y `pyproject.toml` actuales dentro de `api/`
   - Crear `.gitkeep` en `plugin-wp/`, `webapp/`, `infra/`, `docs/`
   - **Hecho cuando:** `tree -L 2 -I '.venv|llama.cpp|cosas'` muestra la estructura objetivo
-- [ ] **0.1.2** Actualizar `pyproject.toml` en `api/`: cambiar `requires-python` a `>=3.12,<3.13`, name a `smartvoucher-api`
+- [x] **0.1.2** Actualizar `pyproject.toml` en `api/`: cambiar `requires-python` a `>=3.12,<3.13`, name a `smartvoucher-api`
   - **Hecho cuando:** `cd api && uv sync` funciona sin error
-- [ ] **0.1.3** Crear `.editorconfig` en raíz (LF, UTF-8, indent 4 Python / 2 JS)
-- [ ] **0.1.4** Configurar `pre-commit` con `ruff` (Python) — archivo `.pre-commit-config.yaml` en raíz
+- [x] **0.1.3** Crear `.editorconfig` en raíz (LF, UTF-8, indent 4 Python / 2 JS)
+- [x] **0.1.4** Configurar `pre-commit` con `ruff` (Python) — archivo `.pre-commit-config.yaml` en raíz
   - **Hecho cuando:** `pre-commit run --all-files` ejecuta sin instalar y reporta archivos
-- [ ] **0.1.5** Crear ramas `develop` y configurar `main` como protegida (documentar en `docs/git-flow.md`)
+  - **Nota:** se ejecuta vía `uvx pre-commit run --all-files` (no requiere instalación global)
+- [x] **0.1.5** Crear ramas `develop` y configurar `main` como protegida (documentar en `docs/git-flow.md`)
   - **Hecho cuando:** `git branch` muestra `main`, `develop`; `docs/git-flow.md` existe
+  - **Pendiente:** habilitar reglas de protección en GitHub al primer push (no bloquea desarrollo local)
 
 ## 0.2 Dependencias Python (api/)
 
