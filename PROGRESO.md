@@ -13,8 +13,8 @@
 ## Estado Actual
 
 - **Última fase activa:** Fase 0 — Infraestructura y DevOps
-- **Última tarea completada:** `0.4.2` — `init-db.sql` montado, recreación con `down -v && up -d` deja las 3 extensiones automáticamente. Secciones `0.2`, `0.3`, `0.4` cerradas.
-- **Próximo paso:** `0.5.1 Verificar que llama.cpp/GLM-OCR.sh levanta el server (curl /health → 200)`
+- **Última tarea completada:** `0.5.3` — `docs/llama-server.md` documentado. Sección `0.5` cerrada.
+- **Próximo paso:** `0.6.1 alembic init alembic en api/ (config asíncrono)`
 - **Bloqueadores:** ninguno
 
 ---
@@ -35,7 +35,7 @@
 - **Backend:** FastAPI + Pydantic v2 + SQLAlchemy 2 (async) + Alembic
 - **DB:** PostgreSQL 16 + extensiones `pg_trgm`, `pgcrypto`, `unaccent`
 - **Cache/Queue:** Redis 7 + Celery
-- **OCR:** llama-server (llama.cpp) + modelo `glm-ocr` GGUF Q4_K_M (ya descargado en `llama.cpp/GLM-OCR/`)
+- **OCR:** llama-server (llama.cpp `b9012`) + modelo `GLM-OCR-f16.gguf` con mmproj `mmproj-GLM-OCR-Q8_0.gguf` (multimodal real, ctx 16384, alias `GLM-OCR`, ya descargado en `llama.cpp/GLM-OCR/`)
 - **Imagen:** OpenCV + pdf2image + Pillow
 - **Frontend pago (Fase 4):** Next.js 14 + Tailwind + shadcn/ui + Zustand + React Query
 - **Plugin (Fase 3):** PHP nativo WordPress 6.5+
@@ -107,13 +107,17 @@
 
 ## 0.5 llama-server + glm-ocr — Validación
 
-- [ ] **0.5.1** Verificar que `llama.cpp/GLM-OCR.sh` levanta el server correctamente
+- [x] **0.5.1** Verificar que `llama.cpp/GLM-OCR.sh` levanta el server correctamente
   - **Hecho cuando:** `curl http://localhost:8080/health` responde 200
-- [ ] **0.5.2** Prueba de humo OCR: enviar imagen base64 de comprobante de prueba y validar respuesta
+  - **Resultado:** `{"status":"ok"}`; modelo `GLM-OCR` cargado (891M params, multimodal)
+- [x] **0.5.2** Prueba de humo OCR: enviar imagen base64 de comprobante de prueba y validar respuesta
   - Crear script `infra/scripts/smoke_test_ocr.sh`
   - **Hecho cuando:** El script imprime "OK — texto extraído: ..." con tiempo < 5s
-- [ ] **0.5.3** Documentar en `docs/llama-server.md`: cómo levantar, parámetros del modelo, prompt base
+  - **Resultado:** 3.73s sobre comprobante sintético, 136 tokens generados, texto extraído correcto (con typo `MÉXICO→MÁXICO` esperado en diacríticos)
+  - **Helper extra:** `infra/scripts/generate_sample.py` genera el fixture con Pillow
+- [x] **0.5.3** Documentar en `docs/llama-server.md`: cómo levantar, parámetros del modelo, prompt base
   - **Hecho cuando:** `docs/llama-server.md` existe con secciones: Setup, Iniciar, Probar, Apagar
+  - **Resultado:** docs incluyen tabla de flags, ejemplos curl, smoke test, troubleshooting
 
 ## 0.6 Alembic — Sistema de migraciones
 
@@ -360,6 +364,8 @@
 - **2026-05-08 — Warning `VIRTUAL_ENV` al correr `uv` desde `api/`:** El shell tiene exportada `VIRTUAL_ENV=.../SmartVoucherDetection/.venv` (de antes de la reestructura), pero ese venv ya no existe. `uv` lo ignora y usa `api/.venv`. No bloquea nada. Para limpiar: `unset VIRTUAL_ENV` en la sesión actual o quitarlo del shell rc.
 - **2026-05-08 — `${VAR}` en docker-compose.yml NO se sustituye desde `env_file`:** La sustitución de `${POSTGRES_USER}` en el YAML ocurre **antes** de cargar `env_file`. Compose busca esas vars en (1) el shell y (2) `.env` en `cwd` (donde corrés el comando). Si tu `.env` vive en otra carpeta, o usás `--env-file`, o las vars se cargan vacías. **Solución aplicada:** dejar las creds solo en `env_file: ../.env` (se inyectan al contenedor) y usar `$$VAR` en healthchecks (escape de Compose para que se evalúe **dentro** del contenedor). Solo dejamos sustitución YAML para puertos del host con default `:-5432`.
 - **2026-05-08 — Tipo en `.gitignore`:** la línea `cosas/*7` debería ser `cosas/*` (sufijo `7` es typo). No bloquea, pero conviene corregir cuando se toque ese archivo de nuevo.
+- **2026-05-08 — GLM-OCR confunde diacríticos:** Sobre comprobante sintético "BBVA MÉXICO" extrajo "BBVA MÁXICO" (É→Á). Es un error esperado del OCR multimodal con caracteres acentuados; el matching de Fase 2 (`pg_trgm` + Levenshtein) absorbe 1-2 chars de error. **No** intentar resolver con post-procesado de texto: degradaría coincidencias correctas.
+- **2026-05-08 — Stack confirmado actualizado:** El script `GLM-OCR.sh` real usa `GLM-OCR-f16.gguf` + `mmproj-GLM-OCR-Q8_0.gguf` (multimodal completo, ctx 16384), NO Q4_K_M como decía la doc inicial. Tamaño efectivo ~1.78 GB.
 
 ---
 
