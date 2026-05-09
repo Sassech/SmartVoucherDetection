@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 1 — **EN CURSO** (secciones 1.1, 1.2, 1.3 y 1.4 cerradas)
-- **Última tarea completada:** `1.4.5` — `tests/test_ocr_service.py` con `httpx.MockTransport` pasa 11/11. Suite completa 26/26 en 1.35s.
-- **Próximo paso:** **Fase 1 — sección 1.5** (parser/normalización: `1.5.1` `parse_monto`, `1.5.2` `parse_fecha`, `1.5.3` `parse_referencia`, `1.5.4` `normalize_banco`, `1.5.5` `compute_hash`, `1.5.6` tests).
+- **Última fase activa:** Fase 1 — **EN CURSO** (secciones 1.1, 1.2, 1.3, 1.4 y 1.5 cerradas)
+- **Última tarea completada:** `1.5.6` — `tests/test_parser_service.py` con 81 tests parametrizados pasa 81/81. Suite completa 107/107 en 0.73s.
+- **Próximo paso:** **Fase 1 — sección 1.6** (Schemas Pydantic v2: `1.6.1` `schemas/comprobante.py`, `1.6.2` `schemas/health.py`).
 - **Bloqueadores:** ninguno
 
 ---
@@ -32,6 +32,7 @@
 | D-07 | **`uuid-utils` para UUID v7**, **VARCHAR + CHECK constraint** para enums (no `ENUM` nativo Postgres), **bcrypt hash** para `token_api_hash` (renombrado desde `token_api` del ERD). | uuid-utils es Rust-backed (~5x más rápido que uuid6). CHECK permite ALTER TABLE simple para cambiar valores (vs `ALTER TYPE` doloroso). `token_api_hash` deja claro que NO es plain — convención GitHub/Stripe: el plain solo se muestra al usuario una vez. | 2026-05-09 |
 | D-08 | **Pipeline OpenCV con orden invertido respecto al plan**: deskew (paso 4 del plan) se aplica ANTES de adaptiveThreshold (paso 3). | `cv2.warpAffine` usa interpolación bilineal/cubica que rompe la binarización: rotar una imagen ya en {0,255} produce píxeles intermedios en los bordes del texto. Lo correcto en pipelines OCR es rotar la grayscale y binarizar después. Documentado en `image_service.py`. | 2026-05-09 |
 | D-09 | **Política de retry conservadora en OCR**: tenacity reintenta SOLO en `httpx.RequestError` o 5xx. 4xx → `HTTPException(502)` sin retry. JSON inválido en `content` → `HTTPException(503)` sin retry. | Patrón Stripe/AWS: nunca reintentar errores no idempotentes (4xx = contrato roto, no se arregla con retry). JSON malformado del LLM con `temperature=0` no se corrige reintentando — es un problema de prompt/modelo, escalar a 503 es lo correcto. | 2026-05-09 |
+| D-10 | **Parser tolerante (devuelve `None` en input inválido) + monto US-style + banco fuzzy**: (a) `parse_monto/fecha/referencia` retornan `None` ante input vacío/sucio; (b) monto asume coma=miles, punto=decimal (formato MX bancario); (c) `normalize_banco` usa `Levenshtein.ratio ≥ 0.85` + substring match para aliases ≥4 chars, fallback `"OTRO"`. | (a) GLM-OCR puede emitir `null` por campo no detectado; preferimos persistir parcial que romper el flujo (el endpoint decide marcar `error`). (b) Heurísticas europeas se evalúan en Fase 5 con dataset real. (c) Fuzzy absorbe los confusos del OCR (`MÉXICO→MÁXICO`); substring evita falsos negativos en frases tipo "BBVA Mexico"; el threshold de 4 chars en substring previene matches espurios con aliases cortos como `nu`/`hey`. | 2026-05-09 |
 
 ---
 
@@ -212,12 +213,18 @@
 
 ## 1.5 Servicio Parser/Normalización (`services/parser_service.py`)
 
-- [ ] **1.5.1** `parse_monto(raw: str) -> Decimal` — extrae dígitos, descarta símbolos
-- [ ] **1.5.2** `parse_fecha(raw: str) -> date` — `dateutil.parser` con múltiples formatos
-- [ ] **1.5.3** `parse_referencia(raw: str) -> str` — strip + uppercase + colapsar espacios
-- [ ] **1.5.4** `normalize_banco(raw: str) -> str` — match contra catálogo (BBVA, Citibanamex, Banorte, HSBC, Santander, Hey Banco, Nu Bank, OTRO)
-- [ ] **1.5.5** `compute_hash(image_bytes: bytes) -> str` — SHA-256 sobre bytes originales
-- [ ] **1.5.6** Tabla de tests con casos sucios → salidas esperadas: `tests/test_parser_service.py`
+- [x] **1.5.1** `parse_monto(raw: str) -> Decimal` — extrae dígitos, descarta símbolos
+  - **Resultado:** firma ampliada a `str | int | float | None -> Decimal | None` porque el LLM puede devolver número nativo. Regex `[^0-9.,\-]` conserva el `-` en la limpieza para que `Decimal("-100") < 0` rechace explícitamente (si tirásemos el signo en regex, "-100" se convertiría silenciosamente en 100). `str(raw)` antes de Decimal evita artefactos de precisión float (`Decimal(0.1) → 0.1000...0888`). Multi-punto rechazado.
+- [x] **1.5.2** `parse_fecha(raw: str) -> date` — `dateutil.parser` con múltiples formatos
+  - **Resultado:** firma `str | None -> date | None`. Heurística ISO/no-ISO: regex `^\d{4}-\d{1,2}-\d{1,2}$` detecta ISO y usa `yearfirst=True`; cualquier otro formato → `dayfirst=True` (prompt OCR pide DD/MM/YYYY). `fuzzy=False` para no adivinar en strings con basura.
+- [x] **1.5.3** `parse_referencia(raw: str) -> str` — strip + uppercase + colapsar espacios
+  - **Resultado:** `_WHITESPACE_RE = re.compile(r"\s+")` colapsa cualquier whitespace (no solo espacios — también `\t`, `\n`). Preserva símbolos (`/`, `-`) porque el scoring de Fase 2 usa similarity, no equality. Devuelve `None` si tras strip queda vacío.
+- [x] **1.5.4** `normalize_banco(raw: str) -> str` — match contra catálogo (BBVA, Citibanamex, Banorte, HSBC, Santander, Hey Banco, Nu Bank, OTRO)
+  - **Resultado:** catálogo `_BANCO_ALIASES` con 7 bancos × 1-4 aliases cada uno. Algoritmo: (1) `_normalize_for_match` → NFKD + ascii + lower + solo `[a-z0-9]`; (2) substring match contra aliases ≥4 chars (cubre "BBVA Mexico" → BBVA); (3) fallback Levenshtein.ratio con threshold 0.85; (4) sin match → "OTRO". Aliases cortos (`hey`, `nu`, `citi`) NO usan substring para evitar falsos positivos en "nuevo", "heroe", etc.
+- [x] **1.5.5** `compute_hash(image_bytes: bytes) -> str` — SHA-256 sobre bytes originales
+  - **Resultado:** SHA-256 hex (64 chars lowercase). Acepta `bytes | bytearray | memoryview` (un upload puede llegar como bytearray desde Starlette). Levanta `TypeError` si se pasa str (única excepción explícita del módulo — bytes vacíos sí son válidos). Crítico: hashear ANTES del preprocess (la compresión PNG y el crop introducen variaciones que romperían la equivalencia con re-uploads del mismo archivo).
+- [x] **1.5.6** Tabla de tests con casos sucios → salidas esperadas: `tests/test_parser_service.py`
+  - **Resultado:** 81 tests parametrizados (heavy `@pytest.mark.parametrize`). Cubren happy paths + casos sucios + edge cases por función. Suite completa de Fase 1 hasta acá: 107/107 en 0.73s.
 
 ## 1.6 Schemas Pydantic v2 (`schemas/`)
 
@@ -397,6 +404,10 @@
 - **2026-05-09 — `__tablename__="log_procesamiento"` (singular) rompe la convención plural del resto:** Lo mantuve así porque el ERD del cliente (`cosas/BD.html`) lo tiene singular. Las otras 4 tablas son plurales (`organizaciones`, `usuarios`, `comprobantes`, `validaciones`). No es prolijo pero respeta el contrato visual del ERD. Si se decide unificar a plural en algún momento, cambiar `__tablename__` y generar migración nueva con `op.rename_table`.
 - **2026-05-09 — Orden deskew↔threshold invertido (D-08):** El plan_desarrollo.md lista paso 3 = binarizar, paso 4 = deskew. Lo invertí porque `cv2.warpAffine` con interpolación bilineal/cubica sobre una imagen binarizada produce píxeles intermedios (gris) en los bordes del texto, rompiendo la binarización. Pipeline correcto: gray → deskew → threshold. El test `test_preprocess_returns_binary_png` valida que >99% de los píxeles del output son exactamente 0 ó 255 (con threshold después de rotar) — si el orden estuviera al revés, ese ratio bajaría notablemente.
 - **2026-05-09 — `_detect_skew_angle` con Otsu, no adaptive:** Para detectar el ángulo necesitamos una máscara binaria del texto. Usé `THRESH_BINARY_INV | THRESH_OTSU` (no adaptive) porque para el cálculo del ángulo importa la dirección global del texto, no la legibilidad local. Otsu es más rápido y suficientemente bueno para minAreaRect. La binarización adaptativa "real" sigue siendo el paso 4 del pipeline, sobre la grayscale ya rotada.
+- **2026-05-09 — `dateutil.parser` con `dayfirst=True` rompe ISO `YYYY-MM-DD`:** "2026-05-01" con dayfirst → 5 de enero (toma "01" como día). Solución en `parse_fecha`: regex previa `^\d{4}-\d{1,2}-\d{1,2}$` para detectar ISO y switchear a `yearfirst=True` solo en ese caso. Para todo lo demás (formato MX dominante DD/MM/YYYY) sigue `dayfirst=True`. Sin esta heurística, ~10% de los OCR donde el LLM ignora el prompt y emite ISO terminarían con fecha equivocada por 4-7 meses.
+- **2026-05-09 — Regex `[^0-9.,]` para limpiar monto descarta el `-` silenciosamente:** Original `_MONTO_CLEAN_RE` no incluía `-`, así que "-100" → "100" → `Decimal(100)` → válido (BUG: convirtió un negativo en positivo). Fix: incluir `\-` en el set conservado y dejar que `value >= 0` final lo cace. El test `parametrize("-100" → None)` lo atrapó en la primera corrida.
+- **2026-05-09 — Match exacto-normalizado de banco pierde 30%+ por separadores:** "BBVA México" normalizado = `bbvamexico`; `Levenshtein.ratio("bbvamexico", "bbva")` = 0.571 (lejos del threshold 0.85) por la diferencia de longitud. Solución híbrida: substring match (`alias in normalized`) para aliases ≥4 chars antes del fuzzy. Atajos cortos (`hey`, `nu`, `citi`) NO entran al substring porque "nuevo" o "heroe" matchearían como Nu Bank / Hey Banco. El umbral de 4 chars sale empíricamente: el alias más corto seguro es "bbva".
+- **2026-05-09 — `Decimal(0.1)` da `0.10000000000000000555...`:** float→Decimal hereda la imprecisión binaria del float. Pasar siempre por `str(raw)` antes de `Decimal(...)` evita el problema. Test `test_parse_monto_avoids_float_precision_artifacts` lo cubre como regresión.
 - **2026-05-09 — Pillow PDF a 72 dpi default:** `Image.save(format="PDF")` por defecto usa `resolution=72` (1 inch = 72px). Si querés tamaño deterministico en tests, pasar explícitamente `resolution=72` y calcular: `pixeles_input * 300 / 72 ≈ pixeles_output_pdf2image_300dpi`. En el test no me ato a número exacto (poppler-utils puede variar entre distros), solo verifico `> 100px`.
 
 ---
