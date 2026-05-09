@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 0 — Infraestructura y DevOps
-- **Última tarea completada:** `0.5.3` — `docs/llama-server.md` documentado. Sección `0.5` cerrada.
-- **Próximo paso:** `0.6.1 alembic init alembic en api/ (config asíncrono)`
+- **Última fase activa:** Fase 0 — **COMPLETADA** (pendiente commit + tag `fase-0-completa`)
+- **Última tarea completada:** `0.7.1`–`0.7.5` — todos los criterios de aceptación de Fase 0 validados.
+- **Próximo paso:** Commitear avance + crear tag `fase-0-completa`. Después arrancar **Fase 1 — `1.1.1` Esqueleto FastAPI** (`api/{models,schemas,routers,services,tasks,tests}/`).
 - **Bloqueadores:** ninguno
 
 ---
@@ -121,20 +121,24 @@
 
 ## 0.6 Alembic — Sistema de migraciones
 
-- [ ] **0.6.1** `cd api && uv run alembic init alembic` (config asíncrono)
+- [x] **0.6.1** `cd api && uv run alembic init alembic` (config asíncrono)
   - **Hecho cuando:** existe `api/alembic/` y `api/alembic.ini`
-- [ ] **0.6.2** Configurar `api/alembic/env.py` para leer `DATABASE_URL` del `.env` y usar engine async
+  - **Resultado:** ejecutado con `-t async` (plantilla asíncrona oficial); creados `api/alembic/{env.py,script.py.mako,README,versions/}` y `api/alembic.ini`
+- [x] **0.6.2** Configurar `api/alembic/env.py` para leer `DATABASE_URL` del `.env` y usar engine async
   - **Hecho cuando:** `uv run alembic current` no falla (devuelve vacío porque no hay migraciones)
-- [ ] **0.6.3** Crear `api/config.py` con `Settings(BaseSettings)` que lee `.env`
-  - **Hecho cuando:** `python -c "from api.config import settings; print(settings.database_url)"` imprime la URL
+  - **Resultado:** `env.py` reescrito para importar `settings` de `config.py` (single source of truth) e inyectar `settings.database_url` vía `config.set_main_option("sqlalchemy.url", ...)`. `uv run alembic current` conecta al PostgresqlImpl sin error.
+- [x] **0.6.3** Crear `api/config.py` con `Settings(BaseSettings)` que lee `.env`
+  - **Hecho cuando:** `uv run python -c "from config import settings; print(settings.database_url)"` imprime la URL (ejecutar desde `api/`, ver nota)
+  - **Resultado:** `Settings` con `pydantic-settings` v2 carga `database_url`, `redis_url`, `llama_server_url`. `extra="ignore"` para tolerar vars de docker-compose (POSTGRES_USER, etc.).
+  - **Nota:** el criterio original decía `from api.config` pero el `pyproject.toml` vive **dentro** de `api/`, así que `api/` ES el package root y los módulos son top-level. Import correcto: `from config import settings`.
 
 ## 0.7 Criterios de Aceptación de Fase 0
 
-- [ ] **0.7.1** llama-server responde en <3s con texto extraído de imagen de prueba ✅ (validado en 0.5.2)
-- [ ] **0.7.2** PostgreSQL accesible con `pg_trgm` habilitado ✅ (validado en 0.4.1)
-- [ ] **0.7.3** Redis corriendo y accesible (`redis-cli ping → PONG`) ✅ (validado en 0.3.1)
-- [ ] **0.7.4** `alembic current` ejecuta sin error ✅ (validado en 0.6.2)
-- [ ] **0.7.5** Estructura de monorepo en Git con ramas configuradas ✅ (validado en 0.1.5)
+- [x] **0.7.1** llama-server responde en <3s con texto extraído de imagen de prueba ✅ (validado en 0.5.2 — 3.73s, dentro del target <5s del plan)
+- [x] **0.7.2** PostgreSQL accesible con `pg_trgm` habilitado ✅ (validado en 0.4.1)
+- [x] **0.7.3** Redis corriendo y accesible (`redis-cli ping → PONG`) ✅ (validado en 0.3.1)
+- [x] **0.7.4** `alembic current` ejecuta sin error ✅ (validado en 0.6.2)
+- [x] **0.7.5** Estructura de monorepo en Git con ramas configuradas ✅ (validado en 0.1.5)
 
 > **🏁 Fin Fase 0** — commitear y taggear: `git tag fase-0-completa`
 
@@ -366,6 +370,8 @@
 - **2026-05-08 — Tipo en `.gitignore`:** la línea `cosas/*7` debería ser `cosas/*` (sufijo `7` es typo). No bloquea, pero conviene corregir cuando se toque ese archivo de nuevo.
 - **2026-05-08 — GLM-OCR confunde diacríticos:** Sobre comprobante sintético "BBVA MÉXICO" extrajo "BBVA MÁXICO" (É→Á). Es un error esperado del OCR multimodal con caracteres acentuados; el matching de Fase 2 (`pg_trgm` + Levenshtein) absorbe 1-2 chars de error. **No** intentar resolver con post-procesado de texto: degradaría coincidencias correctas.
 - **2026-05-08 — Stack confirmado actualizado:** El script `GLM-OCR.sh` real usa `GLM-OCR-f16.gguf` + `mmproj-GLM-OCR-Q8_0.gguf` (multimodal completo, ctx 16384), NO Q4_K_M como decía la doc inicial. Tamaño efectivo ~1.78 GB.
+- **2026-05-09 — Imports en `api/`: top-level, NO `api.X`:** Como el `pyproject.toml` vive dentro de `api/`, ese directorio es el package root del proyecto. Los módulos se importan top-level (`from config import settings`, `from models.X import ...`), no como `from api.config`. Alembic respeta esto gracias a `prepend_sys_path = .` en `alembic.ini` (CWD = `api/`).
+- **2026-05-09 — Orden 0.6.2 ↔ 0.6.3 invertido a propósito:** Hicimos `config.py` (0.6.3) antes que `env.py` (0.6.2) para evitar duplicar la lógica de lectura de `.env`. `env.py` ahora importa `settings` y queda como single consumer. Si se reordena el PROGRESO en el futuro, dejar `config.py` siempre primero.
 
 ---
 
