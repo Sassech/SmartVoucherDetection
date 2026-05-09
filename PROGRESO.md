@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 1 — **EN CURSO** (secciones 1.1 y 1.2 cerradas)
-- **Última tarea completada:** `1.2.7` — `alembic upgrade head` aplicado, `\dt` muestra las 5 tablas + `alembic_version`. Revisión head: `607b4c53997b` (`initial_schema`).
-- **Próximo paso:** **Fase 1 — sección 1.3** (servicio de imagen: `1.3.1` `pdf_to_image`, `1.3.2` `validate_mime`, `1.3.3` pipeline OpenCV preprocess, `1.3.4` `to_base64`).
+- **Última fase activa:** Fase 1 — **EN CURSO** (secciones 1.1, 1.2 y 1.3 cerradas)
+- **Última tarea completada:** `1.3.4` — `to_base64()` implementado. `pytest tests/test_image_service.py` pasa 14/14 en 0.73s.
+- **Próximo paso:** **Fase 1 — sección 1.4** (servicio OCR: `1.4.1` cliente httpx, `1.4.2` `extract_fields()`, `1.4.3` retries con tenacity, `1.4.4` manejo errores 503, `1.4.5` tests con httpx mock).
 - **Bloqueadores:** ninguno
 
 ---
@@ -30,6 +30,7 @@
 | D-05 | **PK = UUID v7 client-side** (lib `uuid-utils` o `uuid6` en Python, no `gen_random_uuid()`) | UUID v7 es ordenable por tiempo → mejor performance de índices B-tree en inserts vs v4. Postgres 16 no trae `uuidv7()` nativa (sí PG18+). Se genera en app via `default=...` de SQLAlchemy. | 2026-05-09 |
 | D-06 | **Soft delete con `deleted_at TIMESTAMPTZ NULL`** en Organizacion/Usuario/Comprobante/Validacion. LogProcesamiento queda hard delete. | Auditoría requerida por CU-02 (validación manual de duplicados detectados). Logs no necesitan recuperación: políticas de retención por TTL, no soft delete. | 2026-05-09 |
 | D-07 | **`uuid-utils` para UUID v7**, **VARCHAR + CHECK constraint** para enums (no `ENUM` nativo Postgres), **bcrypt hash** para `token_api_hash` (renombrado desde `token_api` del ERD). | uuid-utils es Rust-backed (~5x más rápido que uuid6). CHECK permite ALTER TABLE simple para cambiar valores (vs `ALTER TYPE` doloroso). `token_api_hash` deja claro que NO es plain — convención GitHub/Stripe: el plain solo se muestra al usuario una vez. | 2026-05-09 |
+| D-08 | **Pipeline OpenCV con orden invertido respecto al plan**: deskew (paso 4 del plan) se aplica ANTES de adaptiveThreshold (paso 3). | `cv2.warpAffine` usa interpolación bilineal/cubica que rompe la binarización: rotar una imagen ya en {0,255} produce píxeles intermedios en los bordes del texto. Lo correcto en pipelines OCR es rotar la grayscale y binarizar después. Documentado en `image_service.py`. | 2026-05-09 |
 
 ---
 
@@ -186,14 +187,18 @@
 
 ## 1.3 Servicio de Imagen (`services/image_service.py`)
 
-- [ ] **1.3.1** Función `pdf_to_image(pdf_bytes) -> bytes` con `pdf2image` (dpi=300, primera página)
-  - Test: `tests/test_image_service.py::test_pdf_to_image`
-- [ ] **1.3.2** Función `validate_mime(file_bytes) -> str` con `python-magic` (whitelist: image/jpeg, image/png, application/pdf)
-- [ ] **1.3.3** Pipeline OpenCV: `preprocess(img_bytes) -> bytes`
-  - Pasos: decode → grayscale → adaptiveThreshold → deskew → crop → encode
+- [x] **1.3.1** Función `pdf_to_image(pdf_bytes) -> bytes` con `pdf2image` (dpi=300, primera página)
+  - Test: `tests/test_image_service.py::test_pdf_to_image_returns_decodable_png` + `test_pdf_to_image_rejects_garbage`
+  - **Resultado:** `pdf2image.convert_from_bytes(..., dpi=300, fmt="png", first_page=1, last_page=1)` → PIL Image → `BytesIO` → PNG bytes. Rechaza PDFs inválidos (pdf2image lanza `PDFPageCountError`). Test usa `Image.save(format="PDF", resolution=72)` para generar PDF sintético en memoria, sin necesidad de fixture en disco.
+- [x] **1.3.2** Función `validate_mime(file_bytes) -> str` con `python-magic` (whitelist: image/jpeg, image/png, application/pdf)
+  - **Resultado:** `magic.from_buffer(bytes, mime=True)` (libmagic, NO mira extensiones). `ALLOWED_MIMES` como `frozenset` exportado para que tests verifiquen el contrato. Levanta `ValueError` con mensaje listando MIMEs permitidos. También rechaza bytes vacíos (caso borde no contemplado en plan).
+- [x] **1.3.3** Pipeline OpenCV: `preprocess(img_bytes) -> bytes`
+  - Pasos: decode → grayscale → **deskew (sobre gray)** → adaptiveThreshold → crop → encode
   - Test con imagen torcida del dataset de prueba
-- [ ] **1.3.4** Función `to_base64(img_bytes) -> str`
+  - **Resultado:** orden invertido respecto al plan (D-08). Helpers privados `_detect_skew_angle` (Otsu + `findNonZero` + `minAreaRect` sobre coordenadas, normaliza a (-45, 45]), `_rotate` (`warpAffine` con `BORDER_REPLICATE` para evitar bordes negros), `_crop_whitespace` (boundingRect del contenido invertido + padding 8px). Constantes parametrizadas (`PDF_DPI`, `ADAPTIVE_BLOCK_SIZE`, `ADAPTIVE_C`, `SKEW_MIN_ANGLE`, `CROP_PADDING_PX`) para tunear sin tocar lógica.
+- [x] **1.3.4** Función `to_base64(img_bytes) -> str`
   - **Hecho cuando:** suite `pytest tests/test_image_service.py` pasa
+  - **Resultado:** `base64.b64encode(...).decode("ascii")`. 14/14 tests verdes en 0.73s (incluye casos borde: bytes vacíos, garbage, imagen rotada 5°, padding artificial para verificar crop).
 
 ## 1.4 Servicio OCR (`services/ocr_service.py`)
 
@@ -389,6 +394,9 @@
 - **2026-05-09 — Alembic autogenerate ignora modelos no importados:** Cambiar `target_metadata = None` → `Base.metadata` no alcanza. Hay que `import models` en `env.py` (con `# noqa: F401`) ANTES de leer `Base.metadata`, porque las tablas se registran en metadata al ejecutar el `mapped_column(...)` del decorador `__tablename__`. Sin el import explícito, autogenerate cree que el schema está vacío y emite un drop fantasma. El `__init__.py` de `models/` re-exporta los 5 modelos para que un solo `import models` los cargue todos.
 - **2026-05-09 — `uuid_utils.compat.uuid7` vs `uuid_utils.uuid7`:** El módulo principal `uuid_utils` retorna su propio tipo `uuid_utils.UUID` que NO es subclase de `uuid.UUID` de stdlib. SQLAlchemy 2 con `Mapped[uuid.UUID]` y tipo nativo `Uuid` espera `uuid.UUID`. La forma correcta es `from uuid_utils.compat import uuid7` que devuelve `uuid.UUID` versión 7 nativo. Otra opción sería `uuid_utils.UUID(str(...))` pero es más feo.
 - **2026-05-09 — `__tablename__="log_procesamiento"` (singular) rompe la convención plural del resto:** Lo mantuve así porque el ERD del cliente (`cosas/BD.html`) lo tiene singular. Las otras 4 tablas son plurales (`organizaciones`, `usuarios`, `comprobantes`, `validaciones`). No es prolijo pero respeta el contrato visual del ERD. Si se decide unificar a plural en algún momento, cambiar `__tablename__` y generar migración nueva con `op.rename_table`.
+- **2026-05-09 — Orden deskew↔threshold invertido (D-08):** El plan_desarrollo.md lista paso 3 = binarizar, paso 4 = deskew. Lo invertí porque `cv2.warpAffine` con interpolación bilineal/cubica sobre una imagen binarizada produce píxeles intermedios (gris) en los bordes del texto, rompiendo la binarización. Pipeline correcto: gray → deskew → threshold. El test `test_preprocess_returns_binary_png` valida que >99% de los píxeles del output son exactamente 0 ó 255 (con threshold después de rotar) — si el orden estuviera al revés, ese ratio bajaría notablemente.
+- **2026-05-09 — `_detect_skew_angle` con Otsu, no adaptive:** Para detectar el ángulo necesitamos una máscara binaria del texto. Usé `THRESH_BINARY_INV | THRESH_OTSU` (no adaptive) porque para el cálculo del ángulo importa la dirección global del texto, no la legibilidad local. Otsu es más rápido y suficientemente bueno para minAreaRect. La binarización adaptativa "real" sigue siendo el paso 4 del pipeline, sobre la grayscale ya rotada.
+- **2026-05-09 — Pillow PDF a 72 dpi default:** `Image.save(format="PDF")` por defecto usa `resolution=72` (1 inch = 72px). Si querés tamaño deterministico en tests, pasar explícitamente `resolution=72` y calcular: `pixeles_input * 300 / 72 ≈ pixeles_output_pdf2image_300dpi`. En el test no me ato a número exacto (poppler-utils puede variar entre distros), solo verifico `> 100px`.
 
 ---
 
