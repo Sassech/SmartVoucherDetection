@@ -13,8 +13,8 @@
 ## Estado Actual
 
 - **Última fase activa:** Fase 0 — Infraestructura y DevOps
-- **Última tarea completada:** `0.1.5` — Ramas `main`/`develop` creadas, `docs/git-flow.md` documentado. Sección `0.1` cerrada.
-- **Próximo paso:** `0.2.1 Agregar dependencias base a api/pyproject.toml`
+- **Última tarea completada:** `0.2.2` — Deps dev (pytest, pytest-asyncio, pytest-cov, httpx, ruff) instaladas. Sección `0.2` cerrada.
+- **Próximo paso:** `0.3.1 Crear infra/docker-compose.yml con postgres y redis`
 - **Bloqueadores:** ninguno
 
 ---
@@ -67,15 +67,17 @@
 
 ## 0.2 Dependencias Python (api/)
 
-- [ ] **0.2.1** Agregar deps base a `api/pyproject.toml`:
+- [x] **0.2.1** Agregar deps base a `api/pyproject.toml`:
   - `fastapi[standard]`, `pydantic-settings`, `sqlalchemy[asyncio]`, `asyncpg`, `psycopg[binary]`, `alembic`
   - `redis`, `celery[redis]`, `httpx`, `tenacity`
   - `opencv-python-headless`, `pdf2image`, `pillow`, `python-magic`
   - `python-jose[cryptography]`, `passlib[bcrypt]`, `python-multipart`
   - `python-levenshtein`, `scikit-learn`, `python-dateutil`
   - **Hecho cuando:** `cd api && uv sync` resuelve todo sin conflictos
-- [ ] **0.2.2** Agregar deps dev: `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `ruff`
+  - **Resultado:** 89 paquetes resueltos, 33 instalados; agregado vía `uv add` (no edición manual)
+- [x] **0.2.2** Agregar deps dev: `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `ruff`
   - **Hecho cuando:** `cd api && uv sync --dev` OK
+  - **Resultado:** `pytest 9.0.3`, `ruff 0.15.12` corriendo desde `uv run`
 
 ## 0.3 Docker Compose (infra/)
 
@@ -351,7 +353,7 @@
 
 > Cuando descubras algo no obvio durante una sesión, agregalo acá con fecha. Esto ahorra horas a sesiones futuras.
 
-- _(vacío por ahora)_
+- **2026-05-08 — Warning `VIRTUAL_ENV` al correr `uv` desde `api/`:** El shell tiene exportada `VIRTUAL_ENV=.../SmartVoucherDetection/.venv` (de antes de la reestructura), pero ese venv ya no existe. `uv` lo ignora y usa `api/.venv`. No bloquea nada. Para limpiar: `unset VIRTUAL_ENV` en la sesión actual o quitarlo del shell rc.
 
 ---
 
