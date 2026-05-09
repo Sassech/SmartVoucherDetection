@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 1 — **EN CURSO** (1.1 a 1.6 cerradas + 1.7 completa)
-- **Última tarea completada:** `1.7.3` — `GET /history` con paginado offset/limit y filtros `fecha_desde`, `fecha_hasta`, `banco`, `estado`. Schema `ComprobanteListResponse` agregado a `schemas/comprobante.py` con `{items, total, limit, offset, has_more}`. Filtra por `SYSTEM_USER_ID` hardcoded (igual que /upload-slip; auth real Fase 4) y excluye soft-deleted. Order by `fecha_registro DESC, id_comprobante DESC` — el tiebreaker por UUID v7 garantiza paginación estable cuando varios inserts caen en el mismo tick de `now()`. Validaciones cruzadas: `fecha_desde > fecha_hasta` → 422, `estado` no en catálogo → 422, `limit > 100` → 422 (FastAPI). Tests: 13 nuevos en `test_history_endpoint.py` con engine local + `NullPool` por test (evita "Event loop is closed" del engine global) y `httpx.AsyncClient(transport=ASGITransport(app))` en lugar de TestClient (mismo motivo: TestClient sync rompe asyncpg). Suite 168/168.
-- **Próximo paso:** **Fase 1 — `1.8.1`** (fixture `tests/conftest.py` consolidando la sesión transaccional + DB de test). Probable refactor: mover el patrón `db_session` de `test_history_endpoint.py` a un conftest común para reusarlo en `1.8.2` (E2E de upload).
+- **Última fase activa:** Fase 1 — **EN CURSO** (1.1 a 1.7 cerradas + 1.8.1 lista)
+- **Última tarea completada:** `1.8.1` — `tests/conftest.py` con fixtures compartidas `db_session` (transaccional, engine local + NullPool, skip si Postgres down) y `client` (`httpx.AsyncClient` con `ASGITransport` + `get_session` override-ado). Refactor de `test_history_endpoint.py`: eliminadas las dos fixtures duplicadas (357 → 280 líneas) + imports redundantes. Cualquier test futuro con DB real hereda el patrón. Suite 168/168 en 0.79s.
+- **Próximo paso:** **Fase 1 — `1.8.2`** (E2E de `POST /upload-slip` con `httpx.AsyncClient` + mock de llama-server vía `httpx.MockTransport` o monkeypatch del `extract_fields`). Reutiliza `db_session` y `client` del conftest. Casos mínimos: happy path (PNG válido → 201 + row en DB), MIME inválido (415), tamaño >10MB (413), hash duplicado (409 con id existente), error de OCR (503).
   - **Plan acordado anterior (1.7.2, ya implementado — referencia historica):**
     1. **Crear `services/cache_service.py` mínimo ahora** (opción B), no instanciar `redis.asyncio` ad-hoc en el endpoint de health. Le da hogar correcto al cliente Redis desde el inicio y evita refactor cuando llegue 2.1.1 (que agrega `check_hash` al mismo módulo).
     2. **Contrato del módulo en 1.7.2:** una sola función pública `async def ping(timeout_s: float = 1.0) -> bool` que devuelve `True` si Redis responde `PONG` dentro del timeout, `False` en cualquier error/timeout. NO levanta excepción (el endpoint health no debe romper si Redis está caído — solo reporta `ok=False`). Cliente Redis con pool global del módulo (no abrir/cerrar conexión por request).
@@ -258,7 +258,8 @@
 
 ## 1.8 Tests de integración
 
-- [ ] **1.8.1** `tests/conftest.py`: fixture de DB de test (postgres dockerizada o testcontainer)
+- [x] **1.8.1** `tests/conftest.py`: fixture de DB de test (postgres dockerizada o testcontainer)
+  - **Resultado:** Refactor del patrón `db_session` + `client` desde `test_history_endpoint.py` a `tests/conftest.py` compartido. Dos fixtures async-scope-function: (a) `db_session` abre engine LOCAL con `NullPool`, conecta, `BEGIN`, yieldea `AsyncSession` bind-eada a la conexión, y al cierre hace `rollback + conn.close + engine.dispose` (el rollback limpia los INSERTs del test sin tocar la DB local; `NullPool` evita el bug "Event loop is closed" del engine global cacheando conexiones cross-loop); (b) `client` override-a `get_session` para que el endpoint use la MISMA sesión del test (los INSERTs del fixture son visibles dentro de la transacción) y arma `httpx.AsyncClient(transport=ASGITransport(app))` — NO `TestClient` por incompatibilidad sync/asyncpg documentada en gotchas. Skip automático si Postgres no responde (`OperationalError`) → CI sin servicios queda verde. `test_history_endpoint.py` reducido de 357 → 280 líneas (eliminadas las dos fixtures locales + imports redundantes); ahora cualquier test futuro de DB real (1.8.2 E2E upload) hereda el patrón sin duplicar código. Suite 168/168 en 0.79s.
 - [ ] **1.8.2** `tests/test_upload_endpoint.py`: prueba E2E con `TestClient` y mock de llama-server
 - [ ] **1.8.3** Coverage: `pytest --cov=api --cov-report=term --cov-fail-under=70`
   - **Hecho cuando:** coverage en `services/` ≥ 70%

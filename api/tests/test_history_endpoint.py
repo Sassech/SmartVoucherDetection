@@ -7,96 +7,18 @@ transaccion que se rollbackea al final, asi no contamina la DB local.
 Si Postgres no esta levantado, los tests SKIPEAN (mismo patron que
 `test_database.py`). Esto mantiene la suite verde en CI sin servicios.
 
-Patron tecnico: abrimos una `AsyncConnection` con `BEGIN`, le bind-eamos
-una `AsyncSession`, y override-amos `get_session` para que el endpoint
-use ESA sesion (no una nueva). Asi los INSERTs del fixture son visibles
-para el SELECT del endpoint, y el rollback final limpia todo.
-
-NO usamos `TestClient` porque mezclar async fixtures con su loop sync
-rompe la conexion asyncpg (queda bind-eada al loop equivocado y al
-gargabe-collect levanta "Event loop is closed"). Usamos
-`httpx.AsyncClient(transport=ASGITransport(app=app))` que corre todo en
-el mismo loop del test.
+Las fixtures `db_session` y `client` viven en `tests/conftest.py` (1.8.1).
 """
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
 from datetime import date
 
-import httpx
-import pytest
-import pytest_asyncio
 from sqlalchemy import text
-from sqlalchemy.exc import OperationalError
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.pool import NullPool
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import settings
-from database import get_session
-from main import app
 from models.comprobante import Comprobante
 from models.seed import SYSTEM_USER_ID
-
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-
-@pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Sesion transaccional que rollbackea al final del test.
-
-    Crea un engine NUEVO con `NullPool` por test, en lugar de reusar el
-    engine global de `database.py`. Por que: cada test corre en un event
-    loop distinto (asyncio_mode=auto + scope=function), y las conexiones
-    asyncpg quedan bind-eadas al loop donde se crearon. Reusar el engine
-    global hace que la 2da conexion se intente abrir sobre un loop ya
-    cerrado → "Event loop is closed". `NullPool` ademas garantiza que
-    no se reciclen conexiones entre tests.
-
-    Si Postgres no esta arriba, skipea el test (no falla).
-    """
-    test_engine = create_async_engine(
-        settings.database_url, poolclass=NullPool
-    )
-    try:
-        try:
-            conn = await test_engine.connect()
-        except OperationalError as exc:
-            pytest.skip(f"Postgres not reachable: {exc}")
-
-        trans = await conn.begin()
-        session = AsyncSession(bind=conn, expire_on_commit=False)
-        try:
-            yield session
-        finally:
-            await session.close()
-            await trans.rollback()
-            await conn.close()
-    finally:
-        await test_engine.dispose()
-
-
-@pytest_asyncio.fixture
-async def client(db_session) -> AsyncGenerator[httpx.AsyncClient, None]:
-    """`httpx.AsyncClient` con ASGITransport y `get_session` override-ado.
-
-    El override yield la misma `db_session` del fixture — asi los INSERTs
-    del test son visibles para el endpoint dentro de la misma transaccion.
-    Usamos AsyncClient (no TestClient) para evitar conflictos de event loop
-    con la conexion asyncpg.
-    """
-
-    async def _override():
-        yield db_session
-
-    app.dependency_overrides[get_session] = _override
-    transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
-        yield c
-    app.dependency_overrides.clear()
 
 
 def _make_comp(
