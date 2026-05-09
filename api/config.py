@@ -38,6 +38,13 @@ class Settings(BaseSettings):
 
     # --- llama-server (glm-ocr) --------------------------------------------
     llama_server_url: str
+    # Alias del modelo expuesto por llama-server (`-a GLM-OCR` en el script).
+    # Va literal en el campo `model` del request OpenAI-compatible.
+    llama_model_alias: str = "GLM-OCR"
+    # Timeout total por request HTTP a llama-server (segundos).
+    llama_timeout_s: float = 10.0
+    # Reintentos ante errores de red o 5xx (NO ante 4xx ni JSON invalido).
+    llama_max_retries: int = 3
 
 
 settings = Settings()  # type: ignore[call-arg]

@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 1 — **EN CURSO** (secciones 1.1, 1.2 y 1.3 cerradas)
-- **Última tarea completada:** `1.3.4` — `to_base64()` implementado. `pytest tests/test_image_service.py` pasa 14/14 en 0.73s.
-- **Próximo paso:** **Fase 1 — sección 1.4** (servicio OCR: `1.4.1` cliente httpx, `1.4.2` `extract_fields()`, `1.4.3` retries con tenacity, `1.4.4` manejo errores 503, `1.4.5` tests con httpx mock).
+- **Última fase activa:** Fase 1 — **EN CURSO** (secciones 1.1, 1.2, 1.3 y 1.4 cerradas)
+- **Última tarea completada:** `1.4.5` — `tests/test_ocr_service.py` con `httpx.MockTransport` pasa 11/11. Suite completa 26/26 en 1.35s.
+- **Próximo paso:** **Fase 1 — sección 1.5** (parser/normalización: `1.5.1` `parse_monto`, `1.5.2` `parse_fecha`, `1.5.3` `parse_referencia`, `1.5.4` `normalize_banco`, `1.5.5` `compute_hash`, `1.5.6` tests).
 - **Bloqueadores:** ninguno
 
 ---
@@ -31,6 +31,7 @@
 | D-06 | **Soft delete con `deleted_at TIMESTAMPTZ NULL`** en Organizacion/Usuario/Comprobante/Validacion. LogProcesamiento queda hard delete. | Auditoría requerida por CU-02 (validación manual de duplicados detectados). Logs no necesitan recuperación: políticas de retención por TTL, no soft delete. | 2026-05-09 |
 | D-07 | **`uuid-utils` para UUID v7**, **VARCHAR + CHECK constraint** para enums (no `ENUM` nativo Postgres), **bcrypt hash** para `token_api_hash` (renombrado desde `token_api` del ERD). | uuid-utils es Rust-backed (~5x más rápido que uuid6). CHECK permite ALTER TABLE simple para cambiar valores (vs `ALTER TYPE` doloroso). `token_api_hash` deja claro que NO es plain — convención GitHub/Stripe: el plain solo se muestra al usuario una vez. | 2026-05-09 |
 | D-08 | **Pipeline OpenCV con orden invertido respecto al plan**: deskew (paso 4 del plan) se aplica ANTES de adaptiveThreshold (paso 3). | `cv2.warpAffine` usa interpolación bilineal/cubica que rompe la binarización: rotar una imagen ya en {0,255} produce píxeles intermedios en los bordes del texto. Lo correcto en pipelines OCR es rotar la grayscale y binarizar después. Documentado en `image_service.py`. | 2026-05-09 |
+| D-09 | **Política de retry conservadora en OCR**: tenacity reintenta SOLO en `httpx.RequestError` o 5xx. 4xx → `HTTPException(502)` sin retry. JSON inválido en `content` → `HTTPException(503)` sin retry. | Patrón Stripe/AWS: nunca reintentar errores no idempotentes (4xx = contrato roto, no se arregla con retry). JSON malformado del LLM con `temperature=0` no se corrige reintentando — es un problema de prompt/modelo, escalar a 503 es lo correcto. | 2026-05-09 |
 
 ---
 
@@ -202,12 +203,12 @@
 
 ## 1.4 Servicio OCR (`services/ocr_service.py`)
 
-- [ ] **1.4.1** Cliente `httpx.AsyncClient` con timeout 10s, base URL desde settings
-- [ ] **1.4.2** Función `extract_fields(img_b64) -> dict` con prompt JSON del plan (sección 1.3 del plan_desarrollo.md)
-- [ ] **1.4.3** Reintentos con `tenacity` (3 intentos, backoff 1s)
-- [ ] **1.4.4** Manejo de errores: si llama-server cae, raise `HTTPException(503)`
-- [ ] **1.4.5** Tests con `httpx` mock: `tests/test_ocr_service.py`
-  - **Hecho cuando:** mock de respuesta JSON parsea correctamente
+- [x] **1.4.1** Cliente `httpx.AsyncClient` con timeout 10s, base URL desde settings (DI opcional para tests)
+- [x] **1.4.2** Función `extract_fields(img_b64) -> dict` con prompt JSON del plan (sección 1.3 del plan_desarrollo.md)
+- [x] **1.4.3** Reintentos con `tenacity` (3 intentos, wait fijo 1s, **solo** en `RequestError` o 5xx)
+- [x] **1.4.4** Manejo de errores: 503 tras agotar retries / JSON inválido / estructura inesperada; 502 en 4xx (sin retry)
+- [x] **1.4.5** Tests con `httpx.MockTransport`: `tests/test_ocr_service.py` (11 tests, 0.46s)
+  - **Hecho cuando:** mock de respuesta JSON parsea correctamente ✅
 
 ## 1.5 Servicio Parser/Normalización (`services/parser_service.py`)
 
