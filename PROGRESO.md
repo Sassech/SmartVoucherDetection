@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 1 — **EN CURSO** (secciones 1.1, 1.2, 1.3, 1.4 y 1.5 cerradas)
-- **Última tarea completada:** `1.5.6` — `tests/test_parser_service.py` con 81 tests parametrizados pasa 81/81. Suite completa 107/107 en 0.73s.
-- **Próximo paso:** **Fase 1 — sección 1.6** (Schemas Pydantic v2: `1.6.1` `schemas/comprobante.py`, `1.6.2` `schemas/health.py`).
+- **Última fase activa:** Fase 1 — **EN CURSO** (secciones 1.1, 1.2, 1.3, 1.4, 1.5 y 1.6 cerradas)
+- **Última tarea completada:** `1.6.2` — `schemas/health.py` con `HealthResponse` + `ServiceCheck` (componente reutilizable por dependencia, sin flag global agregado). Suite 107/107 estable.
+- **Próximo paso:** **Fase 1 — sección 1.7** (`1.7.1` `POST /upload-slip` en `routers/upload.py`, `1.7.2` `GET /health` con chequeos reales, `1.7.3` `GET /history` paginado).
 - **Bloqueadores:** ninguno
 
 ---
@@ -228,8 +228,10 @@
 
 ## 1.6 Schemas Pydantic v2 (`schemas/`)
 
-- [ ] **1.6.1** `schemas/comprobante.py`: `ComprobanteCreate`, `ComprobanteResponse`, `CamposExtraidos`
-- [ ] **1.6.2** `schemas/health.py`: `HealthResponse` con campos `llama`, `db`, `redis`
+- [x] **1.6.1** `schemas/comprobante.py`: `ComprobanteCreate`, `ComprobanteResponse`, `CamposExtraidos`
+  - **Resultado:** 3 DTOs con responsabilidades separadas. `CamposExtraidos` (frozen, post-parser) tiene `monto: Decimal | None` con `max_digits=15, decimal_places=2, ge=0` (espeja el CHECK de DB), `banco` siempre str (fallback OTRO). `ComprobanteCreate` para capa servicio→repo: valida `hash_documento` con `pattern=r"^[0-9a-f]{64}$"` (SHA-256 hex lowercase) y `estado_actual` contra `ESTADOS_VALIDOS` importado del modelo (single source of truth). `ComprobanteResponse` con `from_attributes=True` + helper `from_orm_model(comp)` que arma `campos_extraidos` anidado desde columnas planas del ORM (Pydantic no compone sub-objetos solo). Mapping intencional `fecha_deposito` ORM → `fecha` schema. Smoke tests verdes: rechaza estado inválido, hash no-hex, monto negativo.
+- [x] **1.6.2** `schemas/health.py`: `HealthResponse` con campos `llama`, `db`, `redis`
+  - **Resultado:** `ServiceCheck` reutilizable (`ok: bool`, `detail: str | None`) y `HealthResponse` que lo agrega 3 veces (`llama`, `db`, `redis`). Sin flag global agregado a propósito: el cliente decide la política (Fase 1 sin cache podría tolerar Redis caído). El endpoint debe responder 200 incluso con `ok=False` en alguna dependencia — el HTTP indica que la API responde, los flags indican degradación. Sólo 503 si la API ni siquiera puede armar el response.
 
 ## 1.7 Endpoints MVP
 
