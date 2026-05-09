@@ -12,21 +12,21 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 0 — **COMPLETADA** (pendiente commit + tag `fase-0-completa`)
-- **Última tarea completada:** `0.7.1`–`0.7.5` — todos los criterios de aceptación de Fase 0 validados.
-- **Próximo paso:** Commitear avance + crear tag `fase-0-completa`. Después arrancar **Fase 1 — `1.1.1` Esqueleto FastAPI** (`api/{models,schemas,routers,services,tasks,tests}/`).
+- **Última fase activa:** Fase 1 — **EN CURSO** (sección 1.1 cerrada)
+- **Última tarea completada:** `1.1.3` — `database.py` async + test `SELECT 1` verde.
+- **Próximo paso:** **Fase 1 — sección 1.2** (modelos ORM: `1.2.1` Organizacion, `1.2.2` Usuario, `1.2.3` Comprobante, `1.2.4` Validacion, `1.2.5` LogProcesamiento, luego `1.2.6` autogenerate y `1.2.7` `alembic upgrade head`).
 - **Bloqueadores:** ninguno
 
 ---
 
 ## Decisiones Técnicas (NO se discuten de nuevo)
 
-| # | Decisión | Justificación | Fecha |
-|---|----------|---------------|-------|
-| D-01 | **PostgreSQL desde día 1** (no SQLite) | `pg_trgm` es crítico para Fase 2 (scoring de duplicados). Migrar después = rehacer modelos y tests. | 2026-05-08 |
-| D-02 | **Python 3.12** (no 3.14, no 3.11) | 3.12 tiene wheels prebuilt para OpenCV/pdf2image/asyncpg, soporte hasta 2028. 3.14 muy nuevo, 3.11 ya quedando atrás. | 2026-05-08 |
-| D-03 | **Monorepo `/api`, `/plugin-wp`, `/webapp`, `/infra`, `/tests`, `/docs`** desde Fase 0 | Evitar reestructuración traumática en Fase 3. | 2026-05-08 |
-| D-04 | **Tracking en `PROGRESO.md`** (versionado en Git) | Portable, no depende de herramientas externas. | 2026-05-08 |
+| #    | Decisión                                                                               | Justificación                                                                                                         | Fecha      |
+| ---- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------- |
+| D-01 | **PostgreSQL desde día 1** (no SQLite)                                                 | `pg_trgm` es crítico para Fase 2 (scoring de duplicados). Migrar después = rehacer modelos y tests.                   | 2026-05-08 |
+| D-02 | **Python 3.12** (no 3.14, no 3.11)                                                     | 3.12 tiene wheels prebuilt para OpenCV/pdf2image/asyncpg, soporte hasta 2028. 3.14 muy nuevo, 3.11 ya quedando atrás. | 2026-05-08 |
+| D-03 | **Monorepo `/api`, `/plugin-wp`, `/webapp`, `/infra`, `/tests`, `/docs`** desde Fase 0 | Evitar reestructuración traumática en Fase 3.                                                                         | 2026-05-08 |
+| D-04 | **Tracking en `PROGRESO.md`** (versionado en Git)                                      | Portable, no depende de herramientas externas.                                                                        | 2026-05-08 |
 
 ---
 
@@ -99,6 +99,7 @@
   CREATE EXTENSION IF NOT EXISTS pgcrypto;
   CREATE EXTENSION IF NOT EXISTS unaccent;
   ```
+
   - **Hecho cuando:** `SELECT similarity('test','test');` retorna `1`
   - **Resultado:** `sim_exact=1`, `similarity('Comprobante 12345','comprobante 12346')=0.8`
 - [x] **0.4.2** Crear script `infra/init-db.sql` con las extensiones (montar como `/docker-entrypoint-initdb.d/` en compose)
@@ -150,13 +151,16 @@
 
 ## 1.1 Estructura del proyecto FastAPI
 
-- [ ] **1.1.1** Crear esqueleto de carpetas dentro de `api/`:
+- [x] **1.1.1** Crear esqueleto de carpetas dentro de `api/`:
   - `models/`, `schemas/`, `routers/`, `services/`, `tasks/`, `tests/`
   - `__init__.py` en cada uno
-- [ ] **1.1.2** Crear `api/main.py` con FastAPI app, CORS configurado, router `/health` mínimo
+  - **Resultado:** 6 paquetes creados con docstring breve cada uno (no `.gitkeep` — el `__init__.py` ya hace de ancla y permite imports inmediatos).
+- [x] **1.1.2** Crear `api/main.py` con FastAPI app, CORS configurado, router `/health` mínimo
   - **Hecho cuando:** `uv run fastapi dev api/main.py` levanta y `GET /health` responde 200
-- [ ] **1.1.3** Crear `api/database.py` con engine async SQLAlchemy + `SessionLocal` + `get_session` dependency
+  - **Resultado:** `TestClient(app).get('/health') → 200 {"status":"ok"}`. CORS abierto (`allow_origins=["*"]`) con TODO para Fase 4. Router en `routers/health.py`. `/` (sin schema) devuelve metadata + `llama_server_url` desde settings. Health completo (llama+db+redis) queda para 1.7.2.
+- [x] **1.1.3** Crear `api/database.py` con engine async SQLAlchemy + `SessionLocal` + `get_session` dependency
   - **Hecho cuando:** test mínimo `SELECT 1` async funciona
+  - **Resultado:** engine async (`pool_pre_ping=True`), `SessionLocal` (`expire_on_commit=False`, `autoflush=False`), `Base(DeclarativeBase)` para modelos, dependency `get_session()`. Test `tests/test_database.py::test_select_one` PASSED contra Postgres del compose. `pytest.ini_options` con `asyncio_mode="auto"` agregado a `pyproject.toml`.
 
 ## 1.2 Modelos ORM (SQLAlchemy 2 — async, type-annotated)
 
@@ -347,7 +351,7 @@
 - [ ] **5.4** Persistir pesos finales en tabla `configuracion_sistema`
 - [ ] **5.5** GitHub Actions: job `tests-api` (postgres+redis services, pytest, coverage)
 - [ ] **5.6** GitHub Actions: job `lint` (ruff + eslint)
-- [ ] **5.7** GitHub Actions: job `build-plugin` en tags v*
+- [ ] **5.7** GitHub Actions: job `build-plugin` en tags v\*
 - [ ] **5.8** GitHub Actions: job `deploy-staging` en push a develop
 - [ ] **5.9** GitHub Actions: job `deploy-production` en tags en main
 - [ ] **5.10** Nginx producción: HTTPS Certbot + reverse proxy + rate limit
