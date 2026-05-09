@@ -13,8 +13,8 @@
 ## Estado Actual
 
 - **Última fase activa:** Fase 0 — Infraestructura y DevOps
-- **Última tarea completada:** `0.2.2` — Deps dev (pytest, pytest-asyncio, pytest-cov, httpx, ruff) instaladas. Sección `0.2` cerrada.
-- **Próximo paso:** `0.3.1 Crear infra/docker-compose.yml con postgres y redis`
+- **Última tarea completada:** `0.4.2` — `init-db.sql` montado, recreación con `down -v && up -d` deja las 3 extensiones automáticamente. Secciones `0.2`, `0.3`, `0.4` cerradas.
+- **Próximo paso:** `0.5.1 Verificar que llama.cpp/GLM-OCR.sh levanta el server (curl /health → 200)`
 - **Bloqueadores:** ninguno
 
 ---
@@ -81,25 +81,29 @@
 
 ## 0.3 Docker Compose (infra/)
 
-- [ ] **0.3.1** Crear `infra/docker-compose.yml` con servicios `postgres` (16-alpine) y `redis` (7-alpine)
+- [x] **0.3.1** Crear `infra/docker-compose.yml` con servicios `postgres` (16-alpine) y `redis` (7-alpine)
   - Postgres: volumen nombrado, healthcheck, env vars desde `.env`
   - Redis: appendonly yes, healthcheck con `redis-cli ping`
   - **Hecho cuando:** `cd infra && docker compose up -d` levanta ambos sanos
-- [ ] **0.3.2** Crear `.env.example` en raíz con variables: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`, `REDIS_URL`, `LLAMA_SERVER_URL`
+  - **Resultado:** ambos `(healthy)`, `redis-cli ping → PONG`, Postgres 16.13 corriendo
+- [x] **0.3.2** Crear `.env.example` en raíz con variables: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`, `REDIS_URL`, `LLAMA_SERVER_URL`
   - Agregar `.env` al `.gitignore`
   - **Hecho cuando:** `cp .env.example .env` y `docker compose up` lee bien las vars
+  - **Resultado:** `.env` ya estaba ignorado; compose lee creds vía `env_file: ../.env`
 
 ## 0.4 PostgreSQL — Base de datos y extensiones
 
-- [ ] **0.4.1** Conectarse a Postgres del compose y crear extensiones:
+- [x] **0.4.1** Conectarse a Postgres del compose y crear extensiones:
   ```sql
   CREATE EXTENSION IF NOT EXISTS pg_trgm;
   CREATE EXTENSION IF NOT EXISTS pgcrypto;
   CREATE EXTENSION IF NOT EXISTS unaccent;
   ```
   - **Hecho cuando:** `SELECT similarity('test','test');` retorna `1`
-- [ ] **0.4.2** Crear script `infra/init-db.sql` con las extensiones (montar como `/docker-entrypoint-initdb.d/` en compose)
+  - **Resultado:** `sim_exact=1`, `similarity('Comprobante 12345','comprobante 12346')=0.8`
+- [x] **0.4.2** Crear script `infra/init-db.sql` con las extensiones (montar como `/docker-entrypoint-initdb.d/` en compose)
   - **Hecho cuando:** `docker compose down -v && up -d` recrea la DB con extensiones automáticamente
+  - **Resultado:** tras `down -v && up -d`, `\dx` muestra pg_trgm 1.6, pgcrypto 1.3, unaccent 1.1 sin intervención
 
 ## 0.5 llama-server + glm-ocr — Validación
 
@@ -354,6 +358,8 @@
 > Cuando descubras algo no obvio durante una sesión, agregalo acá con fecha. Esto ahorra horas a sesiones futuras.
 
 - **2026-05-08 — Warning `VIRTUAL_ENV` al correr `uv` desde `api/`:** El shell tiene exportada `VIRTUAL_ENV=.../SmartVoucherDetection/.venv` (de antes de la reestructura), pero ese venv ya no existe. `uv` lo ignora y usa `api/.venv`. No bloquea nada. Para limpiar: `unset VIRTUAL_ENV` en la sesión actual o quitarlo del shell rc.
+- **2026-05-08 — `${VAR}` en docker-compose.yml NO se sustituye desde `env_file`:** La sustitución de `${POSTGRES_USER}` en el YAML ocurre **antes** de cargar `env_file`. Compose busca esas vars en (1) el shell y (2) `.env` en `cwd` (donde corrés el comando). Si tu `.env` vive en otra carpeta, o usás `--env-file`, o las vars se cargan vacías. **Solución aplicada:** dejar las creds solo en `env_file: ../.env` (se inyectan al contenedor) y usar `$$VAR` en healthchecks (escape de Compose para que se evalúe **dentro** del contenedor). Solo dejamos sustitución YAML para puertos del host con default `:-5432`.
+- **2026-05-08 — Tipo en `.gitignore`:** la línea `cosas/*7` debería ser `cosas/*` (sufijo `7` es typo). No bloquea, pero conviene corregir cuando se toque ese archivo de nuevo.
 
 ---
 
