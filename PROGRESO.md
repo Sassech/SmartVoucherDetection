@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 1 — **EN CURSO** (sección 1.1 cerrada)
-- **Última tarea completada:** `1.1.3` — `database.py` async + test `SELECT 1` verde.
-- **Próximo paso:** **Fase 1 — sección 1.2** (modelos ORM: `1.2.1` Organizacion, `1.2.2` Usuario, `1.2.3` Comprobante, `1.2.4` Validacion, `1.2.5` LogProcesamiento, luego `1.2.6` autogenerate y `1.2.7` `alembic upgrade head`).
+- **Última fase activa:** Fase 1 — **EN CURSO** (secciones 1.1 y 1.2 cerradas)
+- **Última tarea completada:** `1.2.7` — `alembic upgrade head` aplicado, `\dt` muestra las 5 tablas + `alembic_version`. Revisión head: `607b4c53997b` (`initial_schema`).
+- **Próximo paso:** **Fase 1 — sección 1.3** (servicio de imagen: `1.3.1` `pdf_to_image`, `1.3.2` `validate_mime`, `1.3.3` pipeline OpenCV preprocess, `1.3.4` `to_base64`).
 - **Bloqueadores:** ninguno
 
 ---
@@ -29,6 +29,7 @@
 | D-04 | **Tracking en `PROGRESO.md`** (versionado en Git)                                      | Portable, no depende de herramientas externas.                                                                        | 2026-05-08 |
 | D-05 | **PK = UUID v7 client-side** (lib `uuid-utils` o `uuid6` en Python, no `gen_random_uuid()`) | UUID v7 es ordenable por tiempo → mejor performance de índices B-tree en inserts vs v4. Postgres 16 no trae `uuidv7()` nativa (sí PG18+). Se genera en app via `default=...` de SQLAlchemy. | 2026-05-09 |
 | D-06 | **Soft delete con `deleted_at TIMESTAMPTZ NULL`** en Organizacion/Usuario/Comprobante/Validacion. LogProcesamiento queda hard delete. | Auditoría requerida por CU-02 (validación manual de duplicados detectados). Logs no necesitan recuperación: políticas de retención por TTL, no soft delete. | 2026-05-09 |
+| D-07 | **`uuid-utils` para UUID v7**, **VARCHAR + CHECK constraint** para enums (no `ENUM` nativo Postgres), **bcrypt hash** para `token_api_hash` (renombrado desde `token_api` del ERD). | uuid-utils es Rust-backed (~5x más rápido que uuid6). CHECK permite ALTER TABLE simple para cambiar valores (vs `ALTER TYPE` doloroso). `token_api_hash` deja claro que NO es plain — convención GitHub/Stripe: el plain solo se muestra al usuario una vez. | 2026-05-09 |
 
 ---
 
@@ -166,15 +167,22 @@
 
 ## 1.2 Modelos ORM (SQLAlchemy 2 — async, type-annotated)
 
-- [ ] **1.2.1** Modelo `Organizacion` (`models/organizacion.py`) — multi-tenant base, aunque Fase 4
-- [ ] **1.2.2** Modelo `Usuario` (`models/usuario.py`) — con FK a Organización
-- [ ] **1.2.3** Modelo `Comprobante` (`models/comprobante.py`) — con CHECK en `estado_actual` (enum: `recibido`, `procesando`, `comparando`, `en_revision`, `valido`, `duplicado`, `error`)
-- [ ] **1.2.4** Modelo `Validacion` (`models/validacion.py`) — con `metodo_deteccion`, `id_usuario`
-- [ ] **1.2.5** Modelo `LogProcesamiento` (`models/log_procesamiento.py`) — con `id_usuario`, niveles INFO/WARN/ERROR
-- [ ] **1.2.6** Generar primera migración Alembic: `alembic revision --autogenerate -m "initial_schema"`
+- [x] **1.2.1** Modelo `Organizacion` (`models/organizacion.py`) — multi-tenant base, aunque Fase 4
+  - **Resultado:** PK `id_organizacion` UUID v7 (`uuid_utils.compat.uuid7`), `plan_suscripcion` con CHECK `('basico','profesional','empresarial')`, `fecha_registro` server-side `now()`, `SoftDeleteMixin` aplicado. Relación `usuarios` con `cascade="all, delete-orphan"` (solo dispara en hard delete).
+- [x] **1.2.2** Modelo `Usuario` (`models/usuario.py`) — con FK a Organización
+  - **Resultado:** FK `id_organizacion` con `ondelete="RESTRICT"`. `correo` UNIQUE+índice. `rol` con CHECK `('admin','operador','auditor')`. `token_api_hash` (renombrado de `token_api` del ERD por D-07) nullable, bcrypt. `contrasena_hash` siempre obligatorio.
+- [x] **1.2.3** Modelo `Comprobante` (`models/comprobante.py`) — con CHECK en `estado_actual` (enum: `recibido`, `procesando`, `comparando`, `en_revision`, `valido`, `duplicado`, `error`)
+  - **Resultado:** `monto Numeric(15,2)`, `fecha_deposito Date`, `hash_documento String(64) UNIQUE` (Capa 1 deduplicación), `texto_extraido Text`. CHECK extra: `monto >= 0 OR NULL`. Índices btree en `id_usuario`, `fecha_deposito`, `estado_actual`. Compuesto `(referencia,monto,fecha_deposito)` queda para 2.2.2.
+- [x] **1.2.4** Modelo `Validacion` (`models/validacion.py`) — con `metodo_deteccion`, `id_usuario`
+  - **Resultado:** `id_usuario` nullable + `ondelete="SET NULL"` (detecciones automáticas no tienen autor). `id_comprobante` con `ondelete="CASCADE"`. `score_similitud Float` con CHECK `[0,1] OR NULL`. `clasificacion` CHECK `('valido','sospechoso','duplicado')`. `metodo_deteccion` CHECK `('hash_exacto','campos_exactos','scoring_ponderado','manual')`.
+- [x] **1.2.5** Modelo `LogProcesamiento` (`models/log_procesamiento.py`) — con `id_usuario`, niveles INFO/WARN/ERROR
+  - **Resultado:** SIN `SoftDeleteMixin` (D-06). `__tablename__="log_procesamiento"` (singular para diferenciarlo del resto que es plural — se respeta el nombre del ERD). `etapa String(50)` con índice (filtros tipo `etapa LIKE 'ocr.%'`). `nivel` CHECK INFO/WARN/ERROR.
+- [x] **1.2.6** Generar primera migración Alembic: `alembic revision --autogenerate -m "initial_schema"`
   - **Hecho cuando:** archivo de migración generado refleja las 5 tablas + Organización
-- [ ] **1.2.7** Aplicar: `alembic upgrade head`
+  - **Resultado:** `alembic/versions/607b4c53997b_initial_schema.py`. Autogenerate detectó 5 tablas + 13 índices + 9 CHECK constraints + 5 FKs + 2 UNIQUE en orden topológico correcto. Para que detecte las tablas hubo que cambiar `target_metadata = None` → `Base.metadata` y agregar `import models` en `alembic/env.py` (sin eso el autogenerate no carga los modelos).
+- [x] **1.2.7** Aplicar: `alembic upgrade head`
   - **Hecho cuando:** `\dt` en psql muestra las 5 tablas
+  - **Resultado:** `alembic upgrade head` corrió sin error. `\dt` muestra `comprobantes`, `log_procesamiento`, `organizaciones`, `usuarios`, `validaciones` + `alembic_version`. `alembic current` reporta `607b4c53997b (head)`.
 
 ## 1.3 Servicio de Imagen (`services/image_service.py`)
 
@@ -378,6 +386,9 @@
 - **2026-05-08 — Stack confirmado actualizado:** El script `GLM-OCR.sh` real usa `GLM-OCR-f16.gguf` + `mmproj-GLM-OCR-Q8_0.gguf` (multimodal completo, ctx 16384), NO Q4_K_M como decía la doc inicial. Tamaño efectivo ~1.78 GB.
 - **2026-05-09 — Imports en `api/`: top-level, NO `api.X`:** Como el `pyproject.toml` vive dentro de `api/`, ese directorio es el package root del proyecto. Los módulos se importan top-level (`from config import settings`, `from models.X import ...`), no como `from api.config`. Alembic respeta esto gracias a `prepend_sys_path = .` en `alembic.ini` (CWD = `api/`).
 - **2026-05-09 — Orden 0.6.2 ↔ 0.6.3 invertido a propósito:** Hicimos `config.py` (0.6.3) antes que `env.py` (0.6.2) para evitar duplicar la lógica de lectura de `.env`. `env.py` ahora importa `settings` y queda como single consumer. Si se reordena el PROGRESO en el futuro, dejar `config.py` siempre primero.
+- **2026-05-09 — Alembic autogenerate ignora modelos no importados:** Cambiar `target_metadata = None` → `Base.metadata` no alcanza. Hay que `import models` en `env.py` (con `# noqa: F401`) ANTES de leer `Base.metadata`, porque las tablas se registran en metadata al ejecutar el `mapped_column(...)` del decorador `__tablename__`. Sin el import explícito, autogenerate cree que el schema está vacío y emite un drop fantasma. El `__init__.py` de `models/` re-exporta los 5 modelos para que un solo `import models` los cargue todos.
+- **2026-05-09 — `uuid_utils.compat.uuid7` vs `uuid_utils.uuid7`:** El módulo principal `uuid_utils` retorna su propio tipo `uuid_utils.UUID` que NO es subclase de `uuid.UUID` de stdlib. SQLAlchemy 2 con `Mapped[uuid.UUID]` y tipo nativo `Uuid` espera `uuid.UUID`. La forma correcta es `from uuid_utils.compat import uuid7` que devuelve `uuid.UUID` versión 7 nativo. Otra opción sería `uuid_utils.UUID(str(...))` pero es más feo.
+- **2026-05-09 — `__tablename__="log_procesamiento"` (singular) rompe la convención plural del resto:** Lo mantuve así porque el ERD del cliente (`cosas/BD.html`) lo tiene singular. Las otras 4 tablas son plurales (`organizaciones`, `usuarios`, `comprobantes`, `validaciones`). No es prolijo pero respeta el contrato visual del ERD. Si se decide unificar a plural en algún momento, cambiar `__tablename__` y generar migración nueva con `op.rename_table`.
 
 ---
 

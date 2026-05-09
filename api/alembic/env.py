@@ -4,8 +4,10 @@ Notas de diseno:
 - `prepend_sys_path = .` en alembic.ini agrega `api/` a sys.path cuando
   Alembic corre desde `api/`, asi que `from config import settings`
   funciona sin trucos.
-- `target_metadata` queda en None hasta Fase 1 (1.2.6); se llenara cuando
-  existan los modelos ORM.
+- `target_metadata = Base.metadata` para que `--autogenerate` detecte cambios.
+  El `import models` (con noqa: F401) fuerza el registro de TODAS las tablas
+  antes de leer la metadata; sin ese import, autogenerate generaria un drop
+  fantasma de las que no se vieron.
 - El driver async (asyncpg) viene incrustado en DATABASE_URL desde `.env`.
 """
 
@@ -31,10 +33,14 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Metadata de los modelos para autogenerate. Se conectara en Fase 1 (1.2.6).
-# from models import Base  # noqa: ERA001
-# target_metadata = Base.metadata  # noqa: ERA001
-target_metadata = None
+# Metadata de los modelos para autogenerate.
+# Importamos `models` (no solo `Base`) para forzar el registro de todas las
+# tablas en Base.metadata antes de que autogenerate corra.
+import models  # noqa: F401, E402
+
+from database import Base  # noqa: E402
+
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
