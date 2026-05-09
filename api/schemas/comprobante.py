@@ -176,3 +176,30 @@ class ComprobanteResponse(BaseModel):
                 banco=comp.banco or "OTRO",
             ),
         )
+
+
+class ComprobanteListResponse(BaseModel):
+    """Pagina de comprobantes con metadata (task 1.7.3 — GET /history).
+
+    Estrategia offset/limit. `total` es el COUNT(*) de la query con filtros
+    aplicados (sin paginar) — permite que el frontend muestre "Pagina 3 de
+    47" sin un segundo round-trip. Es O(n) en Postgres pero con los indices
+    de Fase 1 (id_usuario, fecha_deposito, estado_actual) y filtro por
+    usuario, el dataset por tenant raramente pasa de unos miles de filas.
+    Si en Fase 5 vemos lentitud, migramos a estimaciones via `pg_class`.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    items: list[ComprobanteResponse] = Field(
+        description="Comprobantes de la pagina actual, ordenados por fecha_registro DESC.",
+    )
+    total: int = Field(
+        ge=0,
+        description="Total de filas que matchean los filtros (sin paginar).",
+    )
+    limit: int = Field(ge=1, le=100, description="Tope de items por pagina.")
+    offset: int = Field(ge=0, description="Cantidad de items salteados.")
+    has_more: bool = Field(
+        description="True si hay mas paginas despues de esta (offset+limit < total).",
+    )
