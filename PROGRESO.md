@@ -1,0 +1,362 @@
+# PROGRESO — SmartVoucherDetection
+
+> **Cómo usar este archivo (leer SIEMPRE al iniciar una sesión nueva):**
+>
+> 1. Buscá el primer `[ ]` (sin marcar) — ahí retomás.
+> 2. Marcá `[x]` apenas terminés un paso. **Commit inmediato** del cambio en `PROGRESO.md`.
+> 3. Si tomás una decisión técnica nueva, agregala en **§ Decisiones Técnicas**.
+> 4. Si descubrís un gotcha, agregalo en **§ Notas y Gotchas** al final.
+> 5. NO avances al siguiente paso si el criterio de aceptación del actual no se cumple.
+
+---
+
+## Estado Actual
+
+- **Última fase activa:** Fase 0 — Infraestructura y DevOps
+- **Última tarea completada:** `0.1.1` — Estructura monorepo creada
+- **Próximo paso:** `0.1.2 Actualizar pyproject.toml a Python 3.12 y renombrar a smartvoucher-api`
+- **Bloqueadores:** ninguno (nota: `.venv` quedó inválido tras el move; se regenera en 0.1.2)
+
+---
+
+## Decisiones Técnicas (NO se discuten de nuevo)
+
+| # | Decisión | Justificación | Fecha |
+|---|----------|---------------|-------|
+| D-01 | **PostgreSQL desde día 1** (no SQLite) | `pg_trgm` es crítico para Fase 2 (scoring de duplicados). Migrar después = rehacer modelos y tests. | 2026-05-08 |
+| D-02 | **Python 3.12** (no 3.14, no 3.11) | 3.12 tiene wheels prebuilt para OpenCV/pdf2image/asyncpg, soporte hasta 2028. 3.14 muy nuevo, 3.11 ya quedando atrás. | 2026-05-08 |
+| D-03 | **Monorepo `/api`, `/plugin-wp`, `/webapp`, `/infra`, `/tests`, `/docs`** desde Fase 0 | Evitar reestructuración traumática en Fase 3. | 2026-05-08 |
+| D-04 | **Tracking en `PROGRESO.md`** (versionado en Git) | Portable, no depende de herramientas externas. | 2026-05-08 |
+
+---
+
+## Stack Confirmado
+
+- **Backend:** FastAPI + Pydantic v2 + SQLAlchemy 2 (async) + Alembic
+- **DB:** PostgreSQL 16 + extensiones `pg_trgm`, `pgcrypto`, `unaccent`
+- **Cache/Queue:** Redis 7 + Celery
+- **OCR:** llama-server (llama.cpp) + modelo `glm-ocr` GGUF Q4_K_M (ya descargado en `llama.cpp/GLM-OCR/`)
+- **Imagen:** OpenCV + pdf2image + Pillow
+- **Frontend pago (Fase 4):** Next.js 14 + Tailwind + shadcn/ui + Zustand + React Query
+- **Plugin (Fase 3):** PHP nativo WordPress 6.5+
+- **Infra:** Docker Compose + Nginx + Certbot
+- **CI/CD:** GitHub Actions
+- **Tests:** pytest + httpx mock + TestClient
+
+---
+
+# FASE 0 — Infraestructura y DevOps (Semanas 1-2)
+
+> Objetivo: entorno reproducible con `llama-server` sirviendo `glm-ocr` antes de escribir lógica de negocio.
+
+## 0.1 Reestructuración del Repo (monorepo)
+
+- [x] **0.1.1** Crear estructura de carpetas: `api/`, `plugin-wp/`, `webapp/`, `infra/`, `tests/`, `docs/`
+  - Mover `main.py` y `pyproject.toml` actuales dentro de `api/`
+  - Crear `.gitkeep` en `plugin-wp/`, `webapp/`, `infra/`, `docs/`
+  - **Hecho cuando:** `tree -L 2 -I '.venv|llama.cpp|cosas'` muestra la estructura objetivo
+- [ ] **0.1.2** Actualizar `pyproject.toml` en `api/`: cambiar `requires-python` a `>=3.12,<3.13`, name a `smartvoucher-api`
+  - **Hecho cuando:** `cd api && uv sync` funciona sin error
+- [ ] **0.1.3** Crear `.editorconfig` en raíz (LF, UTF-8, indent 4 Python / 2 JS)
+- [ ] **0.1.4** Configurar `pre-commit` con `ruff` (Python) — archivo `.pre-commit-config.yaml` en raíz
+  - **Hecho cuando:** `pre-commit run --all-files` ejecuta sin instalar y reporta archivos
+- [ ] **0.1.5** Crear ramas `develop` y configurar `main` como protegida (documentar en `docs/git-flow.md`)
+  - **Hecho cuando:** `git branch` muestra `main`, `develop`; `docs/git-flow.md` existe
+
+## 0.2 Dependencias Python (api/)
+
+- [ ] **0.2.1** Agregar deps base a `api/pyproject.toml`:
+  - `fastapi[standard]`, `pydantic-settings`, `sqlalchemy[asyncio]`, `asyncpg`, `psycopg[binary]`, `alembic`
+  - `redis`, `celery[redis]`, `httpx`, `tenacity`
+  - `opencv-python-headless`, `pdf2image`, `pillow`, `python-magic`
+  - `python-jose[cryptography]`, `passlib[bcrypt]`, `python-multipart`
+  - `python-levenshtein`, `scikit-learn`, `python-dateutil`
+  - **Hecho cuando:** `cd api && uv sync` resuelve todo sin conflictos
+- [ ] **0.2.2** Agregar deps dev: `pytest`, `pytest-asyncio`, `pytest-cov`, `httpx`, `ruff`
+  - **Hecho cuando:** `cd api && uv sync --dev` OK
+
+## 0.3 Docker Compose (infra/)
+
+- [ ] **0.3.1** Crear `infra/docker-compose.yml` con servicios `postgres` (16-alpine) y `redis` (7-alpine)
+  - Postgres: volumen nombrado, healthcheck, env vars desde `.env`
+  - Redis: appendonly yes, healthcheck con `redis-cli ping`
+  - **Hecho cuando:** `cd infra && docker compose up -d` levanta ambos sanos
+- [ ] **0.3.2** Crear `.env.example` en raíz con variables: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`, `REDIS_URL`, `LLAMA_SERVER_URL`
+  - Agregar `.env` al `.gitignore`
+  - **Hecho cuando:** `cp .env.example .env` y `docker compose up` lee bien las vars
+
+## 0.4 PostgreSQL — Base de datos y extensiones
+
+- [ ] **0.4.1** Conectarse a Postgres del compose y crear extensiones:
+  ```sql
+  CREATE EXTENSION IF NOT EXISTS pg_trgm;
+  CREATE EXTENSION IF NOT EXISTS pgcrypto;
+  CREATE EXTENSION IF NOT EXISTS unaccent;
+  ```
+  - **Hecho cuando:** `SELECT similarity('test','test');` retorna `1`
+- [ ] **0.4.2** Crear script `infra/init-db.sql` con las extensiones (montar como `/docker-entrypoint-initdb.d/` en compose)
+  - **Hecho cuando:** `docker compose down -v && up -d` recrea la DB con extensiones automáticamente
+
+## 0.5 llama-server + glm-ocr — Validación
+
+- [ ] **0.5.1** Verificar que `llama.cpp/GLM-OCR.sh` levanta el server correctamente
+  - **Hecho cuando:** `curl http://localhost:8080/health` responde 200
+- [ ] **0.5.2** Prueba de humo OCR: enviar imagen base64 de comprobante de prueba y validar respuesta
+  - Crear script `infra/scripts/smoke_test_ocr.sh`
+  - **Hecho cuando:** El script imprime "OK — texto extraído: ..." con tiempo < 5s
+- [ ] **0.5.3** Documentar en `docs/llama-server.md`: cómo levantar, parámetros del modelo, prompt base
+  - **Hecho cuando:** `docs/llama-server.md` existe con secciones: Setup, Iniciar, Probar, Apagar
+
+## 0.6 Alembic — Sistema de migraciones
+
+- [ ] **0.6.1** `cd api && uv run alembic init alembic` (config asíncrono)
+  - **Hecho cuando:** existe `api/alembic/` y `api/alembic.ini`
+- [ ] **0.6.2** Configurar `api/alembic/env.py` para leer `DATABASE_URL` del `.env` y usar engine async
+  - **Hecho cuando:** `uv run alembic current` no falla (devuelve vacío porque no hay migraciones)
+- [ ] **0.6.3** Crear `api/config.py` con `Settings(BaseSettings)` que lee `.env`
+  - **Hecho cuando:** `python -c "from api.config import settings; print(settings.database_url)"` imprime la URL
+
+## 0.7 Criterios de Aceptación de Fase 0
+
+- [ ] **0.7.1** llama-server responde en <3s con texto extraído de imagen de prueba ✅ (validado en 0.5.2)
+- [ ] **0.7.2** PostgreSQL accesible con `pg_trgm` habilitado ✅ (validado en 0.4.1)
+- [ ] **0.7.3** Redis corriendo y accesible (`redis-cli ping → PONG`) ✅ (validado en 0.3.1)
+- [ ] **0.7.4** `alembic current` ejecuta sin error ✅ (validado en 0.6.2)
+- [ ] **0.7.5** Estructura de monorepo en Git con ramas configuradas ✅ (validado en 0.1.5)
+
+> **🏁 Fin Fase 0** — commitear y taggear: `git tag fase-0-completa`
+
+---
+
+# FASE 1 — Núcleo OCR y API MVP (Semanas 3-7)
+
+> Objetivo: API REST funcional `POST /upload-slip` que procesa comprobante con glm-ocr, normaliza y persiste. **Sin** detección de duplicados aún.
+
+## 1.1 Estructura del proyecto FastAPI
+
+- [ ] **1.1.1** Crear esqueleto de carpetas dentro de `api/`:
+  - `models/`, `schemas/`, `routers/`, `services/`, `tasks/`, `tests/`
+  - `__init__.py` en cada uno
+- [ ] **1.1.2** Crear `api/main.py` con FastAPI app, CORS configurado, router `/health` mínimo
+  - **Hecho cuando:** `uv run fastapi dev api/main.py` levanta y `GET /health` responde 200
+- [ ] **1.1.3** Crear `api/database.py` con engine async SQLAlchemy + `SessionLocal` + `get_session` dependency
+  - **Hecho cuando:** test mínimo `SELECT 1` async funciona
+
+## 1.2 Modelos ORM (SQLAlchemy 2 — async, type-annotated)
+
+- [ ] **1.2.1** Modelo `Organizacion` (`models/organizacion.py`) — multi-tenant base, aunque Fase 4
+- [ ] **1.2.2** Modelo `Usuario` (`models/usuario.py`) — con FK a Organización
+- [ ] **1.2.3** Modelo `Comprobante` (`models/comprobante.py`) — con CHECK en `estado_actual` (enum: `recibido`, `procesando`, `comparando`, `en_revision`, `valido`, `duplicado`, `error`)
+- [ ] **1.2.4** Modelo `Validacion` (`models/validacion.py`) — con `metodo_deteccion`, `id_usuario`
+- [ ] **1.2.5** Modelo `LogProcesamiento` (`models/log_procesamiento.py`) — con `id_usuario`, niveles INFO/WARN/ERROR
+- [ ] **1.2.6** Generar primera migración Alembic: `alembic revision --autogenerate -m "initial_schema"`
+  - **Hecho cuando:** archivo de migración generado refleja las 5 tablas + Organización
+- [ ] **1.2.7** Aplicar: `alembic upgrade head`
+  - **Hecho cuando:** `\dt` en psql muestra las 5 tablas
+
+## 1.3 Servicio de Imagen (`services/image_service.py`)
+
+- [ ] **1.3.1** Función `pdf_to_image(pdf_bytes) -> bytes` con `pdf2image` (dpi=300, primera página)
+  - Test: `tests/test_image_service.py::test_pdf_to_image`
+- [ ] **1.3.2** Función `validate_mime(file_bytes) -> str` con `python-magic` (whitelist: image/jpeg, image/png, application/pdf)
+- [ ] **1.3.3** Pipeline OpenCV: `preprocess(img_bytes) -> bytes`
+  - Pasos: decode → grayscale → adaptiveThreshold → deskew → crop → encode
+  - Test con imagen torcida del dataset de prueba
+- [ ] **1.3.4** Función `to_base64(img_bytes) -> str`
+  - **Hecho cuando:** suite `pytest tests/test_image_service.py` pasa
+
+## 1.4 Servicio OCR (`services/ocr_service.py`)
+
+- [ ] **1.4.1** Cliente `httpx.AsyncClient` con timeout 10s, base URL desde settings
+- [ ] **1.4.2** Función `extract_fields(img_b64) -> dict` con prompt JSON del plan (sección 1.3 del plan_desarrollo.md)
+- [ ] **1.4.3** Reintentos con `tenacity` (3 intentos, backoff 1s)
+- [ ] **1.4.4** Manejo de errores: si llama-server cae, raise `HTTPException(503)`
+- [ ] **1.4.5** Tests con `httpx` mock: `tests/test_ocr_service.py`
+  - **Hecho cuando:** mock de respuesta JSON parsea correctamente
+
+## 1.5 Servicio Parser/Normalización (`services/parser_service.py`)
+
+- [ ] **1.5.1** `parse_monto(raw: str) -> Decimal` — extrae dígitos, descarta símbolos
+- [ ] **1.5.2** `parse_fecha(raw: str) -> date` — `dateutil.parser` con múltiples formatos
+- [ ] **1.5.3** `parse_referencia(raw: str) -> str` — strip + uppercase + colapsar espacios
+- [ ] **1.5.4** `normalize_banco(raw: str) -> str` — match contra catálogo (BBVA, Citibanamex, Banorte, HSBC, Santander, Hey Banco, Nu Bank, OTRO)
+- [ ] **1.5.5** `compute_hash(image_bytes: bytes) -> str` — SHA-256 sobre bytes originales
+- [ ] **1.5.6** Tabla de tests con casos sucios → salidas esperadas: `tests/test_parser_service.py`
+
+## 1.6 Schemas Pydantic v2 (`schemas/`)
+
+- [ ] **1.6.1** `schemas/comprobante.py`: `ComprobanteCreate`, `ComprobanteResponse`, `CamposExtraidos`
+- [ ] **1.6.2** `schemas/health.py`: `HealthResponse` con campos `llama`, `db`, `redis`
+
+## 1.7 Endpoints MVP
+
+- [ ] **1.7.1** `POST /upload-slip` (`routers/upload.py`):
+  - Recibe `UploadFile` → valida MIME → preprocesa → OCR → normaliza → guarda en DB
+  - Responde `{comprobante_id, campos_extraidos, status: "procesado"}`
+  - **Sin** detección de duplicados (Fase 2)
+- [ ] **1.7.2** `GET /health` (`routers/health.py`): chequea llama-server, postgres, redis
+- [ ] **1.7.3** `GET /history` (`routers/history.py`): paginado con filtros `fecha_desde`, `fecha_hasta`, `banco`, `estado`
+
+## 1.8 Tests de integración
+
+- [ ] **1.8.1** `tests/conftest.py`: fixture de DB de test (postgres dockerizada o testcontainer)
+- [ ] **1.8.2** `tests/test_upload_endpoint.py`: prueba E2E con `TestClient` y mock de llama-server
+- [ ] **1.8.3** Coverage: `pytest --cov=api --cov-report=term --cov-fail-under=70`
+  - **Hecho cuando:** coverage en `services/` ≥ 70%
+
+## 1.9 Criterios de Aceptación de Fase 1
+
+- [ ] **1.9.1** Tiempo procesamiento por comprobante ≤ 5s (medir con script `infra/scripts/bench_upload.sh`)
+- [ ] **1.9.2** Precisión campos en dataset de 20 comprobantes ≥ 85%
+- [ ] **1.9.3** `/health` responde 200 con todos los servicios OK
+- [ ] **1.9.4** Suite pytest pasa sin errores
+- [ ] **1.9.5** Swagger en `/docs` accesible y completo
+
+> **🏁 Fin Fase 1** — `git tag fase-1-completa`
+
+---
+
+# FASE 2 — Motor de Detección de Duplicados (Semanas 8-10)
+
+> Objetivo: Sistema clasifica comprobantes en `Válido`, `Sospechoso`, `Duplicado` con detección en 3 capas.
+
+## 2.1 Detección Capa 1 — Hash exacto (Redis)
+
+- [ ] **2.1.1** Cliente Redis async (`services/cache_service.py`)
+- [ ] **2.1.2** Función `check_hash(hash: str) -> Optional[ComprobanteId]`
+- [ ] **2.1.3** TTL 7 días, key pattern `comp:hash:{sha256}`
+
+## 2.2 Detección Capa 2 — Campos críticos exactos (Postgres)
+
+- [ ] **2.2.1** Query: `WHERE referencia = ? AND monto = ? AND fecha = ?`
+- [ ] **2.2.2** Índice compuesto en (`referencia`, `monto`, `fecha`) — agregar a migración
+- [ ] **2.2.3** Si match: marcar como `duplicado`, registrar en `Validacion`
+
+## 2.3 Detección Capa 3 — Scoring ponderado (`services/duplicate_service.py`)
+
+- [ ] **2.3.1** `S_ref` con `python-Levenshtein.ratio()` (peso 0.35)
+- [ ] **2.3.2** `S_texto` con `TfidfVectorizer + cosine_similarity` (peso 0.30)
+- [ ] **2.3.3** `S_monto` numérica normalizada (peso 0.20)
+- [ ] **2.3.4** `S_fecha` por días en ventana de 30 (peso 0.15)
+- [ ] **2.3.5** Función `compute_score(nuevo, existente) -> float`
+- [ ] **2.3.6** Clasificador: ≥0.90 duplicado, 0.75–0.90 sospechoso, <0.75 válido
+
+## 2.4 Celery — modo asíncrono
+
+- [ ] **2.4.1** `tasks/process_slip.py` — task Celery con todo el flujo
+- [ ] **2.4.2** Endpoint `POST /upload-slip/async` → encola → responde `{task_id, status: "queued"}`
+- [ ] **2.4.3** Endpoint `GET /status/{task_id}` → consulta estado en Redis
+- [ ] **2.4.4** Worker: `celery -A api.tasks worker --concurrency=4`
+- [ ] **2.4.5** Servicio Celery agregado al `docker-compose.yml`
+
+## 2.5 Endpoints adicionales
+
+- [ ] **2.5.1** `POST /validate/{id}` — CU-02 validación manual
+- [ ] **2.5.2** `GET /report` — reportes (válidos/duplicados/sospechosos/tiempo promedio)
+
+## 2.6 Diagrama de estados — implementar transiciones
+
+- [ ] **2.6.1** Máquina de estados en `services/state_machine.py` siguiendo `cosas/diagrama_estados.svg`
+- [ ] **2.6.2** Tests: cada transición posible
+
+## 2.7 Criterios de Aceptación de Fase 2
+
+- [ ] **2.7.1** Detección correcta ≥90% en dataset etiquetado (20 únicos + 10 duplicados + 10 sospechosos)
+- [ ] **2.7.2** Hash exacto detectado en <100ms (cache Redis)
+- [ ] **2.7.3** Flujo síncrono completo ≤ 5s
+- [ ] **2.7.4** Task Celery completa en < 30s
+- [ ] **2.7.5** `POST /validate/{id}` actualiza estado correctamente en 100% de tests
+
+> **🏁 Fin Fase 2** — `git tag fase-2-completa`
+
+---
+
+# FASE 3 — Plugin WordPress Gratuito (Semanas 11-13)
+
+> Objetivo: Plugin instalable desde WordPress.org consumiendo la API.
+> _Tareas se refinarán al iniciar Fase 3 — por ahora son macro-tareas._
+
+- [ ] **3.1** Estructura `plugin-wp/comprobantes-ocr/` (entry point + readme.txt + includes/)
+- [ ] **3.2** Clase `API_Client` con `wp_remote_post()` hacia FastAPI
+- [ ] **3.3** Página de configuración wp-admin (URL API + API key + botón "Probar conexión")
+- [ ] **3.4** Shortcode `[comprobante_upload]` con drag-and-drop
+- [ ] **3.5** Bloque Gutenberg equivalente al shortcode
+- [ ] **3.6** Semáforo visual (verde/amarillo/rojo) renderizado vía JS
+- [ ] **3.7** Widget historial últimos 20 en wp-admin
+- [ ] **3.8** Hook WooCommerce `woocommerce_order_status_completed`
+- [ ] **3.9** Seguridad: nonce, sanitización, capability checks
+- [ ] **3.10** i18n: archivos .pot, traducciones es_MX y en_US
+- [ ] **3.11** Assets WP.org: banner, ícono, screenshots
+- [ ] **3.12** `readme.txt` formato oficial WP.org
+- [ ] **3.13** Pasar Plugin Check sin errores críticos
+- [ ] **3.14** Workflow GitHub Actions para generar ZIP en tags
+
+> **🏁 Fin Fase 3** — `git tag fase-3-completa`
+
+---
+
+# FASE 4 — Plataforma Web de Pago (Semanas 14-18)
+
+> Objetivo: Next.js 14 con dashboard, multi-tenant, suscripciones Stripe.
+> _Tareas se refinarán al iniciar Fase 4._
+
+- [ ] **4.1** Bootstrap Next.js 14 en `webapp/` con App Router + TypeScript
+- [ ] **4.2** Configurar Tailwind + shadcn/ui
+- [ ] **4.3** Auth: NextAuth con provider JWT custom hacia FastAPI
+- [ ] **4.4** Endpoints API: `POST /auth/login`, `POST /auth/refresh`
+- [ ] **4.5** Middleware de autorización por rol (admin/operador/auditor)
+- [ ] **4.6** Multi-tenancy en API: `organization_id` en JWT, filtro automático en queries
+- [ ] **4.7** Rate limiting por plan (Básico/Profesional/Empresarial)
+- [ ] **4.8** Dashboard principal con KPIs y gráficas Recharts
+- [ ] **4.9** Módulo upload con modo síncrono/asíncrono
+- [ ] **4.10** Historial avanzado con filtros + exportar CSV/Excel/PDF
+- [ ] **4.11** Vista side-by-side para revisión manual de duplicados
+- [ ] **4.12** UI configuración de umbrales (sliders para w1-w4)
+- [ ] **4.13** Gestión de usuarios (CRUD + roles)
+- [ ] **4.14** Gestión de organizaciones (multi-tenant admin)
+- [ ] **4.15** Webhooks: configuración + logs de envío + reintentos
+- [ ] **4.16** Integración Stripe: planes + portal cliente + facturación
+
+> **🏁 Fin Fase 4** — `git tag fase-4-completa`
+
+---
+
+# FASE 5 — Hardening, CI/CD y Lanzamiento (Semanas 19-20)
+
+> _Tareas se refinarán al iniciar Fase 5._
+
+- [ ] **5.1** Recopilar dataset 100 comprobantes etiquetados reales
+- [ ] **5.2** Evaluación métricas: precision/recall/F1 por clase
+- [ ] **5.3** Grid search de pesos w1-w4 si precisión <90%
+- [ ] **5.4** Persistir pesos finales en tabla `configuracion_sistema`
+- [ ] **5.5** GitHub Actions: job `tests-api` (postgres+redis services, pytest, coverage)
+- [ ] **5.6** GitHub Actions: job `lint` (ruff + eslint)
+- [ ] **5.7** GitHub Actions: job `build-plugin` en tags v*
+- [ ] **5.8** GitHub Actions: job `deploy-staging` en push a develop
+- [ ] **5.9** GitHub Actions: job `deploy-production` en tags en main
+- [ ] **5.10** Nginx producción: HTTPS Certbot + reverse proxy + rate limit
+- [ ] **5.11** Docker Compose producción: api, webapp, postgres, redis, celery, nginx
+- [ ] **5.12** Backups: cron pg_dump diario + sync imágenes a S3/B2 + RDB Redis
+- [ ] **5.13** Checklist seguridad final (10 controles del plan §5.4)
+- [ ] **5.14** Documentación final: README, ARCHITECTURE.md, DEPLOYMENT.md
+- [ ] **5.15** Publicar plugin en WordPress.org
+
+> **🏁 Lanzamiento v1.0** — `git tag v1.0.0`
+
+---
+
+## Notas y Gotchas (registrar lo aprendido)
+
+> Cuando descubras algo no obvio durante una sesión, agregalo acá con fecha. Esto ahorra horas a sesiones futuras.
+
+- _(vacío por ahora)_
+
+---
+
+## Glosario rápido para retomar
+
+- **glm-ocr**: modelo OCR multimodal en formato GGUF, sirve por llama-server, ya está en `llama.cpp/GLM-OCR/`
+- **comprobante**: imagen/PDF de depósito bancario que el sistema valida
+- **scoring híbrido**: combinación ponderada de Levenshtein + TF-IDF + numérico + temporal
+- **multi-tenant**: cada organización ve solo sus datos (Fase 4)
+- **CU-02**: caso de uso "Validación manual de comprobantes sospechosos"

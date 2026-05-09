@@ -4,3 +4,14 @@ llama.cpp/
 cosas/*7
 plan_desarrollo.md
 .claude/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+node_modules/
+.next/
+dist/
+build/
