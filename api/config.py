@@ -46,5 +46,12 @@ class Settings(BaseSettings):
     # Reintentos ante errores de red o 5xx (NO ante 4xx ni JSON invalido).
     llama_max_retries: int = 3
 
+    # --- Storage de uploads ------------------------------------------------
+    # Directorio raiz donde se persisten los archivos originales subidos.
+    # En Fase 1 es filesystem local; en Fase 5+ migrara a S3/B2 detras del
+    # mismo contrato de `services/storage_service.py`. Default `./data/uploads`
+    # relativo a la raiz del repo para que en dev local no requiera setup.
+    upload_dir: Path = ROOT_DIR / "data" / "uploads"
+
 
 settings = Settings()  # type: ignore[call-arg]

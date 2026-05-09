@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 1 — **EN CURSO** (secciones 1.1, 1.2, 1.3, 1.4, 1.5 y 1.6 cerradas)
-- **Última tarea completada:** `1.6.2` — `schemas/health.py` con `HealthResponse` + `ServiceCheck` (componente reutilizable por dependencia, sin flag global agregado). Suite 107/107 estable.
-- **Próximo paso:** **Fase 1 — sección 1.7** (`1.7.1` `POST /upload-slip` en `routers/upload.py`, `1.7.2` `GET /health` con chequeos reales, `1.7.3` `GET /history` paginado).
+- **Última fase activa:** Fase 1 — **EN CURSO** (1.1 a 1.6 cerradas + 1.7.1 cerrada)
+- **Última tarea completada:** `1.7.1` — `POST /upload-slip` orquestando todo el pipeline. Pasos preparatorios incluidos: seed `system` org/user (migración `ba4e861e6950`), `settings.upload_dir`, `services/storage_service.py` con write atómico (tmp+rename) y `mime_to_ext`. Suite 139/139 (32 tests nuevos de storage).
+- **Próximo paso:** **Fase 1 — `1.7.2`** (`GET /health` con chequeos reales contra llama-server/postgres/redis devolviendo `HealthResponse`).
 - **Bloqueadores:** ninguno
 
 ---
@@ -33,6 +33,7 @@
 | D-08 | **Pipeline OpenCV con orden invertido respecto al plan**: deskew (paso 4 del plan) se aplica ANTES de adaptiveThreshold (paso 3). | `cv2.warpAffine` usa interpolación bilineal/cubica que rompe la binarización: rotar una imagen ya en {0,255} produce píxeles intermedios en los bordes del texto. Lo correcto en pipelines OCR es rotar la grayscale y binarizar después. Documentado en `image_service.py`. | 2026-05-09 |
 | D-09 | **Política de retry conservadora en OCR**: tenacity reintenta SOLO en `httpx.RequestError` o 5xx. 4xx → `HTTPException(502)` sin retry. JSON inválido en `content` → `HTTPException(503)` sin retry. | Patrón Stripe/AWS: nunca reintentar errores no idempotentes (4xx = contrato roto, no se arregla con retry). JSON malformado del LLM con `temperature=0` no se corrige reintentando — es un problema de prompt/modelo, escalar a 503 es lo correcto. | 2026-05-09 |
 | D-10 | **Parser tolerante (devuelve `None` en input inválido) + monto US-style + banco fuzzy**: (a) `parse_monto/fecha/referencia` retornan `None` ante input vacío/sucio; (b) monto asume coma=miles, punto=decimal (formato MX bancario); (c) `normalize_banco` usa `Levenshtein.ratio ≥ 0.85` + substring match para aliases ≥4 chars, fallback `"OTRO"`. | (a) GLM-OCR puede emitir `null` por campo no detectado; preferimos persistir parcial que romper el flujo (el endpoint decide marcar `error`). (b) Heurísticas europeas se evalúan en Fase 5 con dataset real. (c) Fuzzy absorbe los confusos del OCR (`MÉXICO→MÁXICO`); substring evita falsos negativos en frases tipo "BBVA Mexico"; el threshold de 4 chars en substring previene matches espurios con aliases cortos como `nu`/`hey`. | 2026-05-09 |
+| D-11 | **Tenant `system` con UUIDs hardcoded en seed migration** (org `019e0d75-323e-74b3-a249-90828e8673e6`, user `019e0d75-323e-74b3-a249-909b3f77ee9f`). **Storage local en `{ROOT}/data/uploads/{yyyy}/{mm}/{hash}.{ext}` con write atómico (tmp+replace)**. **Hash duplicado → 409 + id existente** (no 500, no 200 idempotente). | UUIDs fijos = determinismo cross-env (dev/CI/staging/prod tienen el mismo ID; un dump de prod restaurado en dev no rompe FK). Filesystem local hasta migrar a S3 en Fase 5+ (mismo contrato). 409 anticipa Capa 1 de Fase 2.1 sin romper API: cuando llegue Validacion solo se agrega un INSERT extra; el contrato HTTP queda igual. | 2026-05-09 |
 
 ---
 
@@ -235,10 +236,11 @@
 
 ## 1.7 Endpoints MVP
 
-- [ ] **1.7.1** `POST /upload-slip` (`routers/upload.py`):
+- [x] **1.7.1** `POST /upload-slip` (`routers/upload.py`):
   - Recibe `UploadFile` → valida MIME → preprocesa → OCR → normaliza → guarda en DB
-  - Responde `{comprobante_id, campos_extraidos, status: "procesado"}`
+  - Responde `ComprobanteResponse` (201) con id, estado, hash, path y `campos_extraidos` anidado
   - **Sin** detección de duplicados (Fase 2)
+  - **Resultado:** Pipeline completo orquestado en `routers/upload.py`. Pasos preparatorios: (a) `models/seed.py` con UUIDs hardcoded del tenant `system` (org+user) — D-11 implícito: determinístico cross-env, hash bcrypt real con cost 12; (b) migración Alembic `ba4e861e6950_seed_system_tenant.py` con `INSERT ... ON CONFLICT DO NOTHING` idempotente, casts `CAST(:id AS uuid)` (asyncpg rechaza coerce implicito y SQLAlchemy text() interpreta `::` como conflicto con bindparams); (c) `settings.upload_dir` default `${ROOT}/data/uploads`; (d) `services/storage_service.py` con `save_upload(...)` async via `asyncio.to_thread`, write atómico vía `tmp+replace` (POSIX-atomic), layout particionado `{yyyy}/{mm}/{hash}.{ext}`, regex `^[0-9a-f]{64}$` para hash, whitelist de extensiones, `StorageError` para envolver `OSError`. Decisiones del endpoint: hash sobre bytes ORIGINALES (D-09), 409 con `id_comprobante` existente al detectar hash duplicado (anticipa Capa 1 Fase 2 sin cambiar contrato HTTP), `SYSTEM_USER_ID` hardcoded (auth real Fase 4), estado inicial `recibido`, write a disco ANTES del INSERT (huérfanos preferibles a filas con path inválido), cap de 10MB con `HTTP 413`, MIME via libmagic NO `file.content_type`, captura de `IntegrityError` post-commit como red de seguridad para race condition entre SELECT y INSERT. 32 tests de storage_service (139/139 suite total).
 - [ ] **1.7.2** `GET /health` (`routers/health.py`): chequea llama-server, postgres, redis
 - [ ] **1.7.3** `GET /history` (`routers/history.py`): paginado con filtros `fecha_desde`, `fecha_hasta`, `banco`, `estado`
 
@@ -411,6 +413,9 @@
 - **2026-05-09 — Match exacto-normalizado de banco pierde 30%+ por separadores:** "BBVA México" normalizado = `bbvamexico`; `Levenshtein.ratio("bbvamexico", "bbva")` = 0.571 (lejos del threshold 0.85) por la diferencia de longitud. Solución híbrida: substring match (`alias in normalized`) para aliases ≥4 chars antes del fuzzy. Atajos cortos (`hey`, `nu`, `citi`) NO entran al substring porque "nuevo" o "heroe" matchearían como Nu Bank / Hey Banco. El umbral de 4 chars sale empíricamente: el alias más corto seguro es "bbva".
 - **2026-05-09 — `Decimal(0.1)` da `0.10000000000000000555...`:** float→Decimal hereda la imprecisión binaria del float. Pasar siempre por `str(raw)` antes de `Decimal(...)` evita el problema. Test `test_parse_monto_avoids_float_precision_artifacts` lo cubre como regresión.
 - **2026-05-09 — Pillow PDF a 72 dpi default:** `Image.save(format="PDF")` por defecto usa `resolution=72` (1 inch = 72px). Si querés tamaño deterministico en tests, pasar explícitamente `resolution=72` y calcular: `pixeles_input * 300 / 72 ≈ pixeles_output_pdf2image_300dpi`. En el test no me ato a número exacto (poppler-utils puede variar entre distros), solo verifico `> 100px`.
+- **2026-05-09 — `passlib 1.7` ↔ `bcrypt 4.x` incompatibilidad:** `passlib.context.CryptContext(["bcrypt"]).hash("...")` revienta con `AttributeError: module 'bcrypt' has no attribute '__about__'`. Es bug conocido de passlib (que sigue mirando `bcrypt.__about__.__version__`, removido en bcrypt 4.0). Workaround: usar `bcrypt.hashpw(pw_bytes, bcrypt.gensalt(rounds=12))` directo. El módulo `bcrypt` puro es estable y suficiente para nuestro caso (no necesitamos múltiples schemes). Si en Fase 4 queremos passlib por sus features extra, downgradear bcrypt a `<4` o esperar passlib 1.8.
+- **2026-05-09 — `text(":id::uuid")` rompe SQLAlchemy bindparams:** El parser de `text()` interpreta `::` como conflicto con su sintaxis `:name`. Levanta `ArgumentError: This text() construct doesn't define a bound parameter named 'id'`. Solución: usar SQL estándar `CAST(:id AS uuid)` en migraciones data-only que necesiten castear strings a UUID (asyncpg NO hace coerce implícito varchar→uuid, a diferencia de psycopg). Aplica a TODA migración futura que inserte UUIDs hardcoded.
+- **2026-05-09 — Write atómico filesystem con `tmp+replace`:** El patrón `path.write_bytes(data)` no es atómico — un crash a mitad de write deja un archivo corrupto en `path`. Solución usada en `storage_service`: escribir a `path.tmp` primero, luego `tmp.replace(path)` (`os.replace` es POSIX-atomic). Si crashea entre write y replace, `path` queda con la versión vieja (o no existe), nunca corrupto. Importante porque el endpoint commitea la fila DB DESPUÉS del write — entre write y commit puede morir el server, y un archivo huérfano (que cron de Fase 5 limpia) es infinitamente preferible a una fila DB apuntando a un archivo a medias.
 
 ---
 
