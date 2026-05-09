@@ -27,6 +27,8 @@
 | D-02 | **Python 3.12** (no 3.14, no 3.11)                                                     | 3.12 tiene wheels prebuilt para OpenCV/pdf2image/asyncpg, soporte hasta 2028. 3.14 muy nuevo, 3.11 ya quedando atrás. | 2026-05-08 |
 | D-03 | **Monorepo `/api`, `/plugin-wp`, `/webapp`, `/infra`, `/tests`, `/docs`** desde Fase 0 | Evitar reestructuración traumática en Fase 3.                                                                         | 2026-05-08 |
 | D-04 | **Tracking en `PROGRESO.md`** (versionado en Git)                                      | Portable, no depende de herramientas externas.                                                                        | 2026-05-08 |
+| D-05 | **PK = UUID v7 client-side** (lib `uuid-utils` o `uuid6` en Python, no `gen_random_uuid()`) | UUID v7 es ordenable por tiempo → mejor performance de índices B-tree en inserts vs v4. Postgres 16 no trae `uuidv7()` nativa (sí PG18+). Se genera en app via `default=...` de SQLAlchemy. | 2026-05-09 |
+| D-06 | **Soft delete con `deleted_at TIMESTAMPTZ NULL`** en Organizacion/Usuario/Comprobante/Validacion. LogProcesamiento queda hard delete. | Auditoría requerida por CU-02 (validación manual de duplicados detectados). Logs no necesitan recuperación: políticas de retención por TTL, no soft delete. | 2026-05-09 |
 
 ---
 
