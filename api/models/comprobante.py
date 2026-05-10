@@ -89,6 +89,11 @@ class Comprobante(Base, SoftDeleteMixin):
     validaciones: Mapped[list["Validacion"]] = relationship(  # noqa: F821
         back_populates="comprobante",
         cascade="all, delete-orphan",
+        # foreign_keys explicito: Validacion tiene 2 FKs a comprobantes
+        # (id_comprobante + id_comprobante_original). SQLAlchemy no puede
+        # inferir cual es la FK de esta relacion sin ayuda.
+        foreign_keys="[Validacion.id_comprobante]",
+        primaryjoin="Comprobante.id_comprobante == Validacion.id_comprobante",
     )
     logs: Mapped[list["LogProcesamiento"]] = relationship(  # noqa: F821
         back_populates="comprobante",
