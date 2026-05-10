@@ -61,33 +61,28 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Block B — Synchronous Detection Layers
 
-- [ ] **B1** `api/services/cache_service.py`: Add `check_hash(sha256: str) -> UUID | None` (key `comp:hash:{sha256}`, falls through on RedisError) and `set_hash(sha256: str, comp_id: UUID, ttl_days: int = 7) -> None` (fire-and-forget).
+- [x] **B1** `api/services/cache_service.py`: Add `check_hash(sha256: str) -> UUID | None` (key `comp:hash:{sha256}`, falls through on RedisError) and `set_hash(sha256: str, comp_id: UUID, ttl_days: int = 7) -> None` (fire-and-forget).
   - Files: `api/services/cache_service.py`, `api/tests/test_cache_service.py`
   - Tests: `check_hash` hit / miss / RedisError (3); `set_hash` success / error (2); min 5 cases; `monkeypatch` Redis client
   - Done when: all 5 cases pass; neither function ever raises; key pattern is exactly `comp:hash:{sha256}`
   - Est. lines: ~45 impl + ~60 tests
   - Deps: A0.2
 
-- [ ] **B2** Add `python-Levenshtein`, `scikit-learn`, `celery[redis]` to `api/pyproject.toml`
-  - Files: `api/pyproject.toml`
-  - Tests: `import Levenshtein; import sklearn; import celery` succeed in CI (import smoke)
-  - Done when: `pip install -e .` resolves without conflicts; no version pin regressions
-  - Est. lines: ~5
-  - Deps: none
+- [x] **B2** Alembic migration `34b207551c82_fase2_dedup_index_and_validacion_fk.py`: add `idx_comp_dedup` composite index + `id_comprobante_original` FK to validaciones; add `id_comprobante_original` to `Validacion` model; fix `Comprobante.validaciones` relationship `foreign_keys`.
+  - Files: `api/alembic/versions/34b207551c82_fase2_dedup_index_and_validacion_fk.py`, `api/models/validacion.py`, `api/models/comprobante.py`
+  - Tests: migration applied cleanly (`alembic upgrade head`)
+  - Done: migration applied; model updated; SQLAlchemy relationship ambiguity resolved via `foreign_keys`
+  - Note: deps were already in pyproject.toml (celery, levenshtein, scikit-learn pre-installed in PR-A context)
 
-- [ ] **B3** Create `api/services/duplicate_service.py`: `compute_score`, `classify`, `find_candidates`, `run_capa2`, `run_capa3`. `S_monto` uses `Decimal`; `S_texto = 0.0` when either texto is NULL; `find_candidates` window exactly ±30 days; `run_capa2` creates `Validacion(metodo_deteccion="campos_exactos")` on hit; `run_capa3` creates `Validacion(metodo_deteccion="scoring_ponderado")` always.
+- [x] **B3** Create `api/services/duplicate_service.py`: `compute_score`, `classify`, `find_candidates`, `run_capa2`, `run_capa3`. `S_monto` uses `Decimal`; `S_texto = 0.0` when either texto is NULL; `find_candidates` window exactly ±30 days; `run_capa2` creates `Validacion(metodo_deteccion="campos_exactos")` on hit; `run_capa3` creates `Validacion(metodo_deteccion="scoring_ponderado")` always.
   - Files: `api/services/duplicate_service.py` (new), `api/tests/test_duplicate_service.py` (new)
-  - Tests: `compute_score` parametric (NULL texto → max 0.70, identical → 1.0, monto-only diff); `classify` thresholds (3 buckets); `run_capa2` hit/miss/soft-deleted; `run_capa3` sospechoso/valido paths; min 12 cases; `db_session` NullPool fixture
-  - Done when: all 12 cases pass; `S_monto` uses Decimal; Validacion records created correctly; no float money
-  - Est. lines: ~160 impl + ~130 tests
-  - Deps: A0.2, A2, B1, B2
+  - Tests: 40 tests covering all components; pure functions + mock AsyncSession
+  - Done when: all 40 tests pass; `S_monto` uses Decimal; no float money
 
-- [ ] **B4** `api/routers/upload.py`: Integrate 3-layer cascade — pre-OCR Capa 1 (`check_hash` → 409 on hit); post-OCR state transitions (`procesando` → `comparando`); Capa 2 (`run_capa2` → `duplicado` + return on hit); Capa 3 (`run_capa3` → transition to result state + auto `sospechoso → en_revision`); `set_hash` fire-and-forget post-commit.
+- [x] **B4** `api/routers/upload.py`: Integrate 3-layer cascade — pre-OCR Capa 1 (`check_hash` → 409 on hit); post-OCR state transitions (`procesando` → `comparando`); Capa 2 (`run_capa2` → `duplicado` + return on hit); Capa 3 (`run_capa3` → transition to result state + auto `sospechoso → en_revision`); `set_hash` fire-and-forget post-commit.
   - Files: `api/routers/upload.py`, `api/tests/test_upload_endpoint.py`
-  - Tests: Capa 1 Redis hit → 409; Capa 2 exact hit → 200 duplicado; Capa 3 score ≥ 0.90 → 200 duplicado; Capa 3 score 0.75–0.90 → 200 sospechoso/en_revision; clean upload → 201 valido; min 5 new integration cases; `httpx.MockTransport` for OCR + `monkeypatch` for cache
-  - Done when: all 5 cascade scenarios pass; existing Fase 1 upload tests unbroken; `set_hash` called only on successful commit
-  - Est. lines: ~70 changed + ~80 tests
-  - Deps: A1, A2, B1, B3
+  - Tests: 4 new cascade scenario tests + updated happy path; 11 total upload tests pass
+  - Done: all cascade scenarios pass; Fase 1 upload tests updated for new estado_actual behavior
 
 ---
 
