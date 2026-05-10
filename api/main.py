@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import health, history, upload
+from routers import health, history, report, upload, validate
 
 app = FastAPI(
     title="SmartVoucherDetection API",
@@ -34,6 +34,8 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(history.router)
 app.include_router(upload.router)
+app.include_router(validate.router)
+app.include_router(report.router)
 
 
 @app.get("/", include_in_schema=False)

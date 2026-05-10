@@ -88,28 +88,28 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Block C — New Sync Endpoints
 
-- [ ] **C1** Create `api/schemas/validacion.py` (`ValidacionResponse`, `TaskStatusResponse`) and `api/schemas/report.py` (`ReportResponse`).
+- [x] **C1** Create `api/schemas/validacion.py` (`ValidacionResponse`, `TaskStatusResponse`) and `api/schemas/report.py` (`ReportResponse`).
   - Files: `api/schemas/validacion.py` (new), `api/schemas/report.py` (new)
   - Tests: Pydantic model instantiation smoke tests (2 cases — valid input, missing optional fields)
   - Done when: schemas import cleanly; all fields match design contracts; `TaskStatusResponse` has correct `Literal` status
   - Est. lines: ~40
   - Deps: none
 
-- [ ] **C2** Create `api/routers/validate.py`: `POST /validate/{id}` — guard `estado == en_revision` (else 422); apply `transition(comp, accion)`; insert `Validacion(metodo_deteccion="manual")`; return `ComprobanteResponse` 200.
+- [x] **C2** Create `api/routers/validate.py`: `POST /validate/{id}` — guard `estado == en_revision` (else 422); apply `transition(comp, accion)`; insert `Validacion(metodo_deteccion="manual")`; return `ComprobanteResponse` 200.
   - Files: `api/routers/validate.py` (new), `api/tests/test_validate_endpoint.py` (new)
   - Tests: `en_revision → valido` (200); `en_revision → duplicado` (200); wrong state → 422; unknown id → 404; min 4 cases; ASGITransport `client` fixture
   - Done when: all 4 cases pass; `Validacion(metodo_deteccion="manual")` created on success; state unchanged on 422
   - Est. lines: ~45 impl + ~70 tests
   - Deps: A2, C1
 
-- [ ] **C3** Create `api/routers/report.py`: `GET /report` — aggregate counts by estado (`valido`, `sospechoso`, `duplicado`, `error`) + `avg_latency_ms` from `fecha_registro` delta. Global counts (no org filter in Fase 2).
+- [x] **C3** Create `api/routers/report.py`: `GET /report` — aggregate counts by estado (`valido`, `sospechoso`, `duplicado`, `error`) + `avg_latency_ms` from `fecha_registro` delta. Global counts (no org filter in Fase 2).
   - Files: `api/routers/report.py` (new), `api/tests/test_report_endpoint.py` (new)
   - Tests: counts match seeded DB (15v+5s+3d+2e); empty DB → all zeros + null latency; min 2 cases; ASGITransport
   - Done when: both cases pass; response shape matches `ReportResponse`; no org filtering applied
   - Est. lines: ~40 impl + ~50 tests
   - Deps: C1
 
-- [ ] **C4** `api/main.py`: Register `validate`, `report` routers (+ `status`, `async_upload` from Block D).
+- [x] **C4** `api/main.py`: Register `validate`, `report` routers (+ `status`, `async_upload` from Block D).
   - Files: `api/main.py`
   - Tests: `GET /docs` returns 200 and lists all 4 new paths (smoke)
   - Done when: all 4 new routes visible in OpenAPI schema; existing routes unaffected
