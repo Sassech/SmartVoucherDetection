@@ -1,0 +1,49 @@
+name: smartvoucher
+
+# Las credenciales se cargan desde ../.env vía `env_file` (inyectadas al contenedor).
+# Los puertos del host usan defaults razonables; pueden overridearse exportando
+# POSTGRES_PORT / REDIS_PORT antes de `docker compose up`.
+# El `$$VAR` en healthchecks es escape de Compose para que la var se resuelva
+# DENTRO del contenedor (donde env_file ya la inyectó), no en la sustitución YAML.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartvoucher-postgres
+    restart: unless-stopped
+    env_file: ../.env
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Scripts en /docker-entrypoint-initdb.d/ corren UNA sola vez,
+      # cuando el volumen se inicializa por primera vez.
+      - ./init-db.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartvoucher-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  postgres_data:
+    name: smartvoucher_postgres_data
+  redis_data:
+    name: smartvoucher_redis_data

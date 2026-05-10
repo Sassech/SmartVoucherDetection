@@ -1,0 +1,28 @@
+# EditorConfig — https://editorconfig.org
+# Convencion del repo: LF, UTF-8.
+# Python: 4 espacios. JS/TS/JSON/YAML/MD: 2 espacios. PHP: 4 espacios.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+[*.py]
+indent_size = 4
+max_line_length = 100
+
+[*.{js,jsx,ts,tsx,json,yml,yaml,md}]
+indent_size = 2
+
+[*.php]
+indent_size = 4
+
+[Makefile]
+indent_style = tab
+
+[*.{sh,bash}]
+indent_size = 2
