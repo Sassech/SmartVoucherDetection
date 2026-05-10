@@ -21,8 +21,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_session
+from dependencies.auth_api_key import require_api_key
 from models.comprobante import Comprobante
-from models.seed import SYSTEM_USER_ID
+from models.usuario import Usuario
 from models.validacion import Validacion
 from schemas.comprobante import ComprobanteResponse
 from services.state_machine import InvalidTransitionError, apply_transition
@@ -39,6 +40,7 @@ async def validate_comprobante(
     comprobante_id: uuid.UUID,
     clasificacion: str,  # Query param: "valido" or "duplicado"
     session: AsyncSession = Depends(get_session),
+    usuario: Usuario = Depends(require_api_key),
 ) -> ComprobanteResponse:
     """Manually validate a comprobante that is in 'en_revision' state.
 
@@ -82,7 +84,7 @@ async def validate_comprobante(
 
     val = Validacion(
         id_comprobante=comp.id_comprobante,
-        id_usuario=SYSTEM_USER_ID,  # Phase 4: replace with JWT user
+        id_usuario=usuario.id_usuario,
         clasificacion=clasificacion,
         metodo_deteccion="manual",
     )
