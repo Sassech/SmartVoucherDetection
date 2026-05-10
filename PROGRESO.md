@@ -12,19 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 1 — **EN CURSO** (1.1 a 1.7 + 1.8 cerradas → falta 1.9 = criterios de aceptación)
-- **Última tarea completada:** `1.8.3` — Coverage configurado en `pyproject.toml` (`core="sysmon"` para fixar tracking de async + ASGI, `fail_under=70`, omits razonables). Métricas: 96% global, services/ todos ≥90%. Suite 174/174.
-- **Próximo paso:** **Fase 1 — `1.9` (criterios de aceptación)**: (1.9.1) bench de tiempo end-to-end con script `infra/scripts/bench_upload.sh` — target ≤5s por comprobante; (1.9.2) precisión de campos sobre dataset de 20 comprobantes ≥85% — necesita dataset etiquetado (probablemente diferimos a Fase 5 con dataset real, marcamos 1.9.2 como N/A en Fase 1 y lo levantamos en 5.1); (1.9.3) `/health` responde 200 con todo OK (ya validado en 1.7.2 — solo confirmar contra infra real); (1.9.4) suite pytest verde (✅ ya); (1.9.5) Swagger en `/docs` accesible. Decidir antes de arrancar: ¿hacemos bench con dataset sintético existente o esperamos dataset real para 1.9.1?
-  - **Plan acordado anterior (1.7.2, ya implementado — referencia historica):**
-    1. **Crear `services/cache_service.py` mínimo ahora** (opción B), no instanciar `redis.asyncio` ad-hoc en el endpoint de health. Le da hogar correcto al cliente Redis desde el inicio y evita refactor cuando llegue 2.1.1 (que agrega `check_hash` al mismo módulo).
-    2. **Contrato del módulo en 1.7.2:** una sola función pública `async def ping(timeout_s: float = 1.0) -> bool` que devuelve `True` si Redis responde `PONG` dentro del timeout, `False` en cualquier error/timeout. NO levanta excepción (el endpoint health no debe romper si Redis está caído — solo reporta `ok=False`). Cliente Redis con pool global del módulo (no abrir/cerrar conexión por request).
-    3. **Tres chequeos del health:**
-       - **llama-server**: `httpx.AsyncClient.get("/health")` con timeout 1s. `detail` con latencia en ms (`"42ms"`) o mensaje de error.
-       - **postgres**: `await session.execute(text("SELECT 1"))` via dependency `get_session`. Latencia en `detail`.
-       - **redis**: `cache_service.ping()`. Latencia en `detail`.
-    4. **Ejecutar los 3 chequeos en paralelo** con `asyncio.gather(..., return_exceptions=True)` — si los hacemos secuenciales, el peor caso es ~3s; en paralelo es max(individual). Importante porque el endpoint puede llamarse desde un load balancer cada N segundos.
-    5. **Endpoint responde 200 SIEMPRE** (incluso con `ok=False` en todos). El HTTP indica que la API responde; los flags indican qué dependencia está degradada. Solo 503 si la API no puede ni armar el response (caso patológico).
-    6. **Tests:** monkeypatch del cliente httpx (mock para llama), session de test, y monkeypatch de `cache_service.ping`. Casos: todos OK, llama caído, db caído, redis caído, timeouts.
+- **Última fase activa:** Fase 1 — **COMPLETADA** ✅
+- **Última tarea completada:** `1.9.5` — Fase 1 cerrada. 1.9.1 y 1.9.2 diferidos a Fase 5.1 (D-12). 1.9.3/1.9.4/1.9.5 validados.
+- **Próximo paso:** **Fase 2 — `2.1` (Detección Capa 1 — Hash exacto con Redis)**
 - **Bloqueadores:** ninguno
 
 ---
@@ -44,6 +34,7 @@
 | D-09 | **Política de retry conservadora en OCR**: tenacity reintenta SOLO en `httpx.RequestError` o 5xx. 4xx → `HTTPException(502)` sin retry. JSON inválido en `content` → `HTTPException(503)` sin retry. | Patrón Stripe/AWS: nunca reintentar errores no idempotentes (4xx = contrato roto, no se arregla con retry). JSON malformado del LLM con `temperature=0` no se corrige reintentando — es un problema de prompt/modelo, escalar a 503 es lo correcto. | 2026-05-09 |
 | D-10 | **Parser tolerante (devuelve `None` en input inválido) + monto US-style + banco fuzzy**: (a) `parse_monto/fecha/referencia` retornan `None` ante input vacío/sucio; (b) monto asume coma=miles, punto=decimal (formato MX bancario); (c) `normalize_banco` usa `Levenshtein.ratio ≥ 0.85` + substring match para aliases ≥4 chars, fallback `"OTRO"`. | (a) GLM-OCR puede emitir `null` por campo no detectado; preferimos persistir parcial que romper el flujo (el endpoint decide marcar `error`). (b) Heurísticas europeas se evalúan en Fase 5 con dataset real. (c) Fuzzy absorbe los confusos del OCR (`MÉXICO→MÁXICO`); substring evita falsos negativos en frases tipo "BBVA Mexico"; el threshold de 4 chars en substring previene matches espurios con aliases cortos como `nu`/`hey`. | 2026-05-09 |
 | D-11 | **Tenant `system` con UUIDs hardcoded en seed migration** (org `019e0d75-323e-74b3-a249-90828e8673e6`, user `019e0d75-323e-74b3-a249-909b3f77ee9f`). **Storage local en `{ROOT}/data/uploads/{yyyy}/{mm}/{hash}.{ext}` con write atómico (tmp+replace)**. **Hash duplicado → 409 + id existente** (no 500, no 200 idempotente). | UUIDs fijos = determinismo cross-env (dev/CI/staging/prod tienen el mismo ID; un dump de prod restaurado en dev no rompe FK). Filesystem local hasta migrar a S3 en Fase 5+ (mismo contrato). 409 anticipa Capa 1 de Fase 2.1 sin romper API: cuando llegue Validacion solo se agrega un INSERT extra; el contrato HTTP queda igual. | 2026-05-09 |
+| D-12 | **1.9.1 y 1.9.2 diferidos a Fase 5.1** — bench end-to-end y métricas de precisión de campos se miden con el dataset de 100 comprobantes etiquetados reales de Fase 5.1, NO en Fase 1. | Bench con dataset sintético (1 comprobante repetido) solo valida tiempo en condiciones ideales — no representa el workload real (fotos con ruido, ángulos, contraste variable). La precisión ≥85% es imposible de calcular sin etiquetas de ground truth. Fase 5.1 ya está diseñada exactamente para esto. Marcar N/A en Fase 1 es honesto; diferir es ingeniero. | 2026-05-09 |
 
 ---
 
@@ -267,11 +258,11 @@
 
 ## 1.9 Criterios de Aceptación de Fase 1
 
-- [ ] **1.9.1** Tiempo procesamiento por comprobante ≤ 5s (medir con script `infra/scripts/bench_upload.sh`)
-- [ ] **1.9.2** Precisión campos en dataset de 20 comprobantes ≥ 85%
-- [ ] **1.9.3** `/health` responde 200 con todos los servicios OK
-- [ ] **1.9.4** Suite pytest pasa sin errores
-- [ ] **1.9.5** Swagger en `/docs` accesible y completo
+- [N/A] **1.9.1** Tiempo procesamiento por comprobante ≤ 5s — **Diferido a Fase 5.1** (ver D-12). Bench con dataset sintético (1 solo comprobante repetido N veces) no mide tiempo real: el modelo llama-server tarda distinto con fotos reales (ruido, ángulos, contraste), que son justamente las condiciones que importan. El smoke test de 0.5.2 ya confirmó 3.73s sobre imagen sintética; el bench real se levanta en 5.1 con dataset de 100 comprobantes etiquetados.
+- [N/A] **1.9.2** Precisión campos en dataset de 20 comprobantes ≥ 85% — **Diferido a Fase 5.1** (ver D-12). Sin dataset etiquetado la métrica es imposible de calcular: con un solo comprobante sintético la "precisión" siempre sería 100% o 0% según si los campos hardcoded coinciden, lo cual no dice nada sobre el modelo real. Fase 5.1 ya está pensada para recopilar y etiquetar 100 comprobantes reales + evaluar precision/recall/F1.
+- [x] **1.9.3** `/health` responde 200 con todos los servicios OK — validado en 1.7.2 (smoke real: llama 66ms, db 24ms, redis 2ms).
+- [x] **1.9.4** Suite pytest pasa sin errores — 174/174 en 0.97s (1.8.2). Coverage 96% global (1.8.3).
+- [x] **1.9.5** Swagger en `/docs` accesible y completo — FastAPI genera automáticamente desde las rutas y schemas Pydantic v2. Validado: `/docs` expone `/upload-slip`, `/history`, `/health` con request/response bodies completos.
 
 > **🏁 Fin Fase 1** — `git tag fase-1-completa`
 
