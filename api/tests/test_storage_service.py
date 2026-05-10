@@ -63,9 +63,7 @@ async def test_save_upload_rejects_invalid_hash(
 
 
 @pytest.mark.parametrize("bad_ext", ["exe", "gif", "tiff", "", "PNG.jpg"])
-async def test_save_upload_rejects_invalid_ext(
-    upload_root: Path, bad_ext: str
-) -> None:
+async def test_save_upload_rejects_invalid_ext(upload_root: Path, bad_ext: str) -> None:
     with pytest.raises(ValueError, match="ext invalida"):
         await save_upload(
             VALID_DATA,

@@ -44,9 +44,5 @@ class HealthResponse(BaseModel):
     llama: ServiceCheck = Field(
         description="llama-server (GLM-OCR) — chequeado via GET /health."
     )
-    db: ServiceCheck = Field(
-        description="PostgreSQL — chequeado via SELECT 1 async."
-    )
-    redis: ServiceCheck = Field(
-        description="Redis — chequeado via PING."
-    )
+    db: ServiceCheck = Field(description="PostgreSQL — chequeado via SELECT 1 async.")
+    redis: ServiceCheck = Field(description="Redis — chequeado via PING.")

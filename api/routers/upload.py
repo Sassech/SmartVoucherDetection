@@ -201,7 +201,9 @@ async def upload_slip(
     comprobante = Comprobante(
         id_usuario=SYSTEM_USER_ID,
         imagen_path=str(imagen_path),
-        texto_extraido=None,  # Fase 1 no preserva el `content` raw del LLM
+        texto_extraido=crudos.get(
+            "content"
+        ),  # A1 Fase 2: persiste el texto raw del OCR
         referencia=campos.referencia,
         monto=campos.monto,
         fecha_deposito=campos.fecha,

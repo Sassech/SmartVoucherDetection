@@ -45,6 +45,7 @@ ESTADOS_VALIDOS = (
     "recibido",
     "procesando",
     "comparando",
+    "sospechoso",
     "en_revision",
     "valido",
     "duplicado",
@@ -68,14 +69,10 @@ class Comprobante(Base, SoftDeleteMixin):
     texto_extraido: Mapped[str | None] = mapped_column(Text, nullable=True)
     referencia: Mapped[str | None] = mapped_column(String(100), nullable=True)
     monto: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
-    fecha_deposito: Mapped[date | None] = mapped_column(
-        Date, nullable=True, index=True
-    )
+    fecha_deposito: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     numero_operacion: Mapped[str | None] = mapped_column(String(100), nullable=True)
     banco: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    hash_documento: Mapped[str] = mapped_column(
-        String(64), nullable=False, unique=True
-    )
+    hash_documento: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     estado_actual: Mapped[str] = mapped_column(
         String(20), nullable=False, default="recibido", index=True
     )

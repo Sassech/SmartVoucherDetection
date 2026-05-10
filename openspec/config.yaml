@@ -1,0 +1,39 @@
+project: SmartVoucherDetection
+mode: openspec
+initialized: "2026-05-09"
+
+context: |
+  FastAPI backend for automated deposit-slip (comprobante) OCR and duplicate detection.
+  Python 3.12, uv package manager, async SQLAlchemy 2.0 (asyncpg/PostgreSQL 16),
+  Redis 7 for caching, Celery for async tasks, llama.cpp OCR server (external).
+  Routers: /health, /history, /upload. Services: cache, image, ocr, parser, storage.
+  Docker Compose in infra/ manages PostgreSQL + Redis. Alembic handles migrations.
+  Pre-commit: ruff lint + format, trailing-whitespace, yaml/toml checks.
+
+strict_tdd: true
+
+testing:
+  runner: pytest
+  command: "cd api && uv run pytest tests/ -q"
+  collection_command: "cd api && uv run pytest tests/ --co -q"
+  coverage_command: "cd api && uv run pytest tests/ --cov --cov-report=term-missing"
+  framework: pytest + pytest-asyncio (asyncio_mode=auto)
+  test_count: 174
+  coverage_threshold: 70%
+  layers:
+    unit: true       # services, models
+    integration: true # endpoints via ASGI TestClient (httpx + ASGITransport)
+    e2e: false
+  quality_tools:
+    linter: "uv run ruff check api/"
+    formatter: "uv run ruff format api/"
+    type_checker: false
+
+phases:
+  proposal:  "openspec/changes/{id}-proposal.md"
+  spec:      "openspec/specs/{id}-spec.md"
+  design:    "openspec/changes/{id}-design.md"
+  tasks:     "openspec/changes/{id}-tasks.md"
+  apply:     "openspec/changes/{id}-apply.md"
+  verify:    "openspec/changes/{id}-verify.md"
+  archive:   "openspec/changes/archive/{id}-archive.md"

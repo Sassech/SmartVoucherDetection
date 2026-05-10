@@ -43,7 +43,9 @@ from services.parser_service import compute_hash
 # ---------------------------------------------------------------------------
 
 
-def _make_png_bytes(*, color: str = "white", size: tuple[int, int] = (200, 100)) -> bytes:
+def _make_png_bytes(
+    *, color: str = "white", size: tuple[int, int] = (200, 100)
+) -> bytes:
     """PNG sintetico — bytes reales que pasan validate_mime (libmagic)
     y son procesables por OpenCV. No importa el contenido: el OCR se mockea."""
     buf = io.BytesIO()
@@ -59,6 +61,7 @@ def _ocr_payload(**overrides: Any) -> dict[str, Any]:
         "referencia": "REF-TEST-001",
         "numero_operacion": "OP-9999",
         "banco": "BBVA",
+        "content": "Texto OCR extraido del comprobante de prueba",
     }
     base.update(overrides)
     return base
@@ -138,6 +141,8 @@ async def test_upload_happy_path_returns_201_and_persists_row(
     assert row.id_usuario == SYSTEM_USER_ID
     assert row.estado_actual == "recibido"
     assert row.banco == "BBVA"
+    # A1: texto_extraido debe persistirse desde crudos["content"].
+    assert row.texto_extraido == "Texto OCR extraido del comprobante de prueba"
 
 
 async def test_upload_rejects_invalid_mime_with_400(
@@ -243,3 +248,48 @@ async def test_upload_propagates_503_when_ocr_fails(
     # save_upload SI se llamo (es paso 5, antes del OCR que es paso 8).
     # El archivo huerfano lo limpia el cron de Fase 5 — gotcha documentado.
     assert len(patched_save) == 1
+
+
+async def test_upload_persists_null_texto_extraido_when_ocr_omits_content(
+    client: httpx.AsyncClient,
+    db_session: AsyncSession,
+    patched_save: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A1 (Spec CAP-01 Scenario 2): OCR sin campo 'content' → texto_extraido=NULL.
+
+    El upload debe seguir teniendo exito (201) y la fila debe quedar
+    con texto_extraido=NULL (no levantar error por campo faltante).
+    """
+    # OCR payload SIN la clave 'content'.
+    payload_sin_content: dict[str, Any] = {
+        "monto": "500.00",
+        "fecha": "2026-05-03",
+        "referencia": "REF-NULL-CONTENT",
+        "numero_operacion": "OP-0001",
+        "banco": "Santander",
+    }
+
+    async def fake_extract_no_content(_b64: str) -> dict[str, Any]:
+        return payload_sin_content
+
+    monkeypatch.setattr(upload_module, "extract_fields", fake_extract_no_content)
+
+    png = _make_png_bytes(color="blue")
+    expected_hash = compute_hash(png)
+
+    resp = await client.post(
+        "/upload-slip",
+        files={"file": ("comp_no_content.png", png, "image/png")},
+    )
+
+    assert resp.status_code == status.HTTP_201_CREATED, resp.text
+
+    row = (
+        await db_session.execute(
+            select(Comprobante).where(Comprobante.hash_documento == expected_hash)
+        )
+    ).scalar_one()
+    # Cuando el OCR no devuelve 'content', texto_extraido debe ser NULL.
+    assert row.texto_extraido is None
+    assert row.banco == "Santander"
