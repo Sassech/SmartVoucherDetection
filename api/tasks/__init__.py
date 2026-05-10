@@ -1,1 +1,1 @@
-"""Celery tasks (asynchronous processing pipeline)."""
+"""Celery tasks package for SmartVoucherDetection."""

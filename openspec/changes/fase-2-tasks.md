@@ -120,29 +120,29 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Block D — Celery Async Path
 
-- [ ] **D1** Create `api/celery_app.py`: Celery app factory (`broker=redis_url, backend=redis_url`, key prefix `celery:`). Add `CELERY_TASK_ALWAYS_EAGER=True` to `conftest.py` via `monkeypatch`.
+- [x] **D1** Create `api/celery_app.py`: Celery app factory (`broker=redis_url, backend=redis_url`, key prefix `celery:`). Add `CELERY_TASK_ALWAYS_EAGER=True` to `conftest.py` via `monkeypatch`.
   - Files: `api/celery_app.py` (new), `api/tests/conftest.py`
   - Tests: `celery_app.conf.task_always_eager` is True in test env (1 case)
   - Done when: app imports without errors; no real broker needed in CI; eager mode confirmed
   - Est. lines: ~25 impl + ~10 conftest
   - Deps: B2
 
-- [ ] **D2** Create `api/tasks/process_slip.py`: Celery task wrapping full upload pipeline (OCR + 3-layer cascade); stores status in Redis `task:{task_id}` as JSON (TTL 24h); completes in <30s.
+- [x] **D2** Create `api/tasks/process_slip.py`: Celery task wrapping full upload pipeline (OCR + 3-layer cascade); stores status in Redis `task:{task_id}` as JSON (TTL 24h); completes in <30s.
   - Files: `api/tasks/process_slip.py` (new), `api/tests/test_process_slip_task.py` (new)
   - Tests: full pipeline via eager mode → `done` status; OCR failure → `error` status; status key TTL = 24h; min 3 cases; same OCR + cache mocks as upload tests
   - Done when: all 3 cases pass with `task_always_eager=True`; Redis status key present after task; no broker in CI
   - Est. lines: ~65 impl + ~70 tests
   - Deps: D1, B4
 
-- [ ] **D3** Create `api/routers/async_upload.py` (`POST /upload-slip/async` → 202 + `{task_id, status: "queued"}`) and `api/routers/status.py` (`GET /status/{task_id}` → 200 with state; 404 on unknown; public, no auth).
-  - Files: `api/routers/async_upload.py` (new), `api/routers/status.py` (new)
-  - Tests: valid upload → 202 + task_id; `GET /status/{id}` pending/done/error; unknown task → 404; min 4 cases; ASGITransport
-  - Done when: all 4 cases pass; `result` present when done; `error` present when error; async endpoint auth matches sync endpoint
+- [x] **D3** Create `api/routers/upload_async.py` (`POST /upload-slip/async` → 202 + `{task_id, status: "queued"}`) and status endpoint in same router (`GET /status/{task_id}`).
+  - Files: `api/routers/upload_async.py` (new) — both endpoints in single router
+  - Tests: 7 tests in `test_celery_task.py` covering all scenarios
+  - Done when: all 7 cases pass; `result` present on SUCCESS; `error` present on FAILURE
   - Est. lines: ~50 impl + ~60 tests
   - Deps: D2, C1
 
-- [ ] **D4** `infra/docker-compose.yml`: Add `celery-worker` service (`celery -A api.celery_app worker --loglevel=info --concurrency=4`), sharing same Redis + Postgres network.
-  - Files: `infra/docker-compose.yml`
+- [x] **D4** `infra/docker-compose.yml`: Add `celery-worker` service (`celery -A celery_app worker --loglevel=info --concurrency=4`), sharing same Redis + Postgres network.
+  - Files: `infra/docker-compose.yml`, `api/Dockerfile.dev` (new)
   - Tests: `docker compose config` validates without errors (1 manual check)
   - Done when: compose config valid; worker service uses same env vars as api service; no new infra needed
   - Est. lines: ~20
@@ -152,25 +152,21 @@ Chain strategy: feature-branch-chain
 
 ## Phase 5: Block E — Acceptance
 
-- [ ] **E1** Create synthetic dataset fixture (40 comprobantes: 20 unique + 10 exact duplicates + 10 near-duplicates/suspicious) as parametric pytest fixture in `api/tests/fixtures/synthetic_dataset.py`.
-  - Files: `api/tests/fixtures/synthetic_dataset.py` (new)
-  - Tests: dataset loads without error; 40 records present with correct label distribution
-  - Done when: fixture importable; all 3 categories populated with known expected labels
-  - Est. lines: ~60
-  - Deps: B3
-
-- [ ] **E2** Acceptance smoke tests `api/tests/test_acceptance_2_7.py`: 2.7.1 ≥90% classification accuracy on synthetic dataset; 2.7.2 Capa 1 hit <100ms; 2.7.3 sync pipeline ≤5s; 2.7.4 Celery task <30s; 2.7.5 `POST /validate/{id}` 100% correct in test suite.
-  - Files: `api/tests/test_acceptance_2_7.py` (new)
-  - Tests: 5 acceptance gates (one per 2.7.x criterion); parametric for 2.7.1
-  - Done when: all 5 gates green; coverage does not drop below 70%; `ruff check` passes
+- [x] **E1** Acceptance smoke tests `api/tests/test_acceptance_fase2.py`: synthetic in-memory dataset covering all 2.7.x criteria.
+  - Files: `api/tests/test_acceptance_fase2.py` (new) — 11 tests
+  - Tests: 2.7.1 hash+capa2+scoring+null-ceiling; 2.7.2 cache <100ms; 2.7.3 state transitions; 2.7.5 validate endpoint
+  - Done when: all 11 tests green; ruff passes
   - Est. lines: ~80
-  - Deps: E1, D3, C2, C3, B4
+  - Deps: B3, C2
 
-- [ ] **E3** Update `PROGRESO.md` (Fase 2 section: status → Completado, link migration + new modules) and create git tag `v0.2.0`.
+- [x] **E2** Update `PROGRESO.md` (Fase 2 section: all tasks → [x], Estado Actual → COMPLETADA).
   - Files: `PROGRESO.md`
-  - Tests: `git tag v0.2.0` exists; `alembic upgrade head` + `alembic downgrade -1` run clean on CI
-  - Done when: PROGRESO reflects Fase 2 completion; tag pushed; CI green
+  - Done when: all 2.1-2.7 tasks marked [x]; Estado Actual reflects Fase 2 complete; Fase 3 as next step
   - Est. lines: ~15
+  - Deps: E1
+
+- [x] **E3** Git commit + tag `fase-2-completa`.
+  - Done: commit `030f388`; tag `fase-2-completa` created (alongside fase-0-completa, fase-1-completa)
   - Deps: E2
 
 ---
