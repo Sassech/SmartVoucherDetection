@@ -1,14 +1,24 @@
-"""Endpoint `POST /upload-slip` — pipeline sincrono completo de Fase 1.
+"""Endpoint `POST /upload-slip` — pipeline sincrono completo de Fase 2.
 
 Orquesta:
-    bytes -> validate_mime -> compute_hash -> save_upload (filesystem)
+    bytes -> validate_mime -> compute_hash
+        -> [Capa 1 DB] _find_existing_by_hash → 409 si hit
+        -> [Capa 1 Redis] check_hash → 409 si hit
+        -> save_upload (filesystem)
         -> [if pdf] pdf_to_image
         -> preprocess -> to_base64
         -> ocr_service.extract_fields  (red a llama-server)
         -> parser_service.{parse_monto, parse_fecha, parse_referencia,
                            normalize_banco}
-        -> ComprobanteCreate -> INSERT
-        -> ComprobanteResponse
+        -> apply_transition("recibido" → "procesando")
+        -> INSERT Comprobante(estado_actual="procesando", texto_extraido=content)
+        -> await session.commit()
+        -> set_hash(sha256, comp.id) [fire-and-forget]
+        -> apply_transition("procesando" → "comparando")
+        -> [Capa 2] run_capa2 → si hit: duplicado + INSERT Validacion + 200
+        -> [Capa 3] run_capa3 → transicion al estado resultante + INSERT Validacion
+        -> await session.commit()
+        -> ComprobanteResponse (201 si valido/sospechoso, 200 si duplicado)
 
 Decisiones explicitas:
 - HASH ANTES DE PREPROCESS (D-09 / gotcha 2026-05-09): se calcula sobre los
@@ -27,13 +37,22 @@ Decisiones explicitas:
   crea con `SYSTEM_USER_ID`. Auth real llega en Fase 4. NO usar `request.state`
   ni headers — eso seria deuda silenciosa.
 
-- ESTADO INICIAL: la fila se inserta con `estado_actual="recibido"`. La
-  maquina de estados completa (transiciones a `valido`/`error`) llega en
-  Fase 2.6. En Fase 1 dejamos todo en `recibido`.
+- ESTADO INICIAL: la fila se inserta con `estado_actual="procesando"` tras
+  la transicion recibido→procesando via apply_transition (Fase 2 B4).
 
 - TRANSACCIONALIDAD: write a disco PRIMERO, INSERT despues. Si el INSERT
   falla, el archivo queda huerfano — es preferible a tener una fila DB
   apuntando a un path que no existe. Cleanup de huerfanos: cron de Fase 5.
+
+- CASCADE CAPA 1 REDIS: se ejecuta DESPUES del check DB (paso 4) y ANTES
+  de OCR. Si Redis esta caido, check_hash retorna None y el pipeline sigue
+  a Capa 2 normalmente.
+
+- SOSPECHOSO AUTO-TRANSICION: sospechoso → en_revision es automatico.
+  La maquina de estados lo requiere (sospechoso no es terminal).
+
+- set_hash FIRE-AND-FORGET: se llama despues del primer commit. Si falla,
+  se ignora — la Capa 2 DB sigue funcionando como fallback.
 """
 
 from __future__ import annotations
@@ -48,7 +67,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_session
 from models.comprobante import Comprobante
 from models.seed import SYSTEM_USER_ID
+from models.validacion import Validacion
 from schemas.comprobante import CamposExtraidos, ComprobanteResponse
+from services.cache_service import check_hash, set_hash
+from services.duplicate_service import run_capa2, run_capa3
 from services.image_service import (
     pdf_to_image,
     preprocess,
@@ -63,6 +85,7 @@ from services.parser_service import (
     parse_monto,
     parse_referencia,
 )
+from services.state_machine import apply_transition
 from services.storage_service import mime_to_ext, save_upload
 
 router = APIRouter(tags=["comprobantes"])
@@ -99,11 +122,10 @@ async def _read_upload(file: UploadFile) -> bytes:
 async def _find_existing_by_hash(
     session: AsyncSession, hash_documento: str
 ) -> Comprobante | None:
-    """Busca un comprobante previo con el mismo hash (Capa 1 de duplicados).
+    """Busca un comprobante previo con el mismo hash (Capa 1 DB de duplicados).
 
-    En Fase 1 NO hay logica de Validacion asociada; solo devolvemos el
-    existente para que el handler pueda responder 409 con su id. Fase 2.1
-    movera esto a `services/cache_service.py` con cache Redis.
+    Mantiene el comportamiento de Fase 1. Capa 1 Redis (check_hash) es un
+    fast-path adicional introducido en Fase 2 B4.
     """
     stmt = select(Comprobante).where(Comprobante.hash_documento == hash_documento)
     result = await session.execute(stmt)
@@ -115,6 +137,7 @@ async def _find_existing_by_hash(
     response_model=ComprobanteResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
+        200: {"description": "Comprobante duplicado detectado (Capa 2 o Capa 3)"},
         400: {"description": "MIME invalido o archivo vacio"},
         409: {"description": "Comprobante con mismo hash ya existe"},
         413: {"description": "Archivo excede limite de tamanio"},
@@ -126,10 +149,13 @@ async def upload_slip(
     file: UploadFile = File(..., description="Imagen (PNG/JPEG) o PDF del comprobante"),
     session: AsyncSession = Depends(get_session),
 ) -> ComprobanteResponse:
-    """Procesa un comprobante: OCR + normalizacion + persistencia.
+    """Procesa un comprobante: OCR + normalizacion + deteccion de duplicados.
 
-    Sin deteccion de duplicados de Fase 2: solo Capa 1 implicita por el
-    UNIQUE en `hash_documento`. Si ya existe, 409 con el id existente.
+    Cascade de deteccion (Fase 2):
+    - Capa 1 DB: hash UNIQUE en tabla comprobantes (pre-OCR fast-path)
+    - Capa 1 Redis: check_hash (pre-OCR, fire-and-forget fallback)
+    - Capa 2: exact match (referencia + monto + fecha) via indice compuesto
+    - Capa 3: scoring ponderado (Levenshtein + TF-IDF + monto + fecha)
     """
     # 1. Leer bytes del upload (con cap de tamanio).
     raw_bytes = await _read_upload(file)
@@ -146,7 +172,7 @@ async def upload_slip(
     # 3. Hash sobre bytes ORIGINALES (D-09).
     hash_documento = compute_hash(raw_bytes)
 
-    # 4. Capa 1 implicita: si ya existe, 409 antes de gastar OCR/disco.
+    # 4. Capa 1 implicita DB: si ya existe, 409 antes de gastar OCR/disco.
     existing = await _find_existing_by_hash(session, hash_documento)
     if existing is not None:
         raise HTTPException(
@@ -154,6 +180,18 @@ async def upload_slip(
             detail={
                 "message": "comprobante con mismo hash ya existe",
                 "id_comprobante": str(existing.id_comprobante),
+                "hash_documento": hash_documento,
+            },
+        )
+
+    # 4b. Capa 1 Redis fast-path: check_hash — si hit, 409 sin OCR ni disco.
+    cached_id = await check_hash(hash_documento)
+    if cached_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": "comprobante con mismo hash ya existe (cache)",
+                "id_comprobante": str(cached_id),
                 "hash_documento": hash_documento,
             },
         )
@@ -194,14 +232,14 @@ async def upload_slip(
         banco=normalize_banco(crudos.get("banco")),
     )
 
-    # 10. INSERT. NO usamos ComprobanteCreate aca porque tendriamos que
-    #     re-mappear todos los campos a columnas planas — el ORM ya espera
-    #     columnas, asi que las pasamos directo. ComprobanteCreate queda
-    #     util para repos/factories de tests, no para este endpoint.
+    # 10. Crear comprobante con estado inicial "recibido", luego transicionar
+    #     a "procesando" via apply_transition antes del INSERT.
     comprobante = Comprobante(
         id_usuario=SYSTEM_USER_ID,
         imagen_path=str(imagen_path),
-        texto_extraido=None,  # Fase 1 no preserva el `content` raw del LLM
+        texto_extraido=crudos.get(
+            "content"
+        ),  # A1 Fase 2: persiste el texto raw del OCR
         referencia=campos.referencia,
         monto=campos.monto,
         fecha_deposito=campos.fecha,
@@ -210,6 +248,9 @@ async def upload_slip(
         hash_documento=hash_documento,
         estado_actual="recibido",
     )
+    # 10b. Transicion recibido → procesando (state machine).
+    apply_transition(comprobante, "procesando")
+
     session.add(comprobante)
     try:
         await session.commit()
@@ -234,4 +275,52 @@ async def upload_slip(
         )
 
     await session.refresh(comprobante)
+
+    # 10c. Cache hash en Redis fire-and-forget (post-commit exitoso).
+    await set_hash(hash_documento, comprobante.id_comprobante)
+
+    # 11. Transicion procesando → comparando (pre-deteccion).
+    apply_transition(comprobante, "comparando")
+
+    # -----------------------------------------------------------------------
+    # 12. Capa 2 — exact match (referencia + monto + fecha_deposito)
+    # -----------------------------------------------------------------------
+    match_capa2 = await run_capa2(session, comprobante)
+    if match_capa2 is not None:
+        apply_transition(comprobante, "duplicado")
+        validacion_c2 = Validacion(
+            id_comprobante=comprobante.id_comprobante,
+            id_comprobante_original=match_capa2.id_comprobante,
+            clasificacion="duplicado",
+            metodo_deteccion="campos_exactos",
+            score_similitud=None,
+        )
+        session.add(validacion_c2)
+        await session.commit()
+        await session.refresh(comprobante)
+        return ComprobanteResponse.from_orm_model(comprobante)
+
+    # -----------------------------------------------------------------------
+    # 13. Capa 3 — scoring ponderado
+    # -----------------------------------------------------------------------
+    best_comp, score, clasificacion = await run_capa3(session, comprobante)
+
+    apply_transition(comprobante, clasificacion)
+
+    # sospechoso es estado intermedio — auto-transicion a en_revision.
+    if clasificacion == "sospechoso":
+        apply_transition(comprobante, "en_revision")
+
+    id_original = best_comp.id_comprobante if best_comp is not None else None
+    validacion_c3 = Validacion(
+        id_comprobante=comprobante.id_comprobante,
+        id_comprobante_original=id_original,
+        clasificacion=clasificacion,
+        metodo_deteccion="scoring_ponderado",
+        score_similitud=score,
+    )
+    session.add(validacion_c3)
+    await session.commit()
+    await session.refresh(comprobante)
+
     return ComprobanteResponse.from_orm_model(comprobante)

@@ -46,9 +46,7 @@ def fast_retries(monkeypatch):
     Tenacity expone la config del decorador via `func.retry`. Pisamos solo
     `wait` — el resto (stop, retry condition) queda intacto.
     """
-    monkeypatch.setattr(
-        ocr_service._post_completion.retry, "wait", wait_fixed(0)
-    )
+    monkeypatch.setattr(ocr_service._post_completion.retry, "wait", wait_fixed(0))
 
 
 # ---------------------------------------------------------------------------
@@ -249,6 +247,7 @@ async def test_503_on_invalid_json_in_content():
 
 async def test_503_on_unexpected_response_structure():
     """Respuesta sin `choices` → 503."""
+
     def handler(request):
         return httpx.Response(200, json={"weird": "shape"})
 
@@ -261,6 +260,7 @@ async def test_503_on_unexpected_response_structure():
 
 async def test_503_when_content_is_json_but_not_object():
     """`content` es `"[1,2,3]"` → JSON valido pero no dict → 503."""
+
     def handler(request):
         return httpx.Response(
             200,

@@ -65,9 +65,7 @@ async def _insert(session: AsyncSession, *comps: Comprobante) -> None:
 async def test_history_empty_returns_empty_page(client, db_session):
     # Filtramos por un banco que NO insertamos para garantizar set vacio,
     # sin asumir que la DB de dev este limpia.
-    response = await client.get(
-        "/history", params={"banco": "BANCO_INEXISTENTE_ZZZ"}
-    )
+    response = await client.get("/history", params={"banco": "BANCO_INEXISTENTE_ZZZ"})
 
     assert response.status_code == 200
     body = response.json()
@@ -106,26 +104,20 @@ async def test_history_pagination_limit_and_offset(client, db_session):
     )
 
     p1 = (
-        await client.get(
-            "/history", params={"banco": banco, "limit": 2, "offset": 0}
-        )
+        await client.get("/history", params={"banco": banco, "limit": 2, "offset": 0})
     ).json()
     assert p1["total"] == 5
     assert len(p1["items"]) == 2
     assert p1["has_more"] is True
 
     p2 = (
-        await client.get(
-            "/history", params={"banco": banco, "limit": 2, "offset": 2}
-        )
+        await client.get("/history", params={"banco": banco, "limit": 2, "offset": 2})
     ).json()
     assert len(p2["items"]) == 2
     assert p2["has_more"] is True
 
     p3 = (
-        await client.get(
-            "/history", params={"banco": banco, "limit": 2, "offset": 4}
-        )
+        await client.get("/history", params={"banco": banco, "limit": 2, "offset": 4})
     ).json()
     assert len(p3["items"]) == 1
     assert p3["has_more"] is False
@@ -142,9 +134,7 @@ async def test_history_offset_beyond_total_returns_empty(client, db_session):
     banco = "TESTBANCO_OFFSET"
     await _insert(db_session, _make_comp(banco=banco, hash_suffix="20"))
 
-    body = (
-        await client.get("/history", params={"banco": banco, "offset": 100})
-    ).json()
+    body = (await client.get("/history", params={"banco": banco, "offset": 100})).json()
 
     assert body["total"] == 1
     assert body["items"] == []
@@ -161,9 +151,7 @@ async def test_history_filter_by_estado(client, db_session):
     )
 
     body = (
-        await client.get(
-            "/history", params={"banco": banco, "estado": "duplicado"}
-        )
+        await client.get("/history", params={"banco": banco, "estado": "duplicado"})
     ).json()
 
     assert body["total"] == 2
@@ -220,10 +208,7 @@ async def test_history_excludes_soft_deleted(client, db_session):
     await _insert(db_session, visible, deleted)
 
     await db_session.execute(
-        text(
-            "UPDATE comprobantes SET deleted_at = now() "
-            "WHERE id_comprobante = :id"
-        ),
+        text("UPDATE comprobantes SET deleted_at = now() WHERE id_comprobante = :id"),
         {"id": deleted.id_comprobante},
     )
     await db_session.flush()
@@ -245,9 +230,7 @@ async def test_history_only_returns_system_user(client, db_session):
     body = (await client.get("/history", params={"banco": banco})).json()
 
     assert body["total"] == 1
-    assert all(
-        item["id_usuario"] == str(SYSTEM_USER_ID) for item in body["items"]
-    )
+    assert all(item["id_usuario"] == str(SYSTEM_USER_ID) for item in body["items"])
 
 
 # ---------------------------------------------------------------------------

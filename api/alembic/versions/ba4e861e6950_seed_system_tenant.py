@@ -99,9 +99,9 @@ def downgrade() -> None:
     revision.
     """
     op.execute(
-        sa.text(
-            "DELETE FROM usuarios WHERE id_usuario = CAST(:id AS uuid)"
-        ).bindparams(id=_SYSTEM_USER_ID)
+        sa.text("DELETE FROM usuarios WHERE id_usuario = CAST(:id AS uuid)").bindparams(
+            id=_SYSTEM_USER_ID
+        )
     )
     op.execute(
         sa.text(

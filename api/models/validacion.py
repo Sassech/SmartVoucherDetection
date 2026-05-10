@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, String, func
+from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid_utils.compat import uuid7
 
@@ -47,6 +48,11 @@ class Validacion(Base, SoftDeleteMixin):
         ForeignKey("usuarios.id_usuario", ondelete="SET NULL"),
         nullable=True,
     )
+    id_comprobante_original: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("comprobantes.id_comprobante", ondelete="SET NULL"),
+        nullable=True,
+    )
     score_similitud: Mapped[float | None] = mapped_column(Float, nullable=True)
     clasificacion: Mapped[str] = mapped_column(String(20), nullable=False)
     metodo_deteccion: Mapped[str] = mapped_column(String(30), nullable=False)
@@ -57,8 +63,12 @@ class Validacion(Base, SoftDeleteMixin):
     )
 
     # Relaciones
+    # `foreign_keys` explicito porque hay dos FK a la misma tabla `comprobantes`
+    # (id_comprobante y id_comprobante_original). Sin esto SQLAlchemy no puede
+    # determinar cual es la FK de la relacion "padre → validaciones".
     comprobante: Mapped["Comprobante"] = relationship(  # noqa: F821
-        back_populates="validaciones"
+        back_populates="validaciones",
+        foreign_keys="[Validacion.id_comprobante]",
     )
 
     __table_args__ = (

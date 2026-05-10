@@ -171,9 +171,7 @@ def test_health_llama_500_marks_only_llama_down(
     assert body["redis"]["ok"] is True
 
 
-def test_health_llama_network_error(
-    client, patch_llama_network_error, patch_redis_ok
-):
+def test_health_llama_network_error(client, patch_llama_network_error, patch_redis_ok):
     app.dependency_overrides[get_session] = _override_session("ok")
 
     response = client.get("/health")
@@ -185,9 +183,7 @@ def test_health_llama_network_error(
     assert body["llama"]["detail"]
 
 
-def test_health_db_error_marks_only_db_down(
-    client, patch_llama_ok, patch_redis_ok
-):
+def test_health_db_error_marks_only_db_down(client, patch_llama_ok, patch_redis_ok):
     app.dependency_overrides[get_session] = _override_session("error")
 
     response = client.get("/health")
@@ -200,9 +196,7 @@ def test_health_db_error_marks_only_db_down(
     assert body["redis"]["ok"] is True
 
 
-def test_health_db_slow_times_out(
-    client, patch_llama_ok, patch_redis_ok, monkeypatch
-):
+def test_health_db_slow_times_out(client, patch_llama_ok, patch_redis_ok, monkeypatch):
     # Bajamos el timeout del check para no esperar 1s en el test.
     monkeypatch.setattr(health_router, "_CHECK_TIMEOUT_S", 0.05)
     app.dependency_overrides[get_session] = _override_session("slow")
@@ -229,9 +223,7 @@ def test_health_redis_down_marks_only_redis_down(
     assert body["redis"]["ok"] is False
 
 
-def test_health_all_services_down(
-    client, patch_llama_network_error, patch_redis_down
-):
+def test_health_all_services_down(client, patch_llama_network_error, patch_redis_down):
     app.dependency_overrides[get_session] = _override_session("error")
 
     response = client.get("/health")
