@@ -122,6 +122,48 @@ class COCR_API_Client {
 		return true;
 	}
 
+	/**
+	 * Async upload: POST /upload-slip/async — returns {task_id, status: "queued"}.
+	 *
+	 * Used by COCR_Woo_Hook (WooCommerce integration) to queue a comprobante
+	 * for background processing without blocking the order completion flow.
+	 *
+	 * @param string $file_path  Absolute path to the file on disk.
+	 * @param string $api_url    Base URL of the FastAPI service.
+	 * @param string $api_key    Plaintext API key sent as X-API-Key header.
+	 * @param int    $timeout    Request timeout in seconds (default 30).
+	 * @return array{task_id:string,status:string}|\WP_Error
+	 */
+	public function upload_slip_async( string $file_path, string $api_url, string $api_key, int $timeout = 30 ): array|\WP_Error {
+		if ( ! is_readable( $file_path ) ) {
+			return new \WP_Error(
+				'cocr_file_unreadable',
+				sprintf(
+					/* translators: %s: file path */
+					__( 'File is not readable: %s', 'comprobantes-ocr' ),
+					$file_path
+				)
+			);
+		}
+
+		$timeout  = max( 5, min( 120, $timeout ) );
+		$boundary = $this->_generate_boundary();
+		$body     = $this->_build_multipart( $boundary, [], $file_path );
+
+		return $this->_make_request(
+			'POST',
+			trailingslashit( $api_url ) . 'upload-slip/async',
+			[
+				'timeout' => $timeout,
+				'headers' => [
+					'X-API-Key'    => $api_key,
+					'Content-Type' => 'multipart/form-data; boundary=' . $boundary,
+				],
+				'body'    => $body,
+			]
+		);
+	}
+
 	// -------------------------------------------------------------------------
 	// Private helpers
 	// -------------------------------------------------------------------------

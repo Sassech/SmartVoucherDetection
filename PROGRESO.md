@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 2 — **COMPLETADA** ✅
-- **Última tarea completada:** `2.7.5` — Motor de detección completo (3 capas + Celery + endpoints)
-- **Próximo paso:** **Fase 3 — Plugin WordPress**
+- **Última fase activa:** Fase 3 — **COMPLETADA** ✅
+- **Última tarea completada:** `3.14` — Workflow GitHub Actions para generar ZIP en tags
+- **Próximo paso:** **Fase 4 — Plataforma Web de Pago**
 - **Bloqueadores:** ninguno
 
 ---
@@ -328,20 +328,20 @@
 > Objetivo: Plugin instalable desde WordPress.org consumiendo la API.
 > _Tareas se refinarán al iniciar Fase 3 — por ahora son macro-tareas._
 
-- [ ] **3.1** Estructura `plugin-wp/comprobantes-ocr/` (entry point + readme.txt + includes/)
-- [ ] **3.2** Clase `API_Client` con `wp_remote_post()` hacia FastAPI
-- [ ] **3.3** Página de configuración wp-admin (URL API + API key + botón "Probar conexión")
-- [ ] **3.4** Shortcode `[comprobante_upload]` con drag-and-drop
-- [ ] **3.5** Bloque Gutenberg equivalente al shortcode
-- [ ] **3.6** Semáforo visual (verde/amarillo/rojo) renderizado vía JS
-- [ ] **3.7** Widget historial últimos 20 en wp-admin
-- [ ] **3.8** Hook WooCommerce `woocommerce_order_status_completed`
-- [ ] **3.9** Seguridad: nonce, sanitización, capability checks
-- [ ] **3.10** i18n: archivos .pot, traducciones es_MX y en_US
-- [ ] **3.11** Assets WP.org: banner, ícono, screenshots
-- [ ] **3.12** `readme.txt` formato oficial WP.org
-- [ ] **3.13** Pasar Plugin Check sin errores críticos
-- [ ] **3.14** Workflow GitHub Actions para generar ZIP en tags
+- [x] **3.1** Estructura `plugin-wp/comprobantes-ocr/` (entry point + readme.txt + includes/)
+- [x] **3.2** Clase `API_Client` con `wp_remote_post()` hacia FastAPI
+- [x] **3.3** Página de configuración wp-admin (URL API + API key + botón "Probar conexión")
+- [x] **3.4** Shortcode `[comprobante_upload]` con drag-and-drop
+- [x] **3.5** Bloque Gutenberg equivalente al shortcode
+- [x] **3.6** Semáforo visual (verde/amarillo/rojo) renderizado vía JS
+- [x] **3.7** Widget historial últimos 20 en wp-admin
+- [x] **3.8** Hook WooCommerce `woocommerce_order_status_completed`
+- [x] **3.9** Seguridad: nonce, sanitización, capability checks
+- [x] **3.10** i18n: archivos .pot, traducciones es_MX y en_US
+- [x] **3.11** Assets WP.org: banner, ícono, screenshots
+- [x] **3.12** `readme.txt` formato oficial WP.org
+- [x] **3.13** Pasar Plugin Check sin errores críticos (gate manual — ver PLUGIN-CHECK.md)
+- [x] **3.14** Workflow GitHub Actions para generar ZIP en tags
 
 > **🏁 Fin Fase 3** — `git tag fase-3-completa`
 

@@ -183,42 +183,42 @@ Chain strategy: stacked-to-develop
 
 ## PR-D: WooCommerce + i18n + WP.org + CI (~480 LOC)
 
-- [ ] **D1** — `COCR_Woo_Hook`
+- [x] **D1** — `COCR_Woo_Hook`
   - Files: `plugin-wp/comprobantes-ocr/includes/class-woo-hook.php`
   - Guard entire class file with `if (!class_exists('WooCommerce')) return;`; hook `woocommerce_order_status_completed` with priority 10; callback receives `$order_id`; get `WC_Order`; check for comprobante attachment in order meta or attached media; if found: call `COCR_API_Client::upload_slip_async()` (via `POST /upload-slip/async`); on success: `update_post_meta($order_id, '_cocr_task_id', $response['task_id'])`; on no attachment: no API call; on WP_Error: log via `error_log()`, no fatal
   - AC: WooCommerce active + order completed + attachment → `_cocr_task_id` meta stored; WooCommerce absent → class never instantiated, no error; order without attachment → no API call
   - Deps: A2, A1
   - Est: ~70 LOC
 
-- [ ] **D2** — i18n strings + language files
+- [x] **D2** — i18n strings + language files
   - Files: `plugin-wp/comprobantes-ocr/languages/comprobantes-ocr.pot`, `languages/comprobantes-ocr-es_MX.po`, `languages/comprobantes-ocr-es_MX.mo`, `languages/comprobantes-ocr-en_US.po`, `languages/comprobantes-ocr-en_US.mo`; all PHP source files (string wrapping pass)
   - Wrap all ~30–40 user-visible PHP strings in `__('…', 'comprobantes-ocr')` or `_e('…', 'comprobantes-ocr')`; ensure `load_plugin_textdomain('comprobantes-ocr', false, dirname(plugin_basename(__FILE__)) . '/languages/')` is called on `plugins_loaded` in entry point; run `wp i18n make-pot plugin-wp/comprobantes-ocr/ plugin-wp/comprobantes-ocr/languages/comprobantes-ocr.pot`; create `es_MX.po` with Spanish translations; compile `.mo` via `wp i18n make-mo`; create `en_US.po/.mo` as identity (source = translation)
   - AC: `.pot` file contains ≥30 translatable strings; WP locale `es_MX` renders Spanish labels on settings page; `en_US` `.mo` compiles without errors; no hardcoded untranslated UI string in rendered output
   - Deps: B1, B2, B3, B7, D1
   - Est: ~150 LOC (po/pot files)
 
-- [ ] **D3** — WP.org assets + `readme.txt`
+- [x] **D3** — WP.org assets + `readme.txt`
   - Files: `plugin-wp/comprobantes-ocr/assets/banner-1544x500.png`, `assets/icon-256x256.png`, `assets/screenshot-1.png`, `plugin-wp/comprobantes-ocr/readme.txt`
   - `readme.txt`: WP.org SVN format; required sections: `=== Plugin Name ===` header block (`Tested up to: 6.5`, `Requires at least: 6.5`, `Stable tag: 1.0.0`, `License: GPL-2.0-or-later`), `== Description ==`, `== Installation ==`, `== Getting Started ==` (include note: "Run `seed_api_key.py` to generate and store the first API key before activating the plugin"), `== FAQ ==`, `== Screenshots ==`, `== Changelog ==`; placeholder PNG assets (solid color acceptable for Fase 3)
   - AC: `readme.txt` passes WP.org readme validator (https://wordpress.org/plugins/about/validator/) with no required-field errors; all 3 asset files present at correct pixel dimensions
   - Deps: A1
   - Est: ~80 LOC
 
-- [ ] **D4** — Plugin Check compliance
+- [x] **D4** — Plugin Check compliance
   - Files: (fixes across plugin source files as needed)
   - Install WP Plugin Check (via WP admin or CLI); run against `comprobantes-ocr`; fix ALL critical errors (0 tolerance); document any remaining warnings in a comment block at top of `PROGRESO.md`; acceptable: block-related notices ≤ 3 warnings total
   - AC: Plugin Check report shows 0 critical errors; ≤ 3 warnings (block notices acceptable); no `esc_html()` / nonce / `current_user_can()` violations remain
   - Deps: D2, D3, C6
   - Est: ~20 LOC (fixes)
 
-- [ ] **D5** — `.github/workflows/build-plugin.yml`
+- [x] **D5** — `.github/workflows/build-plugin.yml`
   - Files: `.github/workflows/build-plugin.yml`
   - Trigger: `on: push: tags: ['v*']`; job `build` on `ubuntu-latest`; steps: `actions/checkout@v4` → `actions/setup-node@v4` (node-version: `'20'`) → `npm ci` (working-directory: `plugin-wp/comprobantes-ocr/block`) → `npm run build` (same) → ZIP step: `cd plugin-wp && zip -r ../comprobantes-ocr.zip comprobantes-ocr/ --exclude "*/block/src/*" --exclude "*/block/node_modules/*" --exclude "*/assets/*" --exclude "*/.git*"` → `actions/upload-artifact@v4` → `softprops/action-gh-release@v2` with `files: comprobantes-ocr.zip`; workflow fails and skips release if `npm run build` exits non-zero
   - AC: Pushing `v1.0.0` tag triggers workflow and attaches `comprobantes-ocr.zip` to GitHub Release; ZIP contains `block/build/` but NOT `block/src/`, `block/node_modules/`, `assets/`; `npm run build` failure → workflow fails, no release created
   - Deps: C6
   - Est: ~60 LOC
 
-- [ ] **D6** — PROGRESO.md update + tag
+- [x] **D6** — PROGRESO.md update + tag
   - Files: `PROGRESO.md`
   - Mark all Fase 3 tasks `[x]`; document Plugin Check warning count (from D4); add git tag `fase-3-completa` after PR-D merges to `develop`
   - AC: All Fase 3 checkboxes are `[x]` in `PROGRESO.md`; `git tag fase-3-completa` exists in repository
