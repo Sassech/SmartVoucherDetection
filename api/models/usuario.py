@@ -42,6 +42,9 @@ class Usuario(Base, SoftDeleteMixin):
     contrasena_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     rol: Mapped[str] = mapped_column(String(20), nullable=False, default="operador")
     token_api_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    token_api_prefix: Mapped[str | None] = mapped_column(
+        String(8), nullable=True, index=True
+    )
     fecha_registro: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

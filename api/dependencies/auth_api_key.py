@@ -1,19 +1,20 @@
 """FastAPI dependency: validate X-API-Key header against usuarios.token_api_hash.
 
-Strategy (Decision 2 from design doc):
-    Iterate all active users with a stored hash (LIMIT 50) and perform
-    bcrypt.checkpw() for each. O(n) per request — acceptable for Fase 3
-    (≤ 50 users).
+Strategy (Fase 4 — R-30):
+    Use token_api_prefix to pre-filter candidates BEFORE running bcrypt:
+        WHERE token_api_prefix = submitted_key[:8] AND deleted_at IS NULL
 
-Scalability note (deferred to Fase 4):
-    When user count exceeds ~200, add `token_api_prefix VARCHAR(8)` as an
-    indexed column and pre-filter:
-        WHERE token_api_prefix = :prefix AND deleted_at IS NULL
-    before the bcrypt scan to avoid a full table scan on every request.
+    This is an O(1) indexed lookup + bcrypt on the narrowed set (typically 1 row).
+    NULL prefix rows are naturally excluded by the WHERE equality clause — so
+    webapp-only users (no token_api_hash) are never compared. (S-14)
 
 Security note:
-    The 401 detail is identical for "key not found" and "wrong key" — this
-    prevents user enumeration (timing-safe as per R-16).
+    The 401 detail is identical for "key not found" and "wrong key" — prevents
+    user enumeration (timing-safe as per R-16).
+
+Performance impact:
+    Prefix miss: 0 bcrypt ops (index short-circuits).
+    Prefix match: 1 bcrypt op.
 """
 
 from __future__ import annotations
@@ -34,11 +35,12 @@ async def require_api_key(
     """Validate X-API-Key header and return the matching Usuario.
 
     Raises HTTP 401 for:
-    - Missing or empty header  → "API key required"
-    - No bcrypt match found    → "Invalid API key"
+    - Missing or empty header       → "API key required"
+    - Prefix not found in DB        → "Invalid API key" (no bcrypt overhead)
+    - Prefix match, wrong full key  → "Invalid API key"
 
     Returns the full Usuario ORM object so routers can access id_usuario
-    directly (Decision 5: no request.state mutation).
+    directly (no request.state mutation).
     """
     if not x_api_key:
         raise HTTPException(
@@ -46,19 +48,21 @@ async def require_api_key(
             detail="API key required",
         )
 
-    # Fetch all active users with a token hash set.
-    # LIMIT 50: acceptable for Fase 3. See scalability note above.
+    # Fase 4: indexed prefix pre-filter — avoids O(n) full bcrypt scan.
+    # NULL token_api_prefix rows are excluded naturally by equality WHERE.
+    prefix = x_api_key[:8]
     stmt = (
         select(Usuario)
-        .where(Usuario.deleted_at.is_(None))
-        .where(Usuario.token_api_hash.is_not(None))
-        .limit(50)
+        .where(
+            Usuario.token_api_prefix == prefix,
+            Usuario.deleted_at.is_(None),
+        )
     )
     result = await db.execute(stmt)
-    users = result.scalars().all()
+    candidates = result.scalars().all()
 
     key_bytes = x_api_key.encode("utf-8")
-    for user in users:
+    for user in candidates:
         stored_hash = user.token_api_hash
         if stored_hash and bcrypt.checkpw(key_bytes, stored_hash.encode("utf-8")):
             return user
