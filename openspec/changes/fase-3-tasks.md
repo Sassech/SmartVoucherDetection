@@ -136,7 +136,7 @@ Chain strategy: stacked-to-develop
 
 ## PR-C: Gutenberg Block (~200 LOC)
 
-- [ ] **C1** — `block/package.json` + `block/block.json`
+- [x] **C1** — `block/package.json` + `block/block.json`
   - Files: `plugin-wp/comprobantes-ocr/block/package.json`, `plugin-wp/comprobantes-ocr/block/block.json`
   - `package.json`: `name: "comprobantes-ocr-block"`, `scripts: {build: "wp-scripts build", start: "wp-scripts start"}`, `devDependencies: {"@wordpress/scripts": "^30.x"}`
   - `block.json`: `apiVersion: 3`, `name: "comprobantes-ocr/upload"`, `title: "Comprobante Upload"`, `category: "widgets"`, `icon: "media-document"`, `textdomain: "comprobantes-ocr"`, `editorScript: "file:./build/index.js"`, `attributes: {apiUrlOverride: {type: "string", default: ""}}`, `supports: {html: false}`
@@ -144,35 +144,35 @@ Chain strategy: stacked-to-develop
   - Deps: A1
   - Est: ~30 LOC
 
-- [ ] **C2** — `block/src/index.js`
+- [x] **C2** — `block/src/index.js`
   - Files: `plugin-wp/comprobantes-ocr/block/src/index.js`
   - `import { registerBlockType } from '@wordpress/blocks'`; import `Edit` from `./edit`; import `save` from `./save`; `registerBlockType('comprobantes-ocr/upload', { edit: Edit, save })` — metadata read from `block.json`
   - AC: Block registers without console errors; `wp.blocks.getBlockType('comprobantes-ocr/upload')` returns non-null in editor console
   - Deps: C1
   - Est: ~20 LOC
 
-- [ ] **C3** — `block/src/edit.js`
+- [x] **C3** — `block/src/edit.js`
   - Files: `plugin-wp/comprobantes-ocr/block/src/edit.js`
   - React functional component `Edit({ attributes, setAttributes })`; `InspectorControls` panel with `TextControl` for `apiUrlOverride` attribute; main canvas renders equivalent drag-and-drop upload area UI (mirrors shortcode output); uses `useBlockProps()`; strings wrapped in `__()` with domain `comprobantes-ocr`
   - AC: Block inserter shows `Comprobante Upload`; InspectorControls panel visible in sidebar with API URL Override field; canvas shows upload area preview
   - Deps: C2
   - Est: ~70 LOC
 
-- [ ] **C4** — `block/src/save.js`
+- [x] **C4** — `block/src/save.js`
   - Files: `plugin-wp/comprobantes-ocr/block/src/save.js`
   - Export `save` function that returns `null` — dynamic block rendered server-side via `render_callback`
   - AC: `save()` returns `null`; block validates without "Block validation failed" error on frontend
   - Deps: C2
   - Est: ~10 LOC
 
-- [ ] **C5** — `COCR_Gutenberg` PHP class
+- [x] **C5** — `COCR_Gutenberg` PHP class
   - Files: `plugin-wp/comprobantes-ocr/includes/class-gutenberg.php`
   - `register_block_type()` with `plugin_dir_path(__FILE__) . '../block/'`; set `render_callback` to `[COCR_Shortcode::class, 'render']` (reuses shortcode output for frontend); enqueue `block/build/index.js` in editor via block registration (auto from `block.json` `editorScript`); verify `block/build/index.asset.php` exists before enqueue
   - AC: Block appears in block inserter on WP 6.5; frontend renders identical HTML to `[comprobante_upload]` shortcode; no `wp_enqueue_script` calls duplicate the block's asset
   - Deps: C1, B3
   - Est: ~40 LOC
 
-- [ ] **C6** — Build and commit `block/build/`
+- [x] **C6** — Build and commit `block/build/`
   - Files: `plugin-wp/comprobantes-ocr/block/build/index.js`, `plugin-wp/comprobantes-ocr/block/build/index.asset.php`
   - Run `cd plugin-wp/comprobantes-ocr/block && npm ci && npm run build`; verify `build/index.js` and `build/index.asset.php` generated; add to Git (not in `.gitignore`); commit as part of PR-C
   - AC: `block/build/index.js` and `block/build/index.asset.php` present in repository; `git status` shows them tracked; `COCR_Gutenberg` can `require` `index.asset.php` without file-not-found error

@@ -1,0 +1,14 @@
+{
+  "name": "comprobantes-ocr-block",
+  "version": "1.0.0",
+  "description": "Gutenberg block for Comprobantes OCR plugin",
+  "private": true,
+  "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start",
+    "lint:js": "wp-scripts lint-js"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^30.0.0"
+  }
+}
