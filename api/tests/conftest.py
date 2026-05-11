@@ -36,6 +36,7 @@ que devuelva ESA misma sesion (no crear una nueva del pool).
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from unittest.mock import MagicMock
 
 import httpx
 import pytest
@@ -46,7 +47,9 @@ from sqlalchemy.pool import NullPool
 
 from config import settings
 from database import get_session
+from dependencies.auth_api_key import require_api_key
 from main import app
+from models.seed import SYSTEM_USER_ID
 
 
 @pytest_asyncio.fixture
@@ -78,17 +81,29 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[httpx.AsyncClient, None]:
-    """`httpx.AsyncClient` con `get_session` override-ado a `db_session`.
+    """`httpx.AsyncClient` con `get_session` y `require_api_key` override-ados.
 
-    El endpoint usa la MISMA sesion del test → ve los INSERTs del fixture
-    dentro de la transaccion. El rollback final limpia todo.
+    - `get_session` → usa `db_session` del test (misma transaccion, rollback al final).
+    - `require_api_key` → retorna un mock de Usuario con `id_usuario=SYSTEM_USER_ID`
+      para que todos los tests existentes sigan pasando sin cambios.
+
+    El rollback final limpia todo en DB.
     """
+    mock_usuario = MagicMock()
+    mock_usuario.id_usuario = SYSTEM_USER_ID
 
-    async def _override() -> AsyncGenerator[AsyncSession, None]:
+    async def _override_session() -> AsyncGenerator[AsyncSession, None]:
         yield db_session
 
-    app.dependency_overrides[get_session] = _override
+    def _override_auth() -> MagicMock:
+        return mock_usuario
+
+    app.dependency_overrides[get_session] = _override_session
+    app.dependency_overrides[require_api_key] = _override_auth
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
-        yield c
-    app.dependency_overrides.clear()
+    try:
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+            yield c
+    finally:
+        app.dependency_overrides.pop(get_session, None)
+        app.dependency_overrides.pop(require_api_key, None)

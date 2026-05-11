@@ -15,8 +15,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_session
+from dependencies.auth_api_key import require_api_key
 from models.comprobante import Comprobante
-from models.seed import SYSTEM_USER_ID
+from models.usuario import Usuario
 from models.validacion import Validacion
 from schemas.report import EstadoCount, ReportResponse
 
@@ -24,7 +25,10 @@ router = APIRouter(prefix="/report", tags=["report"])
 
 
 @router.get("", response_model=ReportResponse)
-async def get_report(session: AsyncSession = Depends(get_session)) -> ReportResponse:
+async def get_report(
+    session: AsyncSession = Depends(get_session),
+    usuario: Usuario = Depends(require_api_key),
+) -> ReportResponse:
     """Return aggregate counts of comprobantes by estado.
 
     Scope: comprobantes for SYSTEM_USER_ID (Fase 4: replace with JWT org).
@@ -34,7 +38,7 @@ async def get_report(session: AsyncSession = Depends(get_session)) -> ReportResp
     rows = await session.execute(
         select(Comprobante.estado_actual, func.count().label("total"))
         .where(
-            Comprobante.id_usuario == SYSTEM_USER_ID,
+            Comprobante.id_usuario == usuario.id_usuario,
             Comprobante.deleted_at.is_(None),
         )
         .group_by(Comprobante.estado_actual)
@@ -43,12 +47,12 @@ async def get_report(session: AsyncSession = Depends(get_session)) -> ReportResp
     counts = [EstadoCount(estado=r.estado_actual, total=r.total) for r in rows]
     total = sum(c.total for c in counts)
 
-    # Avg score from validaciones (for comprobantes owned by SYSTEM_USER_ID)
+    # Avg score from validaciones (for comprobantes owned by authenticated user)
     score_row = await session.execute(
         select(func.avg(Validacion.score_similitud))
         .join(Comprobante, Validacion.id_comprobante == Comprobante.id_comprobante)
         .where(
-            Comprobante.id_usuario == SYSTEM_USER_ID,
+            Comprobante.id_usuario == usuario.id_usuario,
             Validacion.score_similitud.is_not(None),
         )
     )

@@ -65,8 +65,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_session
+from dependencies.auth_api_key import require_api_key
 from models.comprobante import Comprobante
-from models.seed import SYSTEM_USER_ID
+from models.usuario import Usuario
 from models.validacion import Validacion
 from schemas.comprobante import CamposExtraidos, ComprobanteResponse
 from services.cache_service import check_hash, set_hash
@@ -148,6 +149,7 @@ async def _find_existing_by_hash(
 async def upload_slip(
     file: UploadFile = File(..., description="Imagen (PNG/JPEG) o PDF del comprobante"),
     session: AsyncSession = Depends(get_session),
+    usuario: Usuario = Depends(require_api_key),
 ) -> ComprobanteResponse:
     """Procesa un comprobante: OCR + normalizacion + deteccion de duplicados.
 
@@ -235,7 +237,7 @@ async def upload_slip(
     # 10. Crear comprobante con estado inicial "recibido", luego transicionar
     #     a "procesando" via apply_transition antes del INSERT.
     comprobante = Comprobante(
-        id_usuario=SYSTEM_USER_ID,
+        id_usuario=usuario.id_usuario,
         imagen_path=str(imagen_path),
         texto_extraido=crudos.get(
             "content"
