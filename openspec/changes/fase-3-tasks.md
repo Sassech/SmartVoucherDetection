@@ -83,49 +83,49 @@ Chain strategy: stacked-to-develop
 
 ## PR-B: Shortcode + JS + CSS (~400 LOC)
 
-- [ ] **B1** — `COCR_Settings`
+- [x] **B1** — `COCR_Settings`
   - Files: `plugin-wp/comprobantes-ocr/includes/class-settings.php`, `plugin-wp/comprobantes-ocr/admin/settings-page.php`
   - Register settings page at `Settings > Comprobantes OCR`; capability gate `current_user_can('manage_options')`; Settings API with group `cocr_options`; `register_setting()` for `comprobantes_api_url` (`esc_url_raw()`), `comprobantes_api_key` (`sanitize_text_field()`, render masked), `comprobantes_timeout` (`absint()`, clamp 5–120); render via `admin/settings-page.php` template with nonce via `settings_fields()`; optional HTTPS warning if `api_url` not starting with `https://`
   - AC: Admin sees settings page with 3 fields; non-admin gets WP permissions error; SQL injection in `api_url` stripped by `esc_url_raw()`; forged POST without nonce triggers `check_admin_referer` failure
   - Deps: A1, A2
   - Est: ~90 LOC
 
-- [ ] **B2** — "Test Connection" AJAX handler
+- [x] **B2** — "Test Connection" AJAX handler
   - Files: `plugin-wp/comprobantes-ocr/includes/class-settings.php` (addition)
   - Register `wp_ajax_cocr_ajax_test_connection`; verify nonce `cocr_test_connection`; `current_user_can('manage_options')`; call `COCR_API_Client::test_connection()`; return `wp_send_json_success(['ok' => true, 'detail' => __('Connected', 'comprobantes-ocr')])` or `wp_send_json_error(['ok' => false, 'detail' => $error->get_error_message()])`
   - AC: Valid credentials + reachable API → JSON `{ok: true}`; unreachable API → JSON `{ok: false}` with detail; missing nonce → WP AJAX `-1`
   - Deps: B1
   - Est: ~30 LOC
 
-- [ ] **B3** — `COCR_Shortcode`
+- [x] **B3** — `COCR_Shortcode`
   - Files: `plugin-wp/comprobantes-ocr/includes/class-shortcode.php`
   - Register `[comprobante_upload]` via `add_shortcode()`; `render()`: if `!current_user_can('upload_files')` return `''`; `wp_enqueue_script('cocr-upload-handler', ...)`, `wp_enqueue_script('cocr-result-display', ...)`, `wp_enqueue_style('cocr-style', ...)`; `wp_localize_script('cocr-upload-handler', 'COCR', ['ajaxUrl' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('cocr_upload_nonce')])`; return upload form HTML with drag-and-drop area, `accept="image/jpeg,image/png,application/pdf"`, `data-max-size="10485760"`; register `wp_ajax_cocr_upload_slip` (logged-in only — no `wp_ajax_nopriv_`); AJAX handler: `check_ajax_referer('cocr_upload_nonce')`, `current_user_can('upload_files')`, `wp_check_filetype_and_ext()` whitelist `['jpg','jpeg','png','pdf']`, call `COCR_API_Client::upload_slip()`, return `wp_send_json_success/error()`
   - AC: Non-logged-in user → shortcode renders empty string; valid JPEG ≤10MB → AJAX fires; forged nonce → 403/-1; `.exe` file → rejected by accept filter
   - Deps: B1, A2
   - Est: ~100 LOC
 
-- [ ] **B4** — `upload-handler.js`
+- [x] **B4** — `upload-handler.js`
   - Files: `plugin-wp/comprobantes-ocr/public/upload-handler.js`
   - ES6; drag-and-drop events (`dragover`, `drop`), `<input type="file">` change handler; client-side validation: reject if `file.size > 10 * 1024 * 1024` with error message; reject if `file.type` not in `['image/jpeg','image/png','application/pdf']`; build `FormData(file, action='cocr_upload_slip', nonce=COCR.nonce)`; `fetch(COCR.ajaxUrl, {method:'POST', body: formData})`; on success pass JSON to `result-display.js`; show/hide progress indicator
   - AC: File >10MB → client-side error before fetch; `image/jpeg` file triggers fetch to `admin-ajax.php`; nonce value from `COCR.nonce` is included in FormData
   - Deps: B3
   - Est: ~60 LOC
 
-- [ ] **B5** — `result-display.js`
+- [x] **B5** — `result-display.js`
   - Files: `plugin-wp/comprobantes-ocr/public/result-display.js`
   - ES6; exports/exposes `renderResult(response)` function; maps `status: 'valid'` → verde state, `status: 'sospechoso'` → amarillo state, `status: 'duplicado' | 'error'` → rojo state; toggle CSS classes on semaphore DOM element; `transition` property min 300ms via added class; display `response.message` text below semaphore
   - AC: `{status:'valid'}` → verde class active; `{status:'duplicado'}` → rojo class active; DOM transition property ≥ 300ms (verifiable via CSS)
   - Deps: B4
   - Est: ~40 LOC
 
-- [ ] **B6** — `style.css`
+- [x] **B6** — `style.css`
   - Files: `plugin-wp/comprobantes-ocr/public/style.css`
   - Drag-and-drop upload area (dashed border, hover state, active state); semaphore container (3 circles: verde/amarillo/rojo); active state adds brightness, inactive circles dimmed; `transition: all 300ms ease` on semaphore lights; responsive (max-width: 100%); no external framework, no `!important` abuse
   - AC: CSS file has `.cocr-semaphore`, `.cocr-light-verde`, `.cocr-light-amarillo`, `.cocr-light-rojo` with `transition` ≥ 300ms; upload area has dashed border on hover
   - Deps: B3
   - Est: ~50 LOC
 
-- [ ] **B7** — `COCR_History_Widget` + template
+- [x] **B7** — `COCR_History_Widget` + template
   - Files: `plugin-wp/comprobantes-ocr/includes/class-history-widget.php`, `plugin-wp/comprobantes-ocr/admin/history-widget.php`
   - Register admin submenu page `comprobantes-ocr-history`; capability `current_user_can('manage_options')`; call `COCR_API_Client::get_history($api_url, $api_key, 20)`; on `WP_Error` show user-friendly message (no PHP stack trace); pass data to `admin/history-widget.php` template; template renders `<table>` with columns: `fecha`, `banco`, `monto`, `estado` (colored `<span>` badge), `hash` (substr 0–8 + `…`); ALL cells wrapped in `esc_html()`
   - AC: 20 rows rendered with all 5 columns; API WP_Error → friendly message displayed; `banco = "<script>alert(1)</script>"` → rendered as `&lt;script&gt;`; non-admin → WP permissions error
