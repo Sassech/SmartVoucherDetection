@@ -34,8 +34,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_session
+from dependencies.auth_api_key import require_api_key
 from models.comprobante import ESTADOS_VALIDOS, Comprobante
-from models.seed import SYSTEM_USER_ID
+from models.usuario import Usuario
 from schemas.comprobante import ComprobanteListResponse, ComprobanteResponse
 
 router = APIRouter(tags=["history"])
@@ -48,6 +49,7 @@ _MAX_LIMIT = 100
 @router.get("/history", response_model=ComprobanteListResponse)
 async def history(
     session: AsyncSession = Depends(get_session),
+    usuario: Usuario = Depends(require_api_key),
     limit: int = Query(
         20,
         ge=1,
@@ -95,7 +97,7 @@ async def history(
     # el SELECT paginado. Asi nos garantizamos que `total` y `items` estan
     # alineados con los mismos predicados.
     base_filters = [
-        Comprobante.id_usuario == SYSTEM_USER_ID,
+        Comprobante.id_usuario == usuario.id_usuario,
         Comprobante.deleted_at.is_(None),  # soft delete
     ]
     if fecha_desde is not None:

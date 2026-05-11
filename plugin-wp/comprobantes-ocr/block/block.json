@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "comprobantes-ocr/upload",
+  "version": "1.0.0",
+  "title": "Comprobante Upload",
+  "category": "widgets",
+  "icon": "media-document",
+  "description": "Upload and validate payment slips with AI-powered OCR.",
+  "keywords": ["comprobante", "voucher", "ocr", "upload"],
+  "textdomain": "comprobantes-ocr",
+  "editorScript": "file:./build/index.js",
+  "style": "file:../public/style.css",
+  "attributes": {
+    "apiUrlOverride": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": ["wide", "full"]
+  }
+}

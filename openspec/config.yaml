@@ -1,6 +1,14 @@
 project: SmartVoucherDetection
 mode: openspec
 initialized: "2026-05-09"
+current_phase: "Fase 4 — Plataforma Web de Pago"
+
+completed_changes:
+  - name: fase-3-plugin-wp
+    status: ARCHIVED
+    date: "2026-05-10"
+    git_tag: fase-3-completa
+    verdict: "PASS WITH WARNINGS (0 CRITICALs, 5 WARNINGs)"
 
 context: |
   FastAPI backend for automated deposit-slip (comprobante) OCR and duplicate detection.

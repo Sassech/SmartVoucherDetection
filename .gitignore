@@ -15,3 +15,6 @@ node_modules/
 .next/
 dist/
 build/
+# Exception: Gutenberg block build artifacts are intentionally committed (Decision 3)
+!plugin-wp/comprobantes-ocr/block/build/
+!plugin-wp/comprobantes-ocr/block/build/**

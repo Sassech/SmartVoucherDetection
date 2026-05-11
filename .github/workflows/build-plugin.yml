@@ -1,0 +1,57 @@
+name: Build Plugin ZIP
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build comprobantes-ocr.zip
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: plugin-wp/comprobantes-ocr/block/package-lock.json
+
+      - name: Install block dependencies
+        working-directory: plugin-wp/comprobantes-ocr/block
+        run: npm ci
+
+      - name: Build Gutenberg block
+        working-directory: plugin-wp/comprobantes-ocr/block
+        run: npm run build
+
+      - name: Create plugin ZIP
+        run: |
+          cd plugin-wp
+          zip -r ../comprobantes-ocr.zip comprobantes-ocr/ \
+            --exclude "comprobantes-ocr/block/src/*" \
+            --exclude "comprobantes-ocr/block/node_modules/*" \
+            --exclude "comprobantes-ocr/assets/*" \
+            --exclude "comprobantes-ocr/PLUGIN-CHECK.md" \
+            --exclude "comprobantes-ocr/.gitkeep" \
+            --exclude "*/.gitkeep"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: comprobantes-ocr
+          path: comprobantes-ocr.zip
+          retention-days: 30
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: comprobantes-ocr.zip
+          generate_release_notes: true

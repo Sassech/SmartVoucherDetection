@@ -1,0 +1,201 @@
+# English (US) identity translation for Comprobantes OCR plugin.
+# Copyright (C) 2026 SmartVoucher
+# This file is distributed under the same license as the Comprobantes OCR plugin.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Comprobantes OCR 1.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/sassech/SmartVoucherDetection/issues\n"
+"POT-Creation-Date: 2026-05-10T00:00:00+00:00\n"
+"PO-Revision-Date: 2026-05-10T00:00:00+00:00\n"
+"Last-Translator: SmartVoucher <smartvoucher@example.com>\n"
+"Language-Team: English (US) <en_US@li.org>\n"
+"Language: en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Manual\n"
+"X-Domain: comprobantes-ocr\n"
+
+#. Plugin Name of the plugin
+msgid "Comprobantes OCR"
+msgstr "Comprobantes OCR"
+
+#. Description of the plugin
+msgid "Upload and validate payment vouchers via OCR with duplicate detection."
+msgstr "Upload and validate payment vouchers via OCR with duplicate detection."
+
+#: includes/class-settings.php:51
+#: includes/class-settings.php:52
+msgctxt "admin menu page title and menu label"
+msgid "Comprobantes OCR"
+msgstr "Comprobantes OCR"
+
+#: includes/class-settings.php:99
+msgid "API Configuration"
+msgstr "API Configuration"
+
+#: includes/class-settings.php:106
+msgid "API URL"
+msgstr "API URL"
+
+#: includes/class-settings.php:113
+msgid "API Key"
+msgstr "API Key"
+
+#: includes/class-settings.php:121
+msgid "Timeout (seconds)"
+msgstr "Timeout (seconds)"
+
+#: includes/class-settings.php:139
+msgid "Base URL of the FastAPI OCR service (e.g. https://api.example.com)."
+msgstr "Base URL of the FastAPI OCR service (e.g. https://api.example.com)."
+
+#: includes/class-settings.php:149
+msgid "Test Connection"
+msgstr "Test Connection"
+
+#: includes/class-settings.php:160
+msgid "seconds (5–120)"
+msgstr "seconds (5–120)"
+
+#: includes/class-settings.php:192
+msgid "Testing…"
+msgstr "Testing…"
+
+#: includes/class-settings.php:193
+msgid "✅ Connected"
+msgstr "✅ Connected"
+
+#: includes/class-settings.php:194
+msgid "❌ Failed"
+msgstr "❌ Failed"
+
+#: includes/class-settings.php:215
+msgid "Permission denied."
+msgstr "Permission denied."
+
+#: includes/class-settings.php:227
+msgid "API URL is required."
+msgstr "API URL is required."
+
+#: includes/class-settings.php:241
+msgid "Connection successful."
+msgstr "Connection successful."
+
+#: includes/class-api-client.php:42
+#. translators: %s: file path
+msgid "File is not readable: %s"
+msgstr "File is not readable: %s"
+
+#: includes/class-api-client.php:115
+#. translators: %d: HTTP status code
+msgid "Health check returned HTTP %d"
+msgstr "Health check returned HTTP %d"
+
+#: includes/class-api-client.php:219
+#. translators: %d: HTTP status code
+msgid "Server error %d. Please retry later."
+msgstr "Server error %d. Please retry later."
+
+#: includes/class-api-client.php:230
+#. translators: 1: HTTP status code, 2: response body
+msgid "Client error %1$d: %2$s"
+msgstr "Client error %1$d: %2$s"
+
+#: includes/class-api-client.php:244
+msgid "Invalid JSON response from API."
+msgstr "Invalid JSON response from API."
+
+#: includes/class-shortcode.php:66
+msgid "Drag & drop your comprobante here or"
+msgstr "Drag & drop your comprobante here or"
+
+#: includes/class-shortcode.php:68
+msgid "Browse"
+msgstr "Browse"
+
+#: includes/class-shortcode.php:72
+msgid "Accepted: JPEG, PNG, PDF · Max 10 MB"
+msgstr "Accepted: JPEG, PNG, PDF · Max 10 MB"
+
+#: includes/class-shortcode.php:133
+msgid "Uploading…"
+msgstr "Uploading…"
+
+#: includes/class-shortcode.php:134
+msgid "File exceeds 10 MB limit."
+msgstr "File exceeds 10 MB limit."
+
+#: includes/class-shortcode.php:135
+msgid "Only JPEG, PNG, and PDF files are accepted."
+msgstr "Only JPEG, PNG, and PDF files are accepted."
+
+#: includes/class-shortcode.php:136
+msgid "Server error. Please try again."
+msgstr "Server error. Please try again."
+
+#: includes/class-shortcode.php:157
+
+#: includes/class-shortcode.php:165
+msgid "No file received or upload error."
+msgstr "No file received or upload error."
+
+#: includes/class-shortcode.php:175
+msgid "File too large (max 10 MB)."
+msgstr "File too large (max 10 MB)."
+
+#: includes/class-shortcode.php:204
+msgid "API URL not configured. Visit Settings > Comprobantes OCR."
+msgstr "API URL not configured. Visit Settings > Comprobantes OCR."
+
+#: includes/class-history-widget.php:32
+msgid "Comprobantes History"
+msgstr "Comprobantes History"
+
+#: includes/class-history-widget.php:33
+msgid "Comprobantes"
+msgstr "Comprobantes"
+
+#: includes/class-history-widget.php:57
+msgid "Please configure the API URL in Settings > Comprobantes OCR."
+msgstr "Please configure the API URL in Settings > Comprobantes OCR."
+
+#: admin/history-widget.php:20
+msgid "Comprobantes — Last 20"
+msgstr "Comprobantes — Last 20"
+
+#: admin/history-widget.php:58
+msgid "Date"
+msgstr "Date"
+
+#: admin/history-widget.php:59
+msgid "Bank"
+msgstr "Bank"
+
+#: admin/history-widget.php:60
+msgid "Amount"
+msgstr "Amount"
+
+#: admin/history-widget.php:61
+msgid "Status"
+msgstr "Status"
+
+#: admin/history-widget.php:62
+msgid "Hash"
+msgstr "Hash"
+
+#: admin/history-widget.php:68
+msgid "No comprobantes found."
+msgstr "No comprobantes found."
+
+#: includes/class-woo-hook.php:68
+#. translators: %s: error message
+msgid "Comprobantes OCR: upload failed — %s"
+msgstr "Comprobantes OCR: upload failed — %s"
+
+#: includes/class-woo-hook.php:82
+#. translators: %s: task ID
+msgid "Comprobantes OCR: processing started (task %s)"
+msgstr "Comprobantes OCR: processing started (task %s)"
