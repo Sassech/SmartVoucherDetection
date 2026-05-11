@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import health, history, report, upload, upload_async, validate
+from routers import health, history, report, upload, upload_async, validate, web_auth
 
 app = FastAPI(
     title="SmartVoucherDetection API",
@@ -21,22 +21,24 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS — permissive in dev. Tightened in Fase 4 once the webapp domain is fixed
-# and multi-tenancy lands. See plan §4 (multi-tenant) and §5.10 (Nginx prod).
+# CORS — tightened in Fase 4 to specific webapp origin.
+# `allow_credentials=True` requires explicit origin (not "*").
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[settings.webapp_origin],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(health.router)
 app.include_router(history.router)
 app.include_router(upload.router)
+<<<<<<< HEAD
 app.include_router(validate.router)
 app.include_router(report.router)
 app.include_router(upload_async.router)
+app.include_router(web_auth.router)
 
 
 @app.get("/", include_in_schema=False)
