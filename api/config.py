@@ -53,5 +53,20 @@ class Settings(BaseSettings):
     # relativo a la raiz del repo para que en dev local no requiera setup.
     upload_dir: Path = ROOT_DIR / "data" / "uploads"
 
+    # --- JWT Auth (Fase 4) -------------------------------------------------
+    # Clave secreta para firmar tokens HS256. Generar con:
+    #   openssl rand -hex 32
+    # MUST be set in production. En dev, si no existe en .env, Settings()
+    # falla con ValidationError — esto es intencional (fuerza config explicita).
+    jwt_secret_key: str = "dev-secret-change-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 7
+
+    # --- CORS (Fase 4) -----------------------------------------------------
+    # Origen exacto del webapp Next.js. `allow_credentials=True` require que
+    # `allow_origins` sea una lista de origenes especificos (no "*").
+    webapp_origin: str = "http://localhost:3000"
+
 
 settings = Settings()  # type: ignore[call-arg]
