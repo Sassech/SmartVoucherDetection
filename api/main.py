@@ -34,7 +34,6 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(history.router)
 app.include_router(upload.router)
-<<<<<<< HEAD
 app.include_router(validate.router)
 app.include_router(report.router)
 app.include_router(upload_async.router)
