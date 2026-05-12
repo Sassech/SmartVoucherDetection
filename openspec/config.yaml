@@ -9,6 +9,10 @@ completed_changes:
     date: "2026-05-10"
     git_tag: fase-3-completa
     verdict: "PASS WITH WARNINGS (0 CRITICALs, 5 WARNINGs)"
+  - name: fase-4-webapp
+    status: ARCHIVED
+    date: "2026-05-12"
+    verdict: "COMPLETE — 515 tests (425 Python + 90 vitest + 10 E2E), 53/53 tasks, 26 requirements"
 
 context: |
   FastAPI backend for automated deposit-slip (comprobante) OCR and duplicate detection.
