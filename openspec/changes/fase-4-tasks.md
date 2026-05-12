@@ -2,7 +2,7 @@
 
 **Change:** `fase-4-webapp`
 **Date:** 2026-05-11
-**Status:** Ready for Apply
+**Status:** COMPLETE — All 53 tasks done, archived 2026-05-12
 **Covers:** R-21–R-46 (28 requirements, 43 scenarios)
 
 ---
@@ -125,17 +125,17 @@ Chain strategy: stacked-to-develop
 
 ### Phase B.1: Schemas + Routers
 
-- [ ] **4.B.1** Create `api/schemas/web.py` with: `WebComprobanteResponse`, `WebComprobanteDetail`, `WebListResponse` (items, total, page, page_size, has_more), `DecisionRequest` (accion: Literal["aceptar","rechazar"], motivo), `StatsResponse` (total_mes, duplicados_mes, tasa_error).
+- [x] **4.B.1** Create `api/schemas/web.py` with: `WebComprobanteResponse`, `WebComprobanteDetail`, `WebListResponse` (items, total, page, page_size, has_more), `DecisionRequest` (accion: Literal["aceptar","rechazar"], motivo), `StatsResponse` (total_mes, duplicados_mes, tasa_error).
   - Files: `api/schemas/web.py`
   - Covers: R-39 (list), R-42 (detail), R-44 (decision), R-37 (stats)
   - Acceptance: All Pydantic models instantiate; `WebListResponse.has_more` computed correctly
 
-- [ ] **4.B.2** Create `api/routers/web_stats.py` with `GET /web/stats/` protected by `require_jwt`. Returns org-scoped month-to-date aggregates: `COUNT(*)`, `COUNT(*) WHERE estado_actual='duplicado'`, error rate. Uses org from `usuario.id_organizacion`.
+- [x] **4.B.2** Create `api/routers/web_stats.py` with `GET /web/stats/` protected by `require_jwt`. Returns org-scoped month-to-date aggregates: `COUNT(*)`, `COUNT(*) WHERE estado_actual='duplicado'`, error rate. Uses org from `usuario.id_organizacion`.
   - Files: `api/routers/web_stats.py`
   - Covers: R-37, S-23, S-24, S-26
   - Acceptance: Returns `StatsResponse`; org-scoped; 500 handled gracefully (S-26)
 
-- [ ] **4.B.3** Create `api/routers/web_comprobantes.py` with three endpoints:
+- [x] **4.B.3** Create `api/routers/web_comprobantes.py` with three endpoints:
   - `GET /web/comprobantes/` — paginated, org-scoped, accepts `status`, `date_from`, `date_to`, `page`, `page_size` (max 100). Returns `WebListResponse`.
   - `GET /web/comprobantes/{id}` — org-ownership check, raises 403 if foreign org (S-40). Returns full `WebComprobanteDetail` including `texto_extraido`, `imagen_path`.
   - `POST /web/comprobantes/{id}/decision` — org check, calls `apply_transition()` + creates `Validacion(metodo_deteccion="manual")`, returns updated estado.
@@ -143,19 +143,19 @@ Chain strategy: stacked-to-develop
   - Covers: R-38, R-39, R-41, R-42, R-44, R-46, S-27–S-32, S-39–S-40, S-38
   - Acceptance: All endpoint contracts satisfied; 403 on foreign org
 
-- [ ] **4.B.4** Register `web_comprobantes` and `web_stats` routers in `api/main.py`.
+- [x] **4.B.4** Register `web_comprobantes` and `web_stats` routers in `api/main.py`.
   - Files: `api/main.py`
   - Covers: R-27 (all `/web/` under `require_jwt`)
   - Acceptance: All four new router groups reachable; existing routes still respond correctly
 
 ### Phase B.2: Tests
 
-- [ ] **4.B.5** Create `api/tests/test_web_comprobantes.py` covering S-27–S-32, S-39–S-40, S-38 (~15 tests). Must test: status filter, date range filter, combined filters, pagination, empty results, row detail (S-39), foreign-org 403 (S-40), decision 403 foreign org (S-38).
+- [x] **4.B.5** Create `api/tests/test_web_comprobantes.py` covering S-27–S-32, S-39–S-40, S-38 (~15 tests). Must test: status filter, date range filter, combined filters, pagination, empty results, row detail (S-39), foreign-org 403 (S-40), decision 403 foreign org (S-38).
   - Files: `api/tests/test_web_comprobantes.py`
   - Covers: S-27–S-32, S-38–S-40
   - Acceptance: All tests GREEN using `client_jwt` fixture
 
-- [ ] **4.B.6** Create `api/tests/test_web_stats.py` covering S-23–S-26 (~8 tests). Must test: KPI aggregation by org, zero results (S-24), org isolation, 500 error handling (S-26).
+- [x] **4.B.6** Create `api/tests/test_web_stats.py` covering S-23–S-26 (~8 tests). Must test: KPI aggregation by org, zero results (S-24), org isolation, 500 error handling (S-26).
   - Files: `api/tests/test_web_stats.py`
   - Covers: S-23–S-26
   - Acceptance: All tests GREEN; org-scoping verified
@@ -170,98 +170,98 @@ Chain strategy: stacked-to-develop
 
 ### Phase C.1: Project Scaffold
 
-- [ ] **4.C.1** Create `webapp/package.json` with deps: `next@15`, `typescript`, `tailwindcss@^4`, `@shadcn/ui`, `react`, `react-dom`. Dev deps: `vitest`, `@testing-library/react`, `@testing-library/user-event`, `@playwright/test`, `@vitejs/plugin-react`.
+- [x] **4.C.1** Create `webapp/package.json` with deps: `next@15`, `typescript`, `tailwindcss@^4`, `@shadcn/ui`, `react`, `react-dom`. Dev deps: `vitest`, `@testing-library/react`, `@testing-library/user-event`, `@playwright/test`, `@vitejs/plugin-react`.
   - Files: `webapp/package.json`
   - Covers: R-31
   - Acceptance: `npm install` succeeds; no peer-dep warnings
 
-- [ ] **4.C.2** Create `webapp/tsconfig.json` with `"strict": true`, `"paths": { "@/*": ["./src/*"] }`, Next.js defaults.
+- [x] **4.C.2** Create `webapp/tsconfig.json` with `"strict": true`, `"paths": { "@/*": ["./src/*"] }`, Next.js defaults.
   - Files: `webapp/tsconfig.json`
   - Covers: R-31 (TypeScript strict)
   - Acceptance: `tsc --noEmit` exits 0 on empty project
 
-- [ ] **4.C.3** Create `webapp/next.config.ts` with rewrites: `/api/:path*` → `http://localhost:8000/:path*`.
+- [x] **4.C.3** Create `webapp/next.config.ts` with rewrites: `/api/:path*` → `http://localhost:8000/:path*`.
   - Files: `webapp/next.config.ts`
   - Covers: R-31 (scaffold), R-35 (API routing)
   - Acceptance: `next build` exits 0
 
-- [ ] **4.C.4** Create `webapp/src/app/globals.css` starting with `@import "tailwindcss";` then `@theme {}` block with ALL M3 color, typography, spacing, radius, and container tokens from design (including `--color-primary`, `--font-sans`, `--spacing-md`, `--radius-lg`, `--spacing-gutter`).
+- [x] **4.C.4** Create `webapp/src/app/globals.css` starting with `@import "tailwindcss";` then `@theme {}` block with ALL M3 color, typography, spacing, radius, and container tokens from design (including `--color-primary`, `--font-sans`, `--spacing-md`, `--radius-lg`, `--spacing-gutter`).
   - Files: `webapp/src/app/globals.css`
   - Covers: R-32, S-22
   - Acceptance: CSS parses without errors; `@theme` block contains all required token variables (S-22)
 
-- [ ] **4.C.5** Initialize shadcn/ui: run `npx shadcn@latest init`, add primitives: `Button`, `Badge`, `Table`, `Card`, `Input`, `Skeleton`. Commit generated files under `webapp/src/components/ui/`.
+- [x] **4.C.5** Initialize shadcn/ui: run `npx shadcn@latest init`, add primitives: `Button`, `Badge`, `Table`, `Card`, `Input`, `Skeleton`. Commit generated files under `webapp/src/components/ui/`.
   - Files: `webapp/src/components/ui/` (generated)
   - Covers: R-31 (shadcn/ui as component base)
   - Acceptance: Each primitive renders in isolation test; no TS errors
 
 ### Phase C.2: Auth Layer
 
-- [ ] **4.C.6** Create `webapp/src/lib/auth-context.tsx` with `AuthProvider` and `useAuth` hook. Stores access token in module-level memory variable ONLY — never `localStorage`, never non-HttpOnly cookie. Exposes `{ user, token, login, logout }`. `login()` calls `POST /api/web/auth/login`, stores token in context, reads `refresh_token` cookie implicitly (set by FastAPI). `logout()` calls `POST /api/web/auth/logout`, clears context.
+- [x] **4.C.6** Create `webapp/src/lib/auth-context.tsx` with `AuthProvider` and `useAuth` hook. Stores access token in module-level memory variable ONLY — never `localStorage`, never non-HttpOnly cookie. Exposes `{ user, token, login, logout }`. `login()` calls `POST /api/web/auth/login`, stores token in context, reads `refresh_token` cookie implicitly (set by FastAPI). `logout()` calls `POST /api/web/auth/logout`, clears context.
   - Files: `webapp/src/lib/auth-context.tsx`
   - Covers: R-34, S-21
   - Acceptance: `localStorage.getItem("access_token")` returns null after login (S-21); token in context after login
 
-- [ ] **4.C.7** Create `webapp/src/lib/api.ts` exporting `fetchApi<T>`. Attaches `Authorization: Bearer <token>`. On 401: acquires Promise mutex, calls `POST /api/web/auth/refresh` once, releases mutex, retries. Concurrent 401s share one in-flight refresh (S-20).
+- [x] **4.C.7** Create `webapp/src/lib/api.ts` exporting `fetchApi<T>`. Attaches `Authorization: Bearer <token>`. On 401: acquires Promise mutex, calls `POST /api/web/auth/refresh` once, releases mutex, retries. Concurrent 401s share one in-flight refresh (S-20).
   - Files: `webapp/src/lib/api.ts`
   - Covers: R-35, S-20
   - Acceptance: Mutex test: 3 concurrent 401s → exactly 1 refresh call; all 3 retries succeed (S-20)
 
-- [ ] **4.C.8** Create `webapp/src/middleware.ts` with matcher `/((?!login|_next|favicon|api).*)`. On unauthenticated (no `refresh_token` cookie): redirect to `/login`. Allow `/login` through unconditionally.
+- [x] **4.C.8** Create `webapp/src/middleware.ts` with matcher `/((?!login|_next|favicon|api).*)`. On unauthenticated (no `refresh_token` cookie): redirect to `/login`. Allow `/login` through unconditionally.
   - Files: `webapp/src/middleware.ts`
   - Covers: R-33, S-17, S-18, S-19
   - Acceptance: No-cookie → 307 `/login` (S-17); cookie present → pass-through (S-18); `/login` → 200 always (S-19)
 
 ### Phase C.3: Shell Layout + Login
 
-- [ ] **4.C.9** Create `webapp/src/app/layout.tsx` as root RSC layout: imports Inter font, wraps children in `<AuthProvider>`, applies `globals.css`.
+- [x] **4.C.9** Create `webapp/src/app/layout.tsx` as root RSC layout: imports Inter font, wraps children in `<AuthProvider>`, applies `globals.css`.
   - Files: `webapp/src/app/layout.tsx`
   - Covers: R-34 (AuthProvider), R-31 (scaffold)
   - Acceptance: `next build` exits 0; Inter font loads in browser
 
-- [ ] **4.C.10** Create `webapp/src/components/layout/Sidebar.tsx` (RSC): navigation links for Dashboard `/`, Historial `/historial`, Revisión `/revision`. Active link highlighted using current path. Uses design tokens for active state.
+- [x] **4.C.10** Create `webapp/src/components/layout/Sidebar.tsx` (RSC): navigation links for Dashboard `/`, Historial `/historial`, Revisión `/revision`. Active link highlighted using current path. Uses design tokens for active state.
   - Files: `webapp/src/components/layout/Sidebar.tsx`
   - Covers: R-36
   - Acceptance: Correct `href` on each link; active state class applied to current route
 
-- [ ] **4.C.11** Create `webapp/src/components/layout/Topbar.tsx` (RSC): displays authenticated tenant `nombre`, renders logout button that calls `useAuth().logout()`.
+- [x] **4.C.11** Create `webapp/src/components/layout/Topbar.tsx` (RSC): displays authenticated tenant `nombre`, renders logout button that calls `useAuth().logout()`.
   - Files: `webapp/src/components/layout/Topbar.tsx`
   - Covers: R-36
   - Acceptance: Renders `nombre` from `useAuth().user`; logout button visible
 
-- [ ] **4.C.12** Create `webapp/src/app/(dashboard)/layout.tsx` RSC layout: renders persistent `<Sidebar>` + `<Topbar>` + `{children}`.
+- [x] **4.C.12** Create `webapp/src/app/(dashboard)/layout.tsx` RSC layout: renders persistent `<Sidebar>` + `<Topbar>` + `{children}`.
   - Files: `webapp/src/app/(dashboard)/layout.tsx`
   - Covers: R-36
   - Acceptance: Layout wraps all dashboard-group pages; Sidebar and Topbar visible
 
-- [ ] **4.C.13** Create `webapp/src/app/login/page.tsx` Client Component: form with `correo` + `contrasena` fields. On submit: calls `useAuth().login()`, shows error message on failure, redirects to `/` on success.
+- [x] **4.C.13** Create `webapp/src/app/login/page.tsx` Client Component: form with `correo` + `contrasena` fields. On submit: calls `useAuth().login()`, shows error message on failure, redirects to `/` on success.
   - Files: `webapp/src/app/login/page.tsx`
   - Covers: S-19 (public access), S-01 (login success triggers redirect)
   - Acceptance: Form renders without auth; submit calls `login()`; error state on 401
 
 ### Phase C.4: Tests
 
-- [ ] **4.C.14** Create `webapp/src/lib/__tests__/auth-context.test.tsx` (~5 tests): `login()` stores token in context, `logout()` clears token, `localStorage` never written (S-21), initial state is unauthenticated, context updates trigger re-render.
+- [x] **4.C.14** Create `webapp/src/lib/__tests__/auth-context.test.tsx` (~5 tests): `login()` stores token in context, `logout()` clears token, `localStorage` never written (S-21), initial state is unauthenticated, context updates trigger re-render.
   - Files: `webapp/src/lib/__tests__/auth-context.test.tsx`
   - Covers: R-34, S-21
   - Test tool: vitest + testing-library
 
-- [ ] **4.C.15** Create `webapp/src/lib/__tests__/api.test.ts` (~8 tests): happy path fetch, 401 → single refresh → retry (S-20), concurrent 401s → one refresh call, non-401 error propagates, post-logout 401 redirects to login.
+- [x] **4.C.15** Create `webapp/src/lib/__tests__/api.test.ts` (~8 tests): happy path fetch, 401 → single refresh → retry (S-20), concurrent 401s → one refresh call, non-401 error propagates, post-logout 401 redirects to login.
   - Files: `webapp/src/lib/__tests__/api.test.ts`
   - Covers: R-35, S-20
   - Test tool: vitest with `vi.fn()` mocking `fetch`
 
-- [ ] **4.C.16** Create `webapp/src/__tests__/middleware.test.ts` (~6 tests): no cookie → redirect (S-17), cookie present → pass-through (S-18), `/login` always passes (S-19), `/api/*` bypass, `/_next/*` bypass.
+- [x] **4.C.16** Create `webapp/src/__tests__/middleware.test.ts` (~6 tests): no cookie → redirect (S-17), cookie present → pass-through (S-18), `/login` always passes (S-19), `/api/*` bypass, `/_next/*` bypass.
   - Files: `webapp/src/__tests__/middleware.test.ts`
   - Covers: R-33, S-17–S-19
   - Test tool: vitest with Next.js middleware test utilities
 
-- [ ] **4.C.17** Create `webapp/src/components/layout/__tests__/` for `Sidebar.test.tsx` (~5 tests) and `Topbar.test.tsx` (~4 tests): link hrefs, active state, nombre display, logout click handler.
+- [x] **4.C.17** Create `webapp/src/components/layout/__tests__/` for `Sidebar.test.tsx` (~5 tests) and `Topbar.test.tsx` (~4 tests): link hrefs, active state, nombre display, logout click handler.
   - Files: `webapp/src/components/layout/__tests__/Sidebar.test.tsx`, `Topbar.test.tsx`
   - Covers: R-36
   - Test tool: vitest + testing-library
 
-- [ ] **4.C.18** Create `webapp/src/app/login/__tests__/page.test.tsx` (~8 tests): renders without auth, form fields present, submit calls `login()`, error state on rejection, redirect on success, no localStorage written.
+- [x] **4.C.18** Create `webapp/src/app/login/__tests__/page.test.tsx` (~8 tests): renders without auth, form fields present, submit calls `login()`, error state on rejection, redirect on success, no localStorage written.
   - Files: `webapp/src/app/login/__tests__/page.test.tsx`
   - Covers: S-19, S-01 (login form behavior)
   - Test tool: vitest + testing-library
@@ -276,89 +276,89 @@ Chain strategy: stacked-to-develop
 
 ### Phase D.1: Dashboard
 
-- [ ] **4.D.1** Create `webapp/src/components/dashboard/KpiCard.tsx` (RSC): renders label, numeric value, optional icon. Handles `0` without crash (S-24). Uses `--color-surface-container-low` token for background.
+- [x] **4.D.1** Create `webapp/src/components/dashboard/KpiCard.tsx` (RSC): renders label, numeric value, optional icon. Handles `0` without crash (S-24). Uses `--color-surface-container-low` token for background.
   - Files: `webapp/src/components/dashboard/KpiCard.tsx`
   - Covers: R-37, S-23, S-24
   - Acceptance: Renders `0` without error; renders numeric value with label
 
-- [ ] **4.D.2** Create `webapp/src/components/dashboard/RecentActivity.tsx` (RSC): table with columns folio (truncated UUID), monto, fecha_deposito, estado badge. Status badge uses Tailwind utilities: `bg-green-100/text-green-700` (valido), `bg-red-100/text-red-700` (duplicado), `bg-orange-100/text-orange-700` (sospechoso), `bg-yellow-100/text-yellow-700` (en_revision).
+- [x] **4.D.2** Create `webapp/src/components/dashboard/RecentActivity.tsx` (RSC): table with columns folio (truncated UUID), monto, fecha_deposito, estado badge. Status badge uses Tailwind utilities: `bg-green-100/text-green-700` (valido), `bg-red-100/text-red-700` (duplicado), `bg-orange-100/text-orange-700` (sospechoso), `bg-yellow-100/text-yellow-700` (en_revision).
   - Files: `webapp/src/components/dashboard/RecentActivity.tsx`
   - Covers: R-38, S-25
   - Acceptance: Each status maps to correct badge color (S-25); folio truncated to 8 chars
 
-- [ ] **4.D.3** Create `webapp/src/app/(dashboard)/page.tsx` RSC: server-fetches `GET /api/web/stats/` + `GET /api/web/comprobantes/?limit=10` using `access_token` cookie (OQ-1 resolved: cookie readable server-side). Renders three `<KpiCard>` + `<RecentActivity>`. Wraps in error boundary for S-26.
+- [x] **4.D.3** Create `webapp/src/app/(dashboard)/page.tsx` RSC: server-fetches `GET /api/web/stats/` + `GET /api/web/comprobantes/?limit=10` using `access_token` cookie (OQ-1 resolved: cookie readable server-side). Renders three `<KpiCard>` + `<RecentActivity>`. Wraps in error boundary for S-26.
   - Files: `webapp/src/app/(dashboard)/page.tsx`
   - Covers: R-37, R-38, S-23, S-24, S-25, S-26
   - Acceptance: SSR fetch succeeds with cookie; error boundary catches 500 (S-26); 0 values render without crash (S-24)
 
 ### Phase D.2: Historial
 
-- [ ] **4.D.4** Create `webapp/src/components/historial/FilterBar.tsx` Client Component: status pills (`pendiente`, `procesado`, `duplicado`, `error`) with multi-select support; date range inputs (date_from / date_to); clearing date removes filter. Emits `onChange({ status[], date_from, date_to })`.
+- [x] **4.D.4** Create `webapp/src/components/historial/FilterBar.tsx` Client Component: status pills (`pendiente`, `procesado`, `duplicado`, `error`) with multi-select support; date range inputs (date_from / date_to); clearing date removes filter. Emits `onChange({ status[], date_from, date_to })`.
   - Files: `webapp/src/components/historial/FilterBar.tsx`
   - Covers: R-40, R-41, S-27, S-28, S-32
   - Acceptance: Pill toggle updates state; date clear removes param; multiple pills selectable (R-40)
 
-- [ ] **4.D.5** Create `webapp/src/components/historial/HistorialTable.tsx` Client Component: paginated table with columns folio, monto, fecha_deposito, estado badge, acciones. Row click → `router.push('/historial/{id}')`. Renders empty state "Sin resultados" when `items.length === 0` (S-30). Shows pagination controls when `has_more`.
+- [x] **4.D.5** Create `webapp/src/components/historial/HistorialTable.tsx` Client Component: paginated table with columns folio, monto, fecha_deposito, estado badge, acciones. Row click → `router.push('/historial/{id}')`. Renders empty state "Sin resultados" when `items.length === 0` (S-30). Shows pagination controls when `has_more`.
   - Files: `webapp/src/components/historial/HistorialTable.tsx`
   - Covers: R-39, R-42, S-29, S-30, S-31
   - Acceptance: Row click navigates (S-31); empty state renders (S-30); next-page button calls correct URL (S-29)
 
-- [ ] **4.D.6** Create `webapp/src/app/(dashboard)/historial/page.tsx` Client Component: reads `useSearchParams()`, passes `status`, `date_from`, `date_to`, `page` to `fetchApi`. Renders `<FilterBar>` + `<HistorialTable>`. Filter changes update URL params without full navigation.
+- [x] **4.D.6** Create `webapp/src/app/(dashboard)/historial/page.tsx` Client Component: reads `useSearchParams()`, passes `status`, `date_from`, `date_to`, `page` to `fetchApi`. Renders `<FilterBar>` + `<HistorialTable>`. Filter changes update URL params without full navigation.
   - Files: `webapp/src/app/(dashboard)/historial/page.tsx`
   - Covers: R-39, R-40, R-41, S-27, S-28, S-29, S-30, S-31, S-32
   - Acceptance: Filter pill click → URL updates → re-fetch (S-27); combined filters work (S-32)
 
-- [ ] **4.D.7** Create `webapp/src/app/(dashboard)/historial/[id]/page.tsx` RSC: fetches `GET /api/web/comprobantes/{id}` server-side. Renders all comprobante fields (texto_extraido, imagen_path, monto, banco, referencia, fecha_deposito). Shows 403 error state ("Acceso denegado") when API returns 403 (S-40).
+- [x] **4.D.7** Create `webapp/src/app/(dashboard)/historial/[id]/page.tsx` RSC: fetches `GET /api/web/comprobantes/{id}` server-side. Renders all comprobante fields (texto_extraido, imagen_path, monto, banco, referencia, fecha_deposito). Shows 403 error state ("Acceso denegado") when API returns 403 (S-40).
   - Files: `webapp/src/app/(dashboard)/historial/[id]/page.tsx`
   - Covers: R-42, R-46, S-39, S-40
   - Acceptance: All fields rendered (S-39); 403 shows error state not crash (S-40)
 
 ### Phase D.3: Revision
 
-- [ ] **4.D.8** Create `webapp/src/components/revision/OcrFields.tsx`: labeled key-value rows for monto, banco, referencia, fecha_deposito parsed from `texto_extraido`. Renders `—` for null values gracefully.
+- [x] **4.D.8** Create `webapp/src/components/revision/OcrFields.tsx`: labeled key-value rows for monto, banco, referencia, fecha_deposito parsed from `texto_extraido`. Renders `—` for null values gracefully.
   - Files: `webapp/src/components/revision/OcrFields.tsx`
   - Covers: R-43, S-33
   - Acceptance: All four fields rendered; null handled without crash
 
-- [ ] **4.D.9** Create `webapp/src/components/revision/VoucherViewer.tsx`: renders `<img src={imagen_path} alt="comprobante">` with correct URL. Includes loading skeleton while image loads.
+- [x] **4.D.9** Create `webapp/src/components/revision/VoucherViewer.tsx`: renders `<img src={imagen_path} alt="comprobante">` with correct URL. Includes loading skeleton while image loads.
   - Files: `webapp/src/components/revision/VoucherViewer.tsx`
   - Covers: R-43, S-33
   - Acceptance: `<img>` present with correct `src` (S-33); skeleton shown during load
 
-- [ ] **4.D.10** Create `webapp/src/components/revision/DuplicatePanel.tsx` Client Component: renders candidates table with `score_similitud` as percentage and link to `id_comprobante_original`. Renders **Aceptar** and **Rechazar** buttons. On click: optimistically updates status badge to `valido`/`duplicado` (S-35), calls `POST /api/web/comprobantes/{id}/decision`, reverts badge + shows error message on failure (S-36).
+- [x] **4.D.10** Create `webapp/src/components/revision/DuplicatePanel.tsx` Client Component: renders candidates table with `score_similitud` as percentage and link to `id_comprobante_original`. Renders **Aceptar** and **Rechazar** buttons. On click: optimistically updates status badge to `valido`/`duplicado` (S-35), calls `POST /api/web/comprobantes/{id}/decision`, reverts badge + shows error message on failure (S-36).
   - Files: `webapp/src/components/revision/DuplicatePanel.tsx`
   - Covers: R-44, R-45, S-34, S-35, S-36
   - Acceptance: Optimistic update immediate (S-35); API failure reverts state (S-36); candidates table shows 2 rows in S-34 scenario
 
-- [ ] **4.D.11** Create `webapp/src/app/(dashboard)/revision/[id]/page.tsx` Client Component: fetches comprobante data, renders 7/5 column split — left pane `<VoucherViewer>` + `<OcrFields>`, right pane `<DuplicatePanel>`. Auth guard: middleware already covers this (S-37).
+- [x] **4.D.11** Create `webapp/src/app/(dashboard)/revision/[id]/page.tsx` Client Component: fetches comprobante data, renders 7/5 column split — left pane `<VoucherViewer>` + `<OcrFields>`, right pane `<DuplicatePanel>`. Auth guard: middleware already covers this (S-37).
   - Files: `webapp/src/app/(dashboard)/revision/[id]/page.tsx`
   - Covers: R-43, R-44, R-45, S-33, S-34, S-35, S-36, S-37
   - Acceptance: 7/5 grid layout; both panes render; S-37 covered by middleware (not duplicated here)
 
 ### Phase D.4: Tests + E2E
 
-- [ ] **4.D.12** Create vitest component tests for dashboard components (~14 tests total):
+- [x] **4.D.12** Create vitest component tests for dashboard components (~14 tests total):
   - `KpiCard.test.tsx`: renders 0 (S-24), renders value, renders label (3 tests)
   - `RecentActivity.test.tsx`: badge colors per status (S-25), all 4 status variants, truncated folio (6 tests)
   - `page.test.tsx` (dashboard): error boundary on 500 (S-26), KPI cards render, recent activity renders (5 tests)
   - Files: `webapp/src/components/dashboard/__tests__/`, `webapp/src/app/(dashboard)/__tests__/`
   - Covers: S-23, S-24, S-25, S-26
 
-- [ ] **4.D.13** Create vitest component tests for historial components (~24 tests total):
+- [x] **4.D.13** Create vitest component tests for historial components (~24 tests total):
   - `FilterBar.test.tsx`: pill toggle (S-27), date range (S-28), combined (S-32), date clear, multi-select (10 tests)
   - `HistorialTable.test.tsx`: row click (S-31), empty state (S-30), badge colors, pagination next (8 tests)
   - `historial/page.test.tsx`: URL params sync, re-fetch on filter (6 tests)
   - Files: `webapp/src/components/historial/__tests__/`, `webapp/src/app/(dashboard)/historial/__tests__/`
   - Covers: S-27–S-32
 
-- [ ] **4.D.14** Create vitest component tests for revision components (~18 tests total):
+- [x] **4.D.14** Create vitest component tests for revision components (~18 tests total):
   - `OcrFields.test.tsx`: all fields rendered, null graceful (5 tests)
   - `VoucherViewer.test.tsx`: img src correct, skeleton shown (3 tests)
   - `DuplicatePanel.test.tsx`: optimistic update (S-35), revert on failure (S-36), candidates table (S-34), 2 rows shown (10 tests)
   - Files: `webapp/src/components/revision/__tests__/`
   - Covers: S-33, S-34, S-35, S-36
 
-- [ ] **4.D.15** Create Playwright E2E tests in `webapp/e2e/` (~10 tests):
+- [x] **4.D.15** Create Playwright E2E tests in `webapp/e2e/` (~10 tests):
   - `auth.spec.ts`: login → dashboard redirect (S-17, S-18, S-19), unauthenticated → /login (S-17)
   - `dashboard.spec.ts`: 3 KPI cards visible (S-23), recent activity table has rows (S-25)
   - `historial.spec.ts`: pill click → URL param + filtered results (S-27), date range filter (S-28), next page (S-29)
