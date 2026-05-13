@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 3 — **COMPLETADA** ✅
-- **Última tarea completada:** `3.14` — Workflow GitHub Actions para generar ZIP en tags
-- **Próximo paso:** **Fase 4 — Plataforma Web de Pago**
+- **Última fase activa:** Fase 4 — **COMPLETADA** ✅
+- **Última tarea completada:** Archive SDD Fase 4 — 53/53 tareas, 515 tests
+- **Próximo paso:** **Fase 5.0 — Dataset** (antes de Fase 5 Hardening)
 - **Bloqueadores:** ninguno
 
 ---
@@ -45,7 +45,7 @@
 - **Cache/Queue:** Redis 7 + Celery
 - **OCR:** llama-server (llama.cpp `b9012`) + modelo `GLM-OCR-f16.gguf` con mmproj `mmproj-GLM-OCR-Q8_0.gguf` (multimodal real, ctx 16384, alias `GLM-OCR`, ya descargado en `llama.cpp/GLM-OCR/`)
 - **Imagen:** OpenCV + pdf2image + Pillow
-- **Frontend pago (Fase 4):** Next.js 14 + Tailwind + shadcn/ui + Zustand + React Query
+- **Frontend pago (Fase 4):** Next.js 15 + Tailwind 4 (@theme M3 tokens) + shadcn/ui (manual) + vitest + Playwright
 - **Plugin (Fase 3):** PHP nativo WordPress 6.5+
 - **Infra:** Docker Compose + Nginx + Certbot
 - **CI/CD:** GitHub Actions
@@ -347,51 +347,172 @@
 
 ---
 
-# FASE 4 — Plataforma Web de Pago (Semanas 14-18)
+# FASE 4 — Plataforma Web de Pago (Semanas 14-18) ✅ COMPLETADA
 
-> Objetivo: Next.js 14 con dashboard, multi-tenant, suscripciones Stripe.
-> _Tareas se refinarán al iniciar Fase 4._
+> Objetivo: Plataforma web Next.js 15 + JWT auth + dashboard + historial + revisión sobre FastAPI.
+> **515 tests totales** (425 Python + 90 vitest/Playwright). PRs A–D mergeados a develop.
 
-- [ ] **4.1** Bootstrap Next.js 14 en `webapp/` con App Router + TypeScript
-- [ ] **4.2** Configurar Tailwind + shadcn/ui
-- [ ] **4.3** Auth: NextAuth con provider JWT custom hacia FastAPI
-- [ ] **4.4** Endpoints API: `POST /auth/login`, `POST /auth/refresh`
-- [ ] **4.5** Middleware de autorización por rol (admin/operador/auditor)
-- [ ] **4.6** Multi-tenancy en API: `organization_id` en JWT, filtro automático en queries
-- [ ] **4.7** Rate limiting por plan (Básico/Profesional/Empresarial)
-- [ ] **4.8** Dashboard principal con KPIs y gráficas Recharts
-- [ ] **4.9** Módulo upload con modo síncrono/asíncrono
-- [ ] **4.10** Historial avanzado con filtros + exportar CSV/Excel/PDF
-- [ ] **4.11** Vista side-by-side para revisión manual de duplicados
-- [ ] **4.12** UI configuración de umbrales (sliders para w1-w4)
-- [ ] **4.13** Gestión de usuarios (CRUD + roles)
-- [ ] **4.14** Gestión de organizaciones (multi-tenant admin)
-- [ ] **4.15** Webhooks: configuración + logs de envío + reintentos
-- [ ] **4.16** Integración Stripe: planes + portal cliente + facturación
+- [x] **4.A** JWT auth backend — `jwt_service`, `require_jwt`, `web_auth` router (PR #10, +43 tests)
+- [x] **4.B** Web routes backend — `web_comprobantes`, `web_stats`, `schemas/web.py` (PR #11, +21 tests)
+- [x] **4.C** Frontend scaffold — Next.js 15 + Tailwind 4 + auth-context + fetchApi mutex + shell (PR #12, +35 vitest)
+- [x] **4.D** Frontend features — Dashboard + Historial + Revision + Playwright E2E (+56 vitest, +10 E2E)
 
-> **🏁 Fin Fase 4** — `git tag fase-4-completa`
+> **🏁 Fin Fase 4** — archivada en `openspec/changes/fase-4-archive.md`
 
 ---
 
-# FASE 5 — Hardening, CI/CD y Lanzamiento (Semanas 19-20)
+# FASE 5.0 — Dataset (Pre-Hardening)
 
-> _Tareas se refinarán al iniciar Fase 5._
+> Objetivo: construir la base de datos de evaluación que hace posible medir precisión real del pipeline OCR y detección de duplicados. Sin dataset etiquetado, las métricas de Fase 6 (1.9.1, 1.9.2, 2.7.1) son inválidas.
+>
+> **Estrategia híbrida**: datasets públicos para validar el pipeline base + mini-dataset bancario MX propio para el aporte de investigación real.
 
-- [ ] **5.1** Recopilar dataset 100 comprobantes etiquetados reales
-- [ ] **5.2** Evaluación métricas: precision/recall/F1 por clase
-- [ ] **5.3** Grid search de pesos w1-w4 si precisión <90%
-- [ ] **5.4** Persistir pesos finales en tabla `configuracion_sistema`
-- [ ] **5.5** GitHub Actions: job `tests-api` (postgres+redis services, pytest, coverage)
-- [ ] **5.6** GitHub Actions: job `lint` (ruff + eslint)
-- [ ] **5.7** GitHub Actions: job `build-plugin` en tags v\*
-- [ ] **5.8** GitHub Actions: job `deploy-staging` en push a develop
-- [ ] **5.9** GitHub Actions: job `deploy-production` en tags en main
-- [ ] **5.10** Nginx producción: HTTPS Certbot + reverse proxy + rate limit
-- [ ] **5.11** Docker Compose producción: api, webapp, postgres, redis, celery, nginx
-- [ ] **5.12** Backups: cron pg_dump diario + sync imágenes a S3/B2 + RDB Redis
-- [ ] **5.13** Checklist seguridad final (10 controles del plan §5.4)
-- [ ] **5.14** Documentación final: README, ARCHITECTURE.md, DEPLOYMENT.md
-- [ ] **5.15** Publicar plugin en WordPress.org
+## 5.0.1 — Datasets públicos (validación de pipeline)
+
+### SROIE v2 (Kaggle) — **prioridad alta**
+
+> ~973 receipts reales con imágenes escaneadas + OCR annotations + key-value extraction (montos, fechas, tiendas, totales). Pipeline OCR es idéntico al nuestro aunque el dominio sean receipts comerciales, no SPEI.
+
+- [ ] **5.0.1.1** Descargar SROIE v2 desde Kaggle (`roboflow-100/receipt-voucher-v2` o `sroie2019`)
+  - Estructura esperada: `dataset/sroie/images/` + `dataset/sroie/annotations/` (JSON key-value)
+  - **Hecho cuando:** `ls dataset/sroie/` muestra ambas carpetas con ≥900 archivos
+- [ ] **5.0.1.2** Script `scripts/eval/run_pipeline_sroie.py`: procesa cada imagen con el pipeline completo
+  - Pasos: `validate_mime` → `preprocess` → `extract_fields` (GLM-OCR) → `parse_monto/fecha/referencia`
+  - Output: CSV `results/sroie_results.csv` con columnas `image_id, gt_total, pred_total, gt_date, pred_date, match_total, match_date`
+  - **Hecho cuando:** script corre sin crash en los primeros 10 imágenes
+- [ ] **5.0.1.3** Script `scripts/eval/metrics_sroie.py`: calcula precision/recall/F1 por campo
+  - Campos a evaluar: `total` (monto), `date` (fecha)
+  - Output: tabla en stdout + `results/sroie_metrics.json`
+  - **Hecho cuando:** imprime F1 por campo y F1 macro
+
+### Nano Receipts (HuggingFace) — **prioridad media**
+
+> 2400+ receipts sintéticos con layouts variados, ruido visual, distintos formatos. Sin problemas legales — modificables libremente. Útil para augmentation y pruebas de robustez visual.
+
+- [ ] **5.0.1.4** Descargar Nano Receipts: `datasets/nano-receipts` desde HuggingFace Hub
+  - `from datasets import load_dataset; ds = load_dataset("katanaml-org/invoices-donut-data-v1")`
+  - **Hecho cuando:** dataset cargado, `len(ds["train"]) > 2000`
+- [ ] **5.0.1.5** Script `scripts/augment/generate_augmented.py`: aplica augmentations
+  - Transformaciones: rotación ±15°, compresión JPEG q=40-70, ruido gaussiano, blur leve
+  - Output: `dataset/augmented/` con 500 imágenes variadas
+  - **Hecho cuando:** carpeta existe con ≥500 archivos PNG/JPEG
+
+### OCR Receipts Text Detection — **solo si se hace layout analysis**
+
+> Bounding boxes + XML annotations + categorías (store, date_time, total, item). Útil solo si el pipeline usa OpenCV para segmentar regiones ANTES del OCR.
+
+- [ ] **5.0.1.6** _(Opcional)_ Evaluar si el pipeline actual usa detección de regiones separada
+  - Si GLM-OCR maneja todo el layout internamente → **omitir este dataset**
+  - Si se agrega segmentación OpenCV explícita en Fase 6 → descargar y anotar acá
+
+## 5.0.2 — Mini-dataset bancario MX propio (aporte de investigación)
+
+> Este es el **aporte real** de la tesis. Sin él, solo se replica lo que ya existe. 100–300 comprobantes reales anonimizados + duplicados controlados = benchmark reproducible y publicable.
+
+### Recolección y anonimización
+
+- [ ] **5.0.2.1** Definir estructura de directorio del mini-dataset
+  ```
+  dataset/bancario-mx/
+    raw/          ← originales antes de anonimizar (NO committear)
+    anonymized/   ← versión publicable
+    ground-truth/ ← etiquetas JSON por imagen
+    duplicates/   ← pares de duplicados controlados
+    README.md     ← descripción + licencia
+  ```
+  - Agregar `dataset/bancario-mx/raw/` al `.gitignore`
+  - **Hecho cuando:** estructura creada y `raw/` ignorado por git
+
+- [ ] **5.0.2.2** Recopilar 100–300 comprobantes reales (objetivo mínimo: 100)
+  - Bancos objetivo: BBVA, Santander, Banorte, SPEI genérico, OXXO Pay, transferencias PDF
+  - Formatos: screenshot móvil, PDF banco, foto WhatsApp reenviada, scan
+  - **No committear los originales** — solo `anonymized/` va a git
+  - **Hecho cuando:** `ls dataset/bancario-mx/raw/ | wc -l` ≥ 100
+
+- [ ] **5.0.2.3** Script `scripts/anonymize/anonymize_comprobante.py`
+  - Reemplaza: nombres de persona (→ "JUAN PÉREZ"), CLABEs (→ `****1234`), montos (→ monto sintético plausible), referencias (→ `REF-{hash8}`)
+  - Preserva: banco, fecha, tipo de operación, layout visual
+  - Output: imagen anonymizada + `ground-truth/{id}.json` con campos originales pre-anonimización
+  - **Hecho cuando:** 5 comprobantes de prueba anonimizados y revisados manualmente
+
+- [ ] **5.0.2.4** Schema del ground-truth JSON por comprobante
+  ```json
+  {
+    "id": "mx-001",
+    "banco": "BBVA",
+    "monto": 1500.00,
+    "fecha": "2026-03-15",
+    "referencia": "REF-A1B2C3D4",
+    "tipo": "spei_enviado",
+    "formato_origen": "screenshot_movil",
+    "calidad": "buena",
+    "notas": "texto inclinado ~3°"
+  }
+  ```
+  - **Hecho cuando:** schema documentado en `dataset/bancario-mx/README.md`
+
+### Generación de duplicados controlados
+
+- [ ] **5.0.2.5** Script `scripts/augment/generate_duplicates.py`: genera variantes de cada comprobante
+  - **Duplicado exacto**: mismo archivo, distinto nombre → detectado por hash (Capa 1)
+  - **Duplicado parcial — mismo monto/fecha, ref distinta**: emula re-envío con referencia modificada → Capa 2/3
+  - **Duplicado visual degradado**: compresión JPEG, rotación ±5°, screenshot de screenshot → robusted OCR
+  - **No duplicado (negativo)**: mismo banco, distinto monto/fecha → debería clasificar `válido`
+  - Output: `dataset/bancario-mx/duplicates/pairs.csv` con columnas `id_a, id_b, tipo_duplicado, esperado`
+  - **Hecho cuando:** `pairs.csv` tiene ≥ 50 pares con distribución: 30% exactos, 40% parciales, 30% negativos
+
+- [ ] **5.0.2.6** Script `scripts/eval/eval_duplicates_bancario.py`: corre el pipeline completo sobre los pares
+  - Output: matriz de confusión + precision/recall/F1 por tipo + `results/bancario_metrics.json`
+  - **Hecho cuando:** script corre sobre todos los pares y emite el JSON de métricas
+
+### Documentación reproducible
+
+- [ ] **5.0.2.7** `dataset/bancario-mx/README.md` con:
+  - Descripción del dataset (origen, tamaño, distribución por banco/formato)
+  - Instrucciones de recolección (para reproducibilidad académica)
+  - Schema del ground-truth
+  - Licencia (CC BY 4.0 para la versión anonimizada)
+  - **Hecho cuando:** README describe todo lo anterior y pasa revisión de legibilidad
+
+## 5.0.3 — Integración con el pipeline existente
+
+- [ ] **5.0.3.1** Actualizar `api/config.py`: agregar `DATASET_DIR` y `RESULTS_DIR` como settings opcionales
+- [ ] **5.0.3.2** Agregar `scripts/eval/` y `scripts/augment/` al monorepo con `README.md` de uso
+- [ ] **5.0.3.3** Documentar resultados en `docs/dataset-evaluation.md`:
+  - Tabla: SROIE F1 por campo
+  - Tabla: bancario-mx precision/recall por capa de detección
+  - Análisis de errores (casos frecuentes de falla del OCR)
+
+## 5.0.4 — Criterios de Aceptación
+
+- [ ] **5.0.4.1** SROIE: F1 ≥ 0.80 en campo `total` (monto) — benchmark mínimo publicable
+- [ ] **5.0.4.2** bancario-mx: ≥ 100 comprobantes anonimizados en `anonymized/`
+- [ ] **5.0.4.3** bancario-mx: ≥ 50 pares de duplicados en `pairs.csv` con distribución balanceada
+- [ ] **5.0.4.4** Pipeline detecta duplicados exactos con precision 100% sobre el mini-dataset (Capa 1)
+- [ ] **5.0.4.5** `docs/dataset-evaluation.md` existe y describe resultados reproducibles
+
+> **🏁 Fin Fase 5.0** — base de evaluación lista para Fase 6
+
+---
+
+# FASE 6 — Hardening, CI/CD y Lanzamiento (Semanas 19-20)
+
+> _Tareas se refinarán al iniciar Fase 6. Requiere Fase 5.0 completada (dataset listo)._
+
+- [ ] **6.1** Evaluación métricas finales con bancario-mx: precision/recall/F1 por clase (diferido de 1.9.1, 1.9.2, 2.7.1)
+- [ ] **6.2** Grid search de pesos w1-w4 si precisión <90%
+- [ ] **6.3** Persistir pesos finales en tabla `configuracion_sistema`
+- [ ] **6.4** GitHub Actions: job `tests-api` (postgres+redis services, pytest, coverage)
+- [ ] **6.5** GitHub Actions: job `lint` (ruff + eslint)
+- [ ] **6.6** GitHub Actions: job `build-plugin` en tags v\*
+- [ ] **6.7** GitHub Actions: job `deploy-staging` en push a develop
+- [ ] **6.8** GitHub Actions: job `deploy-production` en tags en main
+- [ ] **6.9** Nginx producción: HTTPS Certbot + reverse proxy + rate limit
+- [ ] **6.10** Docker Compose producción: api, webapp, postgres, redis, celery, nginx
+- [ ] **6.11** Backups: cron pg_dump diario + sync imágenes a S3/B2 + RDB Redis
+- [ ] **6.12** Checklist seguridad final (10 controles del plan §5.4)
+- [ ] **6.13** Documentación final: README, ARCHITECTURE.md, DEPLOYMENT.md
+- [ ] **6.14** Publicar plugin en WordPress.org
 
 > **🏁 Lanzamiento v1.0** — `git tag v1.0.0`
 
