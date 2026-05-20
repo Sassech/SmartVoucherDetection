@@ -18,3 +18,11 @@ build/
 # Exception: Gutenberg block build artifacts are intentionally committed (Decision 3)
 !plugin-wp/comprobantes-ocr/block/build/
 !plugin-wp/comprobantes-ocr/block/build/**
+webapp/design_sistema_de_validaci_n_de_comprobantes/*
+
+# --- Dataset (Fase 5.0) ---
+dataset/bancario-mx/raw/
+dataset/bancario-mx/synthetic/
+dataset/sroie/
+dataset/augmented/
+results/

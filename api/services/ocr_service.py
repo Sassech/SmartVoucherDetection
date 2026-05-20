@@ -32,12 +32,19 @@ from tenacity import (
 
 from config import settings
 
-# Prompt literal del plan_desarrollo.md §1.3 — NO modificar sin actualizar plan.
+# Prompt literal del plan_desarrollo.md §1.3 — actualizado 2026-05-18.
+# Cambio v2: agregado campo "importe_base" para capturar el monto neto antes
+# de comisión en tickets OXXO, Banorte y similares donde hay dos valores
+# numéricos: el monto base y el total con comisión incluida.
+# Regla: "monto" = total cobrado (incluyendo comisión si la hay),
+#        "importe_base" = monto neto transferido sin comisión (null si no aplica).
 OCR_PROMPT = """Analiza esta imagen de comprobante bancario y extrae los siguientes campos en JSON:
 
 {
-  "monto": número decimal,
+  "monto": número decimal (total cobrado, incluyendo comisión si la hay),
+  "importe_base": número decimal (monto neto transferido sin comisión; null si no hay comisión separada),
   "fecha": string en formato DD/MM/YYYY,
+  "hora": string en formato HH:MM,
   "referencia": string,
   "numero_operacion": string,
   "banco": string
@@ -45,11 +52,13 @@ OCR_PROMPT = """Analiza esta imagen de comprobante bancario y extrae los siguien
 
 Si un campo no es visible, usa null. Responde SOLO el JSON, sin texto adicional."""
 
-# Las 5 keys que esperamos en el JSON de respuesta. Si el modelo omite alguna,
+# Las 7 keys que esperamos en el JSON de respuesta. Si el modelo omite alguna,
 # la rellenamos con None (no rompemos el contrato hacia el caller).
 CAMPOS_ESPERADOS: tuple[str, ...] = (
     "monto",
+    "importe_base",
     "fecha",
+    "hora",
     "referencia",
     "numero_operacion",
     "banco",
@@ -174,8 +183,17 @@ async def extract_fields(
                 detail="llama-server devolvio una estructura inesperada",
             ) from exc
 
+        # Algunos modelos envuelven el JSON en backticks markdown
+        # (```json ... ```). Limpiamos antes de parsear.
+        stripped = content.strip()
+        if stripped.startswith("```"):
+            lines = stripped.split("\n")
+            # Quitar primera línea (```json) y última (```)
+            lines = [ln for ln in lines if not ln.strip().startswith("```")]
+            stripped = "\n".join(lines).strip()
+
         try:
-            parsed = json.loads(content)
+            parsed = json.loads(stripped)
         except json.JSONDecodeError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
