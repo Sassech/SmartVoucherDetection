@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BBVA Justificante</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  body {
+    width: 620px;
+    background: #f0f4f8;
+    padding: 0;
+  }
+  .page {
+    background: #ffffff;
+    margin: 0 auto;
+    width: 600px;
+  }
+  /* Header */
+  .header {
+    background: #004481;
+    padding: 18px 24px 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-brand {
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .header-brand span {
+    color: #89d4f5;
+  }
+  .header-tagline {
+    color: #89d4f5;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+  /* Title bar */
+  .title-bar {
+    background: #e8f0f8;
+    border-left: 4px solid #004481;
+    padding: 12px 24px;
+    margin-bottom: 4px;
+  }
+  .title-bar h1 {
+    font-size: 13px;
+    font-weight: bold;
+    color: #004481;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .title-bar .subtitle {
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+  }
+  /* Status row */
+  .status-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e0e0e0;
+    gap: 12px;
+  }
+  .checkmark-circle {
+    width: 32px;
+    height: 32px;
+    background: #00a651;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .checkmark-circle::after {
+    content: "";
+    display: block;
+    width: 10px;
+    height: 6px;
+    border-left: 2.5px solid #fff;
+    border-bottom: 2.5px solid #fff;
+    transform: rotate(-45deg) translate(1px, -1px);
+  }
+  .status-text {
+    font-size: 14px;
+    font-weight: bold;
+    color: #00a651;
+  }
+  /* Section */
+  .section {
+    padding: 0 24px;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: bold;
+    color: #004481;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 10px 0 4px 0;
+    border-bottom: 2px solid #004481;
+    margin-bottom: 2px;
+  }
+  .field-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 7px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 12.5px;
+  }
+  .field-row:last-child { border-bottom: none; }
+  .field-label {
+    color: #555555;
+    flex: 0 0 45%;
+  }
+  .field-value {
+    color: #111111;
+    font-weight: 600;
+    text-align: right;
+    flex: 0 0 52%;
+    word-break: break-all;
+  }
+  /* Amount highlight */
+  .amount-section {
+    background: #f7faff;
+    border: 1px solid #d0e0ef;
+    border-radius: 4px;
+    margin: 8px 24px;
+    padding: 14px 20px;
+    text-align: center;
+  }
+  .amount-label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .amount-value {
+    font-size: 30px;
+    font-weight: bold;
+    color: #004481;
+    margin: 4px 0 2px 0;
+  }
+  .amount-currency {
+    font-size: 12px;
+    color: #666;
+  }
+  /* Footer */
+  .footer {
+    background: #f0f4f8;
+    border-top: 1px solid #dde4ec;
+    padding: 12px 24px;
+    text-align: center;
+    font-size: 10px;
+    color: #888;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="header-brand">BB<span>VA</span></div>
+      <div class="header-tagline">BANCOMER</div>
+    </div>
+    <div style="color:#89d4f5; font-size:10px; text-align:right;">
+      banca en línea<br>
+      <span style="font-size:9px;">www.bbva.mx</span>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div class="title-bar">
+    <h1>Justificante de la Operación</h1>
+    <div class="subtitle">Comprobante electrónico de pago — Subtipo D</div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-row">
+    <div class="checkmark-circle"></div>
+    <div class="status-text">{{ estatus }}</div>
+    <div style="font-size:11px; color:#666;">{{ fecha_display }} &nbsp;|&nbsp; {{ hora }}</div>
+  </div>
+
+  <!-- Amount -->
+  <div class="amount-section">
+    <div class="amount-label">Importe transferido</div>
+    <div class="amount-value">{{ monto_fmt }}</div>
+    <div class="amount-currency">Pesos mexicanos (MXN)</div>
+  </div>
+
+  <!-- Section GENERAL -->
+  <div class="section">
+    <div class="section-title">General</div>
+    <div class="field-row">
+      <span class="field-label">Número de comprobante</span>
+      <span class="field-value">{{ numero_comprobante }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Clave de rastreo</span>
+      <span class="field-value">{{ clave_rastreo }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Concepto</span>
+      <span class="field-value">{{ concepto }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Tipo de operación</span>
+      <span class="field-value">{{ tipo_operacion }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Fecha y hora</span>
+      <span class="field-value">{{ fecha_display }} {{ hora }}</span>
+    </div>
+  </div>
+
+  <!-- Section ORIGEN -->
+  <div class="section">
+    <div class="section-title">Origen</div>
+    <div class="field-row">
+      <span class="field-label">Banco</span>
+      <span class="field-value">{{ banco_emisor }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">CLABE</span>
+      <span class="field-value">{{ clabe_emisor_mascara }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Nombre</span>
+      <span class="field-value">{{ nombre_ordenante }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">RFC</span>
+      <span class="field-value">{{ rfc_ordenante }}</span>
+    </div>
+  </div>
+
+  <!-- Section DESTINO -->
+  <div class="section">
+    <div class="section-title">Destino</div>
+    <div class="field-row">
+      <span class="field-label">Banco</span>
+      <span class="field-value">{{ banco_receptor }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">CLABE</span>
+      <span class="field-value">{{ clabe_receptor_mascara }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Nombre</span>
+      <span class="field-value">{{ nombre_beneficiario }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Referencia</span>
+      <span class="field-value">{{ numero_referencia }}</span>
+    </div>
+  </div>
+
+  <!-- Section IMPORTE -->
+  <div class="section" style="margin-bottom:8px;">
+    <div class="section-title">Importe</div>
+    <div class="field-row">
+      <span class="field-label">Importe transferido</span>
+      <span class="field-value">{{ monto_fmt }}</span>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Comisión</span>
+      <span class="field-value">$0.00</span>
+    </div>
+    <div class="field-row" style="background:#f7faff; margin: 0 -24px; padding: 7px 24px; font-size:13px;">
+      <span class="field-label" style="font-weight:bold; color:#004481;">Total</span>
+      <span class="field-value" style="font-weight:bold; color:#004481;">{{ monto_fmt }}</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    Este comprobante es válido como constancia de la operación realizada.<br>
+    Consultas: 800 226 2663 &nbsp;|&nbsp; bbva.mx
+  </div>
+
+</div>
+</body>
+</html>

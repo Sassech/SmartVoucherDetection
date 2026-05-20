@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Santander CEP</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  body {
+    width: 720px;
+    background: #f2f2f2;
+    padding: 0;
+  }
+  .page {
+    background: #ffffff;
+    width: 700px;
+    margin: 0 auto;
+    padding: 0 0 20px 0;
+  }
+  /* Header */
+  .header {
+    padding: 16px 30px 0 30px;
+    border-bottom: 3px solid #EC0000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 12px;
+  }
+  .brand {
+    font-size: 28px;
+    font-weight: bold;
+    color: #EC0000;
+    letter-spacing: -0.5px;
+  }
+  .brand-sub {
+    font-size: 10px;
+    color: #666;
+    margin-top: 2px;
+  }
+  /* Document title */
+  .doc-title {
+    text-align: center;
+    padding: 18px 30px 10px 30px;
+    border-bottom: 1px solid #ddd;
+  }
+  .doc-title h1 {
+    font-size: 15px;
+    font-weight: bold;
+    color: #111;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .doc-title .cep-num {
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
+  }
+  /* Status bar */
+  .status-bar {
+    background: #f0f8f0;
+    border: 1px solid #c8e6c9;
+    margin: 14px 30px;
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-dot {
+    width: 12px;
+    height: 12px;
+    background: #00a651;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-text {
+    font-size: 12.5px;
+    font-weight: bold;
+    color: #00a651;
+  }
+  .status-date {
+    font-size: 11px;
+    color: #666;
+    margin-left: auto;
+  }
+  /* Table */
+  .info-table {
+    width: calc(100% - 60px);
+    margin: 0 30px;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .info-table tr:nth-child(even) td {
+    background: #fafafa;
+  }
+  .info-table td {
+    padding: 8px 12px;
+    border: 1px solid #e8e8e8;
+    vertical-align: top;
+  }
+  .info-table td.label-col {
+    color: #555;
+    width: 38%;
+    font-weight: normal;
+    white-space: nowrap;
+  }
+  .info-table td.value-col {
+    color: #111;
+    font-weight: 600;
+  }
+  /* Section header row */
+  .info-table tr.section-row td {
+    background: #EC0000;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    border-color: #EC0000;
+  }
+  /* Amount highlight */
+  .amount-highlight td.value-col {
+    font-size: 18px;
+    font-weight: bold;
+    color: #EC0000;
+  }
+  /* Footer */
+  .footer {
+    margin: 20px 30px 0 30px;
+    padding: 12px 0 0 0;
+    border-top: 1px solid #ddd;
+    font-size: 10px;
+    color: #888;
+    text-align: center;
+  }
+  .footer a { color: #EC0000; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="brand">Santander</div>
+      <div class="brand-sub">supermóvil · web</div>
+    </div>
+    <div style="text-align:right; font-size:10px; color:#666;">
+      CEP &mdash; Banco de México<br>
+      <span style="font-size:9px;">spei.banxico.org.mx</span>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div class="doc-title">
+    <h1>Comprobante Electrónico de Pago</h1>
+    <div class="cep-num">Folio: {{ numero_comprobante }}</div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <span class="status-text">{{ estatus }}</span>
+    <span class="status-date">{{ fecha_larga }} &nbsp; {{ hora }}</span>
+  </div>
+
+  <!-- Main table -->
+  <table class="info-table">
+
+    <!-- Sección: Operación -->
+    <tr class="section-row">
+      <td colspan="2">Datos de la operación</td>
+    </tr>
+    <tr class="amount-highlight">
+      <td class="label-col">Monto</td>
+      <td class="value-col">{{ monto_fmt }} MXN</td>
+    </tr>
+    <tr>
+      <td class="label-col">Clave de rastreo</td>
+      <td class="value-col">{{ clave_rastreo }}</td>
+    </tr>
+    <tr>
+      <td class="label-col">Concepto</td>
+      <td class="value-col">{{ concepto }}</td>
+    </tr>
+    <tr>
+      <td class="label-col">Tipo de pago</td>
+      <td class="value-col">{{ tipo_operacion }}</td>
+    </tr>
+    <tr>
+      <td class="label-col">Fecha</td>
+      <td class="value-col">{{ fecha_larga }}</td>
+    </tr>
+    <tr>
+      <td class="label-col">Hora</td>
+      <td class="value-col">{{ hora }}</td>
+    </tr>
+
+    <!-- Sección: Ordenante -->
+    <tr class="section-row">
+      <td colspan="2">Datos del ordenante</td>
+    </tr>
+    <tr>
+      <td class="label-col">Institución</td>
+      <td class="value-col">{{ banco_emisor }}</td>
+    </tr>
+    <tr>
+      <td class="label-col">CLABE / Cuenta</td>
+      <td class="value-col">{{ clabe_emisor_mascara }}</td>
+    </tr>
+    <tr>
+      <td class="label-col">Nombre del ordenante</td>
+      <td class="value-col">{{ nombre_ordenante }}</td>
+    </tr>
+    <tr>
+      <td class="label-col">RFC</td>
+      <td class="value-col">{{ rfc_ordenante }}</td>
+    </tr>
+
+    <!-- Sección: Beneficiario -->
+    <tr class="section-row">
+      <td colspan="2">Datos del beneficiario</td>
+    </tr>
+    <tr>
+      <td class="label-col">Institución receptora</td>
+      <td class="value-col">{{ banco_receptor }}</td>
+    </tr>
+    <tr>
+      <td class="label-col">CLABE / Cuenta</td>
+      <td class="value-col">{{ clabe_receptor_mascara }}</td>
+    </tr>
+    <tr>
+      <td class="label-col">Nombre del beneficiario</td>
+      <td class="value-col">{{ nombre_beneficiario }}</td>
+    </tr>
+    <tr>
+      <td class="label-col">Referencia numérica</td>
+      <td class="value-col">{{ numero_referencia }}</td>
+    </tr>
+
+  </table>
+
+  <!-- Footer -->
+  <div class="footer">
+    Este documento es el comprobante oficial de la operación SPEI registrada en Banco de México.<br>
+    Consulta adicional en <a href="#">supernet.santander.com.mx</a> &nbsp;|&nbsp; Tel: 55 5169 4300
+  </div>
+
+</div>
+</body>
+</html>
