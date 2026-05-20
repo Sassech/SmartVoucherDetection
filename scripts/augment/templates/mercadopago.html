@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390px, initial-scale=1.0">
+<title>Mercado Pago Comprobante</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  body {
+    width: 390px;
+    background: #ffffff;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  /* Top bar */
+  .top-bar {
+    background: #00b1ea;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .top-bar-back {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  .top-bar-title {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  .top-bar-dot {
+    width: 20px;
+  }
+  /* MP Logo area */
+  .mp-logo-area {
+    background: #00b1ea;
+    padding: 8px 18px 20px 18px;
+    text-align: center;
+  }
+  /* CSS-only MP logo (stylized "mp") */
+  .mp-logo {
+    display: inline-block;
+    background: #ffffff;
+    color: #00b1ea;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 6px 14px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+  }
+  /* Checkmark hero */
+  .hero-area {
+    background: #ffffff;
+    padding: 28px 20px 16px 20px;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .mp-check {
+    width: 64px;
+    height: 64px;
+    background: #00b1ea;
+    border-radius: 50%;
+    margin: 0 auto 16px auto;
+    position: relative;
+  }
+  .mp-check::after {
+    content: "";
+    position: absolute;
+    left: 16px;
+    top: 26px;
+    width: 17px;
+    height: 10px;
+    border-left: 3.5px solid #fff;
+    border-bottom: 3.5px solid #fff;
+    transform: rotate(-45deg);
+  }
+  .hero-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #111;
+    margin-bottom: 4px;
+  }
+  .hero-status {
+    font-size: 12px;
+    color: #00b1ea;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  /* Amount */
+  .amount-section {
+    background: #ffffff;
+    text-align: center;
+    padding: 20px 20px 12px 20px;
+  }
+  .amount-big {
+    font-size: 40px;
+    font-weight: bold;
+    color: #111111;
+    letter-spacing: -1px;
+  }
+  .amount-moneda {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 2px;
+  }
+  .date-time {
+    font-size: 11.5px;
+    color: #aaaaaa;
+    margin-top: 6px;
+  }
+  /* Pill chip */
+  .pill {
+    display: inline-block;
+    background: #e8f9ff;
+    color: #00b1ea;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 3px 10px;
+    border-radius: 12px;
+    margin-top: 8px;
+  }
+  /* Section separator */
+  .sep-bar {
+    height: 8px;
+    background: #f5f5f5;
+  }
+  /* Field rows */
+  .field-section {
+    padding: 0 20px;
+  }
+  .field-section-title {
+    padding: 12px 0 4px 0;
+    font-size: 11px;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .field-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 13px;
+  }
+  .field-row:last-child { border-bottom: none; }
+  .fr-label { color: #666; }
+  .fr-value { color: #111; font-weight: 600; text-align: right; max-width: 58%; word-break: break-all; }
+  /* Comprobante number */
+  .comprobante-area {
+    background: #f9f9f9;
+    padding: 14px 20px;
+    text-align: center;
+    border-top: 1px solid #eeeeee;
+  }
+  .comprobante-num {
+    font-size: 11px;
+    color: #888;
+  }
+  .comprobante-num span {
+    font-weight: bold;
+    color: #00b1ea;
+    font-size: 12px;
+  }
+  /* Share button */
+  .share-btn {
+    display: block;
+    width: calc(100% - 40px);
+    margin: 14px 20px;
+    background: #ffffff;
+    color: #00b1ea;
+    font-weight: bold;
+    font-size: 13px;
+    text-align: center;
+    padding: 11px 0;
+    border-radius: 6px;
+    border: 2px solid #00b1ea;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="top-bar-back">‹</div>
+    <div class="top-bar-title">Actividad</div>
+    <div class="top-bar-dot"></div>
+  </div>
+
+  <!-- MP Logo -->
+  <div class="mp-logo-area">
+    <div class="mp-logo">mercadopago</div>
+  </div>
+
+  <!-- Hero: check + status -->
+  <div class="hero-area">
+    <div class="mp-check"></div>
+    <div class="hero-status">Pago {{ estatus }}</div>
+    <div class="hero-title">Tu envío de dinero fue exitoso</div>
+    <div class="pill">SPEI · Transferencia</div>
+  </div>
+
+  <!-- Amount -->
+  <div class="amount-section">
+    <div class="amount-big">{{ monto_fmt }}</div>
+    <div class="amount-moneda">Pesos mexicanos</div>
+    <div class="date-time">{{ fecha_display }} · {{ hora }}</div>
+  </div>
+
+  <div class="sep-bar"></div>
+
+  <!-- Destino -->
+  <div class="field-section">
+    <div class="field-section-title">Para</div>
+    <div class="field-row">
+      <span class="fr-label">Nombre</span>
+      <span class="fr-value">{{ nombre_beneficiario }}</span>
+    </div>
+    <div class="field-row">
+      <span class="fr-label">Banco destino</span>
+      <span class="fr-value">{{ banco_receptor }}</span>
+    </div>
+    <div class="field-row">
+      <span class="fr-label">CLABE</span>
+      <span class="fr-value">{{ clabe_receptor_mascara }}</span>
+    </div>
+  </div>
+
+  <div class="sep-bar"></div>
+
+  <!-- Desde -->
+  <div class="field-section">
+    <div class="field-section-title">De</div>
+    <div class="field-row">
+      <span class="fr-label">Nombre</span>
+      <span class="fr-value">{{ nombre_ordenante }}</span>
+    </div>
+    <div class="field-row">
+      <span class="fr-label">De banco</span>
+      <span class="fr-value">Mercado Pago</span>
+    </div>
+  </div>
+
+  <div class="sep-bar"></div>
+
+  <!-- Detalles -->
+  <div class="field-section">
+    <div class="field-section-title">Detalles</div>
+    <div class="field-row">
+      <span class="fr-label">Concepto</span>
+      <span class="fr-value">{{ concepto }}</span>
+    </div>
+    <div class="field-row">
+      <span class="fr-label">Referencia</span>
+      <span class="fr-value">{{ numero_referencia }}</span>
+    </div>
+    <div class="field-row">
+      <span class="fr-label">Monto</span>
+      <span class="fr-value">{{ monto_fmt }}</span>
+    </div>
+    <div class="field-row">
+      <span class="fr-label">Comisión</span>
+      <span class="fr-value">$0.00</span>
+    </div>
+  </div>
+
+  <!-- Comprobante -->
+  <div class="comprobante-area">
+    <div class="comprobante-num">Comprobante <span>{{ numero_comprobante }}</span></div>
+  </div>
+
+  <!-- Share -->
+  <a class="share-btn" href="#">Compartir comprobante</a>
+
+  <div style="height:20px;"></div>
+
+</body>
+</html>

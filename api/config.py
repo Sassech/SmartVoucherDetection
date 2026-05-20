@@ -68,5 +68,11 @@ class Settings(BaseSettings):
     # `allow_origins` sea una lista de origenes especificos (no "*").
     webapp_origin: str = "http://localhost:3000"
 
+    # --- Dataset evaluation (Fase 5.0) ------------------------------------
+    # Opcionales — solo usados por scripts de evaluación en scripts/.
+    # En producción estos campos no existen en .env y quedan None.
+    dataset_dir: Path | None = None
+    results_dir: Path | None = None
+
 
 settings = Settings()  # type: ignore[call-arg]

@@ -13,6 +13,10 @@ completed_changes:
     status: ARCHIVED
     date: "2026-05-12"
     verdict: "COMPLETE — 515 tests (425 Python + 90 vitest + 10 E2E), 53/53 tasks, 26 requirements"
+  - name: fase-5.0-dataset
+    status: ARCHIVED
+    date: "2026-05-20"
+    verdict: "PASS WITH WARNINGS — 425 api/ tests passing (1 pre-existing asyncpg failure excluded), 14/14 tasks, 23 requirements (R-47–R-68)"
 
 context: |
   FastAPI backend for automated deposit-slip (comprobante) OCR and duplicate detection.

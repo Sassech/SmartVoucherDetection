@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=300px, initial-scale=1.0">
+<title>OXXO Ticket</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 300px;
+    background: #ffffff;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 11px;
+    color: #111111;
+    padding: 10px 8px;
+  }
+  .line { border-top: 1px dashed #333; margin: 6px 0; }
+  .line-solid { border-top: 1px solid #333; margin: 6px 0; }
+  .double-line { border-top: 3px double #333; margin: 6px 0; }
+  .center { text-align: center; }
+  .right { text-align: right; }
+  .bold { font-weight: bold; }
+  .big { font-size: 14px; font-weight: bold; }
+  .huge { font-size: 18px; font-weight: bold; letter-spacing: 1px; }
+  .small { font-size: 9px; }
+  /* Two-col row */
+  .row2 {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+  }
+  .row2 .lbl { flex: 0 0 50%; }
+  .row2 .val { flex: 0 0 48%; text-align: right; font-weight: bold; }
+  /* Header logo area */
+  .logo-area {
+    text-align: center;
+    padding: 4px 0 6px 0;
+  }
+  .logo-box {
+    display: inline-block;
+    border: 2px solid #e60012;
+    padding: 3px 10px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #e60012;
+    letter-spacing: 3px;
+  }
+  /* Status */
+  .status-block {
+    text-align: center;
+    padding: 6px 0;
+  }
+  .status-ok {
+    font-size: 13px;
+    font-weight: bold;
+    color: #111;
+  }
+  /* Monto principal */
+  .monto-block {
+    text-align: center;
+    padding: 6px 0;
+    border: 1px solid #333;
+    margin: 6px 0;
+  }
+  .monto-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+  .monto-value { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
+  /* Comisiones */
+  .comision-section { padding: 4px 0; }
+</style>
+</head>
+<body>
+
+<!-- Logo -->
+<div class="logo-area">
+  <div class="logo-box">OXXO</div>
+</div>
+<div class="center small">CADENA COMERCIAL OXXO, S.A. DE C.V.</div>
+<div class="center small">RFC: CCO8311244N4</div>
+<div class="center small">SERVICIO AL CLIENTE: 800 696 9696</div>
+
+<div class="line"></div>
+
+<div class="center bold">COMPROBANTE DE PAGO</div>
+<div class="center small">TRANSFERENCIA ELECTRONICA DE FONDOS</div>
+
+<div class="line"></div>
+
+<!-- Status -->
+<div class="status-block">
+  <div class="status-ok">*** OPERACION EXITOSA ***</div>
+  <div class="small">{{ fecha_display }} {{ hora }}</div>
+</div>
+
+<!-- Monto principal -->
+<div class="monto-block">
+  <div class="monto-label">IMPORTE</div>
+  <div class="monto-value">M.N. {{ monto_fmt }}</div>
+</div>
+
+<div class="line"></div>
+
+<!-- Datos operación -->
+<div class="bold small" style="text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">DATOS DE LA OPERACION</div>
+<div class="row2">
+  <span class="lbl">REFERENCIA:</span>
+  <span class="val">{{ numero_referencia }}</span>
+</div>
+<div class="row2">
+  <span class="lbl">NO. COMPROBANTE:</span>
+  <span class="val">{{ numero_comprobante }}</span>
+</div>
+<div class="row2">
+  <span class="lbl">CLAVE RASTREO:</span>
+  <span class="val" style="font-size:9px;">{{ clave_rastreo }}</span>
+</div>
+<div class="row2">
+  <span class="lbl">CONCEPTO:</span>
+  <span class="val">{{ concepto }}</span>
+</div>
+
+<div class="line"></div>
+
+<!-- Ordenante -->
+<div class="bold small" style="text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">ORDENANTE</div>
+<div class="row2">
+  <span class="lbl">NOMBRE:</span>
+  <span class="val">{{ nombre_ordenante_upper }}</span>
+</div>
+<div class="row2">
+  <span class="lbl">BANCO:</span>
+  <span class="val">{{ banco_emisor_upper }}</span>
+</div>
+<div class="row2">
+  <span class="lbl">CUENTA:</span>
+  <span class="val">{{ clabe_emisor_mascara }}</span>
+</div>
+
+<div class="line"></div>
+
+<!-- Beneficiario -->
+<div class="bold small" style="text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">BENEFICIARIO</div>
+<div class="row2">
+  <span class="lbl">NOMBRE:</span>
+  <span class="val">{{ nombre_beneficiario_upper }}</span>
+</div>
+<div class="row2">
+  <span class="lbl">BANCO:</span>
+  <span class="val">{{ banco_receptor_upper }}</span>
+</div>
+<div class="row2">
+  <span class="lbl">CUENTA:</span>
+  <span class="val">{{ clabe_receptor_mascara }}</span>
+</div>
+
+<div class="line"></div>
+
+<!-- Desglose de comisiones -->
+<div class="bold small" style="text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">DESGLOSE</div>
+<div class="comision-section">
+  <div class="row2">
+    <span class="lbl">IMPORTE:</span>
+    <span class="val">{{ monto_fmt }}</span>
+  </div>
+  <div class="row2">
+    <span class="lbl">COMISION:</span>
+    <span class="val">{{ comision_fmt }}</span>
+  </div>
+  <div class="row2">
+    <span class="lbl">IVA COMISION:</span>
+    <span class="val">{{ iva_comision_fmt }}</span>
+  </div>
+</div>
+
+<div class="line-solid"></div>
+
+<div class="row2 big">
+  <span class="lbl">TOTAL:</span>
+  <span class="val">{{ total_fmt }}</span>
+</div>
+
+<div class="double-line"></div>
+
+<!-- Disclaimer -->
+<div class="center small" style="padding: 4px 0; line-height:1.5;">
+  LA OPERACION SE HACE POR CUENTA Y ORDEN DE {{ banco_emisor_upper }}
+</div>
+<div class="center small" style="padding: 2px 0; line-height:1.5;">
+  OXXO ACTUA COMO AGENTE INTERMEDIARIO
+</div>
+
+<div class="line"></div>
+
+<div class="center small">CONSERVE ESTE COMPROBANTE</div>
+<div class="center small">GRACIAS POR SU PREFERENCIA</div>
+<div class="center small" style="margin-top:4px; font-size:8px;">*** FIN DE COMPROBANTE ***</div>
+
+<div style="height: 12px;"></div>
+</body>
+</html>

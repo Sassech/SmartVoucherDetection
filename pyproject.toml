@@ -1,0 +1,29 @@
+[project]
+name = "smartvoucher-scripts"
+version = "0.1.0"
+description = "Scripts de soporte para SmartVoucherDetection (augmentación, evaluación, etc.)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Dataset augmentation
+    "albumentations>=2.0.0",
+    "numpy>=1.26.0",
+    # Image processing (shared with api/)
+    "opencv-python-headless>=4.13.0",
+    "pillow>=12.2.0",
+    "pdf2image>=1.17.0",
+    # API bootstrap (scripts that import api/ services)
+    "httpx>=0.28.1",
+    "python-magic>=0.4.27",
+]
+
+[project.optional-dependencies]
+scripts = [
+    "faker>=40.18.0",
+    "jinja2>=3.1.6",
+    "playwright>=1.60.0",
+]
+
+[tool.uv]
+# Scripts viven en la raíz del monorepo; sus imports de api/ se resuelven
+# vía sys.path insertado en _shared.py / cada script.
+package = false

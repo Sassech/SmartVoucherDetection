@@ -61,6 +61,8 @@ async def test_extract_fields_happy_path():
         "referencia": "PAGO-123",
         "numero_operacion": "TRX-987654",
         "banco": "BBVA",
+        "hora": "14:30",
+        "importe_base": 1200.00,
     }
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -82,6 +84,8 @@ async def test_extract_fields_with_explicit_nulls():
         "referencia": None,
         "numero_operacion": "X-1",
         "banco": None,
+        "hora": None,
+        "importe_base": None,
     }
 
     def handler(request):
