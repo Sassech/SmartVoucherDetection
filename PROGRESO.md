@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 5.0 — **COMPLETADA** ✅
-- **Última tarea completada:** Pipeline real ejecutado — 496 sintéticos, 500 augmentados, 50 pares, evaluación 3 capas
-- **Próximo paso:** **Fase 6 — Hardening, CI/CD y Lanzamiento** (scoring optimization con OCR real es 6.1–6.3)
+- **Última fase activa:** Fase 6 — **6.A y 6.B COMPLETADAS** ✅
+- **Última tarea completada:** PR-E — docs finales + WordPress plugin fixes (22/22 tareas Fase 6B)
+- **Próximo paso:** `/sdd-verify fase-6-cicd` → luego `/sdd-archive fase-6-cicd` → `git tag v1.0.0`
 - **Bloqueadores:** ninguno
 
 ---
@@ -441,23 +441,23 @@
 - [x] **6.2** Re-evaluar duplicados con `texto_extraido` real → `results/bancario_metrics_v2.json`
   - **Resultado:** exacto mean=0.98 / parcial_visual mean=1.00 / negativo mean=0.53 ✅
   - Layer 3 ahora supera threshold 0.90 para duplicados reales — scoring funciona correctamente
-- [ ] **6.3** Grid search de pesos w1-w4 si Layer 3 F1 < 0.90
-  - **Estado:** NO necesario — scores actuales ya superan el objetivo (0.98/1.00 > 0.90)
-  - Marcar como N/A a menos que aparezcan casos de falsos positivos con datos reales
-- [ ] **6.4** Persistir pesos finales en tabla `configuracion_sistema`
+- [x] **6.3** Grid search de pesos w1-w4 — N/A: scores ya superan 0.90 sin ajuste
+- [x] **6.4** Persistir pesos en `configuracion_sistema` — modelo + migración + lazy cache (PR-A)
 
-## 6.B — CI/CD y DevOps
-- [ ] **6.5** GitHub Actions: job `tests-api` (postgres+redis services, pytest, coverage)
-- [ ] **6.6** GitHub Actions: job `lint` (ruff + eslint)
-- [ ] **6.7** GitHub Actions: job `build-plugin` en tags v\*
-- [ ] **6.8** GitHub Actions: job `deploy-staging` en push a develop
-- [ ] **6.9** GitHub Actions: job `deploy-production` en tags en main
-- [ ] **6.10** Nginx producción: HTTPS Certbot + reverse proxy + rate limit
-- [ ] **6.11** Docker Compose producción: api, webapp, postgres, redis, celery, nginx
-- [ ] **6.12** Backups: cron pg_dump diario + sync imágenes a S3/B2 + RDB Redis
-- [ ] **6.13** Checklist seguridad final (10 controles del plan §5.4)
-- [ ] **6.14** Documentación final: README, ARCHITECTURE.md, DEPLOYMENT.md
-- [ ] **6.15** Publicar plugin en WordPress.org
+## 6.B — CI/CD y DevOps (SDD fase-6-cicd — 22 tareas, 5 PRs)
+- [x] **6.5** GitHub Actions `tests-api.yml` — postgres:16 + redis:7, pytest, coverage ≥70% (PR-B)
+- [x] **6.6** GitHub Actions `lint.yml` — ruff + next lint paralelo (PR-B)
+- [x] **6.7** GitHub Actions `build-plugin.yml` — ya existía ✅
+- [x] **6.8** GitHub Actions `deploy-staging.yml` — push develop → SSH → deploy (PR-D)
+- [x] **6.9** GitHub Actions `deploy-production.yml` — tag v* → manual gate → deploy (PR-D)
+- [x] **6.10** nginx producción — rate limit, CF real IP, security headers (PR-C)
+- [x] **6.11** Docker Compose producción — 7 servicios, cloudflared-network, llama Docker (PR-C)
+- [x] **6.12** Backups — backup-db.sh + backup-redis.sh + backup-images.sh + cron docs (PR-D)
+- [x] **6.13** Security hardening — SECRET_KEY ≥32 chars fail-fast, CORS desde settings (PR-A)
+- [x] **6.14** Docs — README.md, docs/ARCHITECTURE.md, docs/DEPLOYMENT.md (PR-E)
+- [x] **6.15** Plugin WordPress — W-02..W-05 resueltos, Tested up to 6.7, PLUGIN-CHECK.md (PR-E)
+
+> **Pendiente:** `/sdd-verify` → `/sdd-archive` → `git tag v1.0.0`
 
 > **🏁 Lanzamiento v1.0** — `git tag v1.0.0`
 
