@@ -13,17 +13,12 @@ All tests use mock DB session (no real Postgres needed).
 from __future__ import annotations
 
 import uuid
-from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import bcrypt
-import httpx
 import pytest
-import pytest_asyncio
 from fastapi import HTTPException
 
-from database import get_session
-from main import app
 from models.seed import SYSTEM_ORG_ID, SYSTEM_USER_ID
 
 
@@ -186,7 +181,7 @@ class TestPrefixLookup:
 
         plain_key = "mykey123_valid"
         # Only return the NULL-prefix user (no match for the submitted prefix)
-        null_user = _make_usuario_null_prefix()
+        null_user = _make_usuario_null_prefix()  # noqa: F841
 
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = []  # NULL prefix excluded by WHERE

@@ -32,7 +32,6 @@ from services.jwt_service import (
     revoke_jti,
     rotate_jti,
     store_jti,
-    verify_token,
 )
 
 router = APIRouter(prefix="/web/auth", tags=["web-auth"])
