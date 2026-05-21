@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 6 — **6.A y 6.B COMPLETADAS** ✅
-- **Última tarea completada:** PR-E — docs finales + WordPress plugin fixes (22/22 tareas Fase 6B)
-- **Próximo paso:** `/sdd-verify fase-6-cicd` → luego `/sdd-archive fase-6-cicd` → `git tag v1.0.0`
+- **Última fase activa:** Fase 6 — **COMPLETADA** ✅ (verify + archive cerrados)
+- **Última tarea completada:** `sdd-archive fase-6-cicd` — ciclo SDD completo (22/22 tareas, PASS WITH WARNINGS)
+- **Próximo paso:** PR develop → main → `git tag v1.0.0` → push
 - **Bloqueadores:** ninguno
 
 ---
@@ -457,9 +457,10 @@
 - [x] **6.14** Docs — README.md, docs/ARCHITECTURE.md, docs/DEPLOYMENT.md (PR-E)
 - [x] **6.15** Plugin WordPress — W-02..W-05 resueltos, Tested up to 6.7, PLUGIN-CHECK.md (PR-E)
 
-> **Pendiente:** `/sdd-verify` → `/sdd-archive` → `git tag v1.0.0`
+> **sdd-verify:** PASS WITH WARNINGS (454 tests, 90% coverage, ruff clean) — 2026-05-21
+> **sdd-archive:** openspec/changes/archive/2026-05-21-fase-6-cicd/ — 2026-05-21
 
-> **🏁 Lanzamiento v1.0** — `git tag v1.0.0`
+> **🏁 Lanzamiento v1.0** — pendiente: PR develop→main + `git tag v1.0.0`
 
 ---
 
@@ -501,6 +502,12 @@
 - **2026-05-20 — `eval_duplicates_bancario.py` tenía `texto_extraido=None` hardcodeado:** El campo estaba en el GT JSON después de `enrich_ocr_bancario.py` pero el evaluador no lo leía — la función `_gt_to_fake()` tenía `texto_extraido=None` fijo. Fix: leer `gt.get("texto_extraido")`. Sin este fix Layer 3 siempre da score=0.70 aunque los GTs estén enriquecidos. Regla: cada vez que se agregue un campo al GT schema, revisar `_gt_to_fake()`.
 - **2026-05-20 — GLM-OCR da 503 en ~3% de imágenes incluso con concurrency=1:** El modelo rechaza algunas imágenes con respuesta no-JSON (503). Son consistentes entre re-intentos — no es problema de concurrencia sino de la imagen específica (probablemente layout muy diferente al training del modelo). El checkpoint de `enrich_ocr_bancario.py` las reintenta indefinidamente; para imágenes persistentemente problemáticas, `texto_extraido` queda `None` y Layer 3 usa score parcial (0.70 para esa imagen). Aceptable al 97.2% de cobertura.
 - **2026-05-20 — Playwright timeout 5min insuficiente para 8 bancos × 62 vouchers:** Cada banco toma ~60-90s (Playwright abre/cierra browser por banco, no por voucher). Total estimado: ~10-12 minutos para 496 imágenes. Usar timeout ≥ 15 minutos en cualquier tool que llame `generate_synthetic.py --bank all --count 62`. Alternativa: correr por banco individualmente (`--bank bbva`) si el entorno tiene limit de tiempo estricto.
+- **2026-05-21 — ESLint 9.x rompe `next lint` con `.eslintrc.json`:** Next.js 15 `lint` usa `LegacyESLint` internamente, que requiere ESLint 8.x. Con ESLint 9 la config plana (`eslint.config.js`) no es compatible con `.eslintrc.json` y el lint falla con error de esquema. Fijar a `eslint@^8` en `webapp/package.json` y usar `.eslintrc.json` (legacy config). No migrar a ESLint 9 hasta que Next.js soporte la config plana oficialmente.
+- **2026-05-21 — `llama.cpp` renombró su repo de `ggerganov/` a `ggml-org/`:** El `Dockerfile.llama` clona desde `https://github.com/ggml-org/llama.cpp`. Cualquier script o doc que referencie `ggerganov/llama.cpp` apunta al repo archivado/redirigido. Actualizar si se clonan ramas frescas o se pinean commits.
+- **2026-05-21 — `compute_score()` asíncrono con `session=None` para backward compat:** Se hizo async para poder cargar pesos desde DB (`configuracion_sistema`). Cuando `session=None` usa las constantes `W_*` del módulo (pesos hardcoded — mismos valores que el seed). Cualquier caller sync (tests, scripts standalone) puede llamarlo con `asyncio.run(compute_score(..., session=None))` sin dependencias de DB.
+- **2026-05-21 — nginx es el ÚNICO servicio en `cloudflared-network`:** El tunnel de Cloudflare solo ve a nginx. Todos los demás servicios (api, webapp, celery, postgres, redis, llama) están solo en `smartvoucher-net` (red interna). Esto garantiza que nada queda expuesto accidentalmente al exterior si se reconfigura cloudflared.
+- **2026-05-21 — `LLAMA_MODEL_DIR` y GitHub Secrets necesarios antes del primer deploy:** Antes de correr `docker-compose.prod.yml` se debe configurar `LLAMA_MODEL_DIR` en `.env` del servidor (directorio con el `.gguf` del modelo). Para CI/CD, configurar en GitHub: `SSH_HOST`, `SSH_USER`, `SSH_KEY`, `SSH_PORT` (staging y prod), y habilitar el environment `production` con reviewers requeridos en Settings → Environments del repo.
+- **2026-05-21 — `uv run alembic upgrade head` en producción antes de levantar la API:** La migración `a7f3b9c1d2e4` crea `configuracion_sistema` y siembra los 4 pesos de scoring. Sin ella, la API arranca pero falla al primer request que necesite los pesos (lazy cache intenta hacer SELECT y rompe). Orden correcto en deploy inicial: `alembic upgrade head` → `docker compose up -d`.
 
 ---
 
