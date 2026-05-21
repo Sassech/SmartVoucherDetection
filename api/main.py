@@ -21,11 +21,12 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS — tightened in Fase 4 to specific webapp origin.
-# `allow_credentials=True` requires explicit origin (not "*").
+# CORS — Fase 6.F: usa settings.cors_origins (lista configurable via env var
+# CORS_ORIGINS). Reemplaza el hardcoded [settings.webapp_origin] de Fase 4.
+# `allow_credentials=True` requires explicit origins (not "*").
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.webapp_origin],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],

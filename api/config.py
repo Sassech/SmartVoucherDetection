@@ -7,6 +7,7 @@ debe `from config import settings`.
 
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # api/config.py -> api/ -> raiz del repo
@@ -63,9 +64,39 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 
-    # --- CORS (Fase 4) -----------------------------------------------------
-    # Origen exacto del webapp Next.js. `allow_credentials=True` require que
+    # --- Security (Fase 6.F) -----------------------------------------------
+    # Clave secreta de la aplicacion para firmar sesiones, tokens, etc.
+    # Debe tener al menos 32 caracteres. Generar con:
+    #   openssl rand -hex 32  (produce 64 chars hex)
+    # El valor default es >= 32 chars para que dev mode funcione sin .env.
+    # En produccion DEBE ser reemplazado por un valor aleatorio fuerte.
+    secret_key: str = "dev-secret-key-change-in-production-ok"
+
+    @model_validator(mode="after")
+    def validate_secret_key(self) -> "Settings":
+        """Falla rapido si secret_key es demasiado corta (< 32 chars).
+
+        Previene el despliegue accidental con claves debiles. El validador
+        corre en modo 'after' para tener acceso al valor ya procesado.
+        """
+        if len(self.secret_key) < 32:
+            raise ValueError(
+                f"SECRET_KEY must be at least 32 characters, "
+                f"got {len(self.secret_key)}"
+            )
+        return self
+
+    # --- CORS (Fase 4 / Fase 6.F) ------------------------------------------
+    # Origenes permitidos para CORS. `allow_credentials=True` requiere que
     # `allow_origins` sea una lista de origenes especificos (no "*").
+    #
+    # Fase 6.F: `cors_origins` reemplaza a `webapp_origin` para soportar
+    # multiples origenes. `webapp_origin` se mantiene por compatibilidad
+    # hacia atras — usar `cors_origins` en codigo nuevo.
+    cors_origins: list[str] = ["http://localhost:3000"]
+
+    # DEPRECATED: usar cors_origins. Se mantiene para no romper configuraciones
+    # existentes que lo lean directamente.
     webapp_origin: str = "http://localhost:3000"
 
     # --- Dataset evaluation (Fase 5.0) ------------------------------------
