@@ -35,20 +35,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 		/**
 		 * Map API estado_actual values to WP admin badge CSS classes.
 		 *
-		 * badge-success → green  (valido)
-		 * badge-warning  → yellow (sospechoso, en_revision)
-		 * badge-error    → red    (duplicado, error)
-		 * badge-info     → blue   (recibido, procesando, comparando)
+		 * cocr-badge-success → green  (valido)
+		 * cocr-badge-warning → yellow (sospechoso, en_revision)
+		 * cocr-badge-error   → red    (duplicado, error)
+		 * cocr-badge-info    → blue   (recibido, procesando, comparando)
 		 */
 		$badge_map = [
-			'valido'      => 'success',
-			'sospechoso'  => 'warning',
-			'duplicado'   => 'error',
-			'error'       => 'error',
-			'recibido'    => 'info',
-			'procesando'  => 'info',
-			'comparando'  => 'info',
-			'en_revision' => 'warning',
+			'valido'      => 'cocr-badge-success',
+			'sospechoso'  => 'cocr-badge-warning',
+			'duplicado'   => 'cocr-badge-error',
+			'error'       => 'cocr-badge-error',
+			'recibido'    => 'cocr-badge-info',
+			'procesando'  => 'cocr-badge-info',
+			'comparando'  => 'cocr-badge-info',
+			'en_revision' => 'cocr-badge-warning',
 		];
 		?>
 
@@ -70,8 +70,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php else : ?>
 					<?php foreach ( $items as $item ) : ?>
 						<?php
-						$status    = sanitize_text_field( $item['estado_actual'] ?? '' );
-						$badge_cls = 'badge-' . esc_attr( $badge_map[ $status ] ?? 'info' );
+					$status    = sanitize_text_field( $item['estado_actual'] ?? '' );
+					$badge_cls = esc_attr( $badge_map[ $status ] ?? 'cocr-badge-info' );
 						?>
 						<tr>
 							<td><?php echo esc_html( $item['fecha_registro'] ?? '—' ); ?></td>
@@ -83,7 +83,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								</span>
 							</td>
 							<td>
-								<code><?php echo esc_html( substr( $item['hash_documento'] ?? '', 0, 12 ) . '…' ); ?></code>
+								<code><?php echo esc_html( substr( $item['hash_documento'] ?? '', 0, 8 ) . '…' ); ?></code>
 							</td>
 						</tr>
 					<?php endforeach; ?>
@@ -102,8 +102,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	font-size: .85em;
 	font-weight: 600;
 }
-.badge-success { background: #d4edda; color: #155724; }
-.badge-warning  { background: #fff3cd; color: #856404; }
-.badge-error    { background: #f8d7da; color: #721c24; }
-.badge-info     { background: #d1ecf1; color: #0c5460; }
+.cocr-badge-success { background: #d4edda; color: #155724; }
+.cocr-badge-warning { background: #fff3cd; color: #856404; }
+.cocr-badge-error   { background: #f8d7da; color: #721c24; }
+.cocr-badge-info    { background: #d1ecf1; color: #0c5460; }
 </style>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BanCoppel Comprobante</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  body {
+    width: 620px;
+    background: #f0f0f0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .page {
+    background: #ffffff;
+    width: 600px;
+    margin: 0 auto;
+  }
+  /* Header */
+  .header {
+    background: #0047AB;
+    padding: 16px 24px 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    color: #ffffff;
+    font-size: 21px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+  }
+  .brand-sub {
+    color: rgba(255,255,255,0.7);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .header-date {
+    color: rgba(255,255,255,0.8);
+    font-size: 10.5px;
+    text-align: right;
+  }
+  /* Subtitle bar */
+  .subtitle-bar {
+    background: #e8f0fa;
+    border-bottom: 1px solid #ccd8ee;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .subtitle-bar h1 {
+    font-size: 14px;
+    font-weight: bold;
+    color: #0047AB;
+  }
+  .subtitle-bar .comp-num {
+    font-size: 11px;
+    color: #666;
+  }
+  /* Success row */
+  .success-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 24px;
+    border-bottom: 1px solid #eee;
+  }
+  .success-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #00a651;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .success-icon::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 11px;
+    width: 8px;
+    height: 5px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg);
+  }
+  .success-label {
+    font-size: 13px;
+    font-weight: bold;
+    color: #00a651;
+  }
+  /* Amount box */
+  .amount-box {
+    margin: 14px 24px;
+    padding: 16px;
+    background: #f4f7fd;
+    border: 1px solid #c8d8ee;
+    border-left: 4px solid #0047AB;
+    border-radius: 3px;
+    text-align: center;
+  }
+  .amount-lbl {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .amount-val {
+    font-size: 30px;
+    font-weight: bold;
+    color: #0047AB;
+    margin: 4px 0 2px 0;
+  }
+  .amount-cur { font-size: 11px; color: #888; }
+  /* Table sections */
+  .section {
+    margin: 0 24px 12px 24px;
+  }
+  .sec-header {
+    background: #0047AB;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    border: 1px solid #dde3ee;
+    border-top: none;
+  }
+  .data-table tr:nth-child(even) td { background: #f8faff; }
+  .data-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #e8ecf4;
+    vertical-align: top;
+  }
+  .data-table td:first-child {
+    color: #555;
+    width: 42%;
+    white-space: nowrap;
+  }
+  .data-table td:last-child {
+    color: #111;
+    font-weight: 600;
+    word-break: break-all;
+  }
+  /* Footer */
+  .footer {
+    background: #0047AB;
+    color: rgba(255,255,255,0.8);
+    font-size: 9.5px;
+    text-align: center;
+    padding: 12px 24px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="brand">BanCoppel</div>
+      <div class="brand-sub">SPEI · Transferencia electrónica</div>
+    </div>
+    <div class="header-date">
+      {{ fecha_display }}<br>
+      <span style="font-size:9px; color:rgba(255,255,255,0.6);">bancoppel.com</span>
+    </div>
+  </div>
+
+  <!-- Subtitle -->
+  <div class="subtitle-bar">
+    <h1>Comprobante de depósito</h1>
+    <div class="comp-num">No. {{ numero_comprobante }}</div>
+  </div>
+
+  <!-- Success -->
+  <div class="success-row">
+    <div class="success-icon"></div>
+    <div>
+      <div class="success-label">Transferencia {{ estatus }}</div>
+      <div style="font-size:11px; color:#888;">{{ fecha_display }} {{ hora }} hrs</div>
+    </div>
+  </div>
+
+  <!-- Amount -->
+  <div class="amount-box">
+    <div class="amount-lbl">Monto transferido</div>
+    <div class="amount-val">{{ monto_fmt }}</div>
+    <div class="amount-cur">Pesos mexicanos (MXN)</div>
+  </div>
+
+  <!-- Datos operación -->
+  <div class="section">
+    <div class="sec-header">Datos de la operación</div>
+    <table class="data-table">
+      <tr><td>Clave de rastreo SPEI</td><td>{{ clave_rastreo }}</td></tr>
+      <tr><td>Concepto</td><td>{{ concepto }}</td></tr>
+      <tr><td>Referencia</td><td>{{ numero_referencia }}</td></tr>
+      <tr><td>Tipo de operación</td><td>{{ tipo_operacion }}</td></tr>
+      <tr><td>Fecha</td><td>{{ fecha_display }}</td></tr>
+      <tr><td>Hora</td><td>{{ hora }}</td></tr>
+      <tr><td>Estatus</td><td>{{ estatus }}</td></tr>
+    </table>
+  </div>
+
+  <!-- Cuenta origen -->
+  <div class="section">
+    <div class="sec-header">Cuenta origen</div>
+    <table class="data-table">
+      <tr><td>Banco</td><td>{{ banco_emisor }}</td></tr>
+      <tr><td>CLABE</td><td>{{ clabe_emisor_mascara }}</td></tr>
+      <tr><td>Titular</td><td>{{ nombre_ordenante }}</td></tr>
+    </table>
+  </div>
+
+  <!-- Cuenta destino -->
+  <div class="section">
+    <div class="sec-header">Cuenta destino</div>
+    <table class="data-table">
+      <tr><td>Banco</td><td>{{ banco_receptor }}</td></tr>
+      <tr><td>CLABE</td><td>{{ clabe_receptor_mascara }}</td></tr>
+      <tr><td>Beneficiario</td><td>{{ nombre_beneficiario }}</td></tr>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    BanCoppel S.A., Institución de Banca Múltiple · Operación verificada vía SPEI / Banco de México<br>
+    Atención a clientes: 800 268 2673 &nbsp;|&nbsp; bancoppel.com
+  </div>
+
+</div>
+</body>
+</html>

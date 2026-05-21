@@ -36,3 +36,51 @@ Run before merging PR-D and before WP.org submission.
 
 Plugin Check warnings: _TBD_
 Plugin Check critical errors: _TBD_
+
+---
+
+## Pre-submission Checklist
+
+### W-01 — Plugin Check CLI
+
+Run the Plugin Check tool in a real WordPress environment (local WP site or staging) before submitting to WP.org. The CI build (`build-plugin.yml`) produces a `comprobantes-ocr.zip` artifact — use that for the check to test exactly what will be submitted.
+
+```bash
+# Using WP-CLI + Plugin Check CLI (if installed)
+wp plugin check comprobantes-ocr
+```
+
+### Resolved Warnings (PR-E)
+
+| Warning | Description | Status |
+|---------|-------------|--------|
+| W-02 | Hash displayed in history widget truncated to 8 chars | ✅ RESOLVED |
+| W-03 | All CSS classes use `cocr-badge-` prefix consistently | ✅ RESOLVED |
+| W-04 | All JS globals use `cocr`/`cocrPublic`/`cocrAdmin` prefix consistently | ✅ RESOLVED |
+| W-05 | Orphaned reference comment removed from `es_MX.po`; no empty `msgstr ""` entries remain | ✅ RESOLVED |
+
+### SVN Submission Steps (manual — not automated by CI)
+
+WP.org plugin submission uses SVN. Once the Plugin Check passes with 0 critical errors and ≤ 3 warnings:
+
+1. Check out the plugin's SVN repository:
+   ```bash
+   svn co https://plugins.svn.wordpress.org/comprobantes-ocr/
+   ```
+2. Copy all plugin files into the `trunk/` directory:
+   ```bash
+   cp -r plugin-wp/comprobantes-ocr/* comprobantes-ocr/trunk/
+   ```
+3. Add any new files and commit:
+   ```bash
+   cd comprobantes-ocr
+   svn add trunk/* --force
+   svn ci -m "Initial submission v1.0.0"
+   ```
+4. Tag the release (after WP.org review approval):
+   ```bash
+   svn cp trunk tags/1.0.0
+   svn ci -m "Tag 1.0.0"
+   ```
+
+> **Note**: WP.org review takes 1–4 weeks for initial submissions. Subsequent updates are faster (typically 1–2 business days).

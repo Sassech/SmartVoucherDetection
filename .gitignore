@@ -1,7 +1,8 @@
 .agents/*
 skills-lock.json
 llama.cpp/
-cosas/*7
+cosas/*
+.atl/
 plan_desarrollo.md
 .claude/
 .env
@@ -18,3 +19,19 @@ build/
 # Exception: Gutenberg block build artifacts are intentionally committed (Decision 3)
 !plugin-wp/comprobantes-ocr/block/build/
 !plugin-wp/comprobantes-ocr/block/build/**
+webapp/design_sistema_de_validaci_n_de_comprobantes/*
+
+# --- Dataset (Fase 5.0) ---
+dataset/bancario-mx/raw/
+dataset/bancario-mx/synthetic/
+dataset/sroie/
+dataset/augmented/
+results/
+
+# -- Exceptions ---
+dataset/bancario-mx/duplicates/
+webapp/next-env.d.ts
+webapp/package-lock.json
+webapp/pnpm-workspace.yaml
+webapp/tsconfig.tsbuildinfo
+.gitignore

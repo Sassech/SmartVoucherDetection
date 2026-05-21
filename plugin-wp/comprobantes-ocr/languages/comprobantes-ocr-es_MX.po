@@ -136,8 +136,6 @@ msgstr "Solo se aceptan archivos JPEG, PNG y PDF."
 msgid "Server error. Please try again."
 msgstr "Error del servidor. Intentá de nuevo."
 
-#: includes/class-shortcode.php:157
-
 #: includes/class-shortcode.php:165
 msgid "No file received or upload error."
 msgstr "No se recibió archivo o error de carga."

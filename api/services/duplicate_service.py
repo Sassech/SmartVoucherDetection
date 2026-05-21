@@ -8,6 +8,10 @@ Decisiones de diseno:
 - run_capa2 usa el indice compuesto idx_comp_dedup creado en la migracion.
 - run_capa3 siempre retorna (best_or_None, score, clasificacion) — caller
   decide como persistir el resultado.
+- compute_score acepta `session: AsyncSession | None = None`. Cuando se
+  provee session, carga pesos desde la DB via `get_scoring_weights()` (cache
+  lazy modular). Cuando session=None, usa los constantes W_* del modulo para
+  backward compat con tests existentes y callers sin DB.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.comprobante import Comprobante
+from services.config_service import DEFAULTS, get_scoring_weights
 
 if TYPE_CHECKING:
     pass
@@ -95,20 +100,33 @@ def _s_fecha(a: date | None, b: date | None) -> float:
 # ---------------------------------------------------------------------------
 
 
-def compute_score(nuevo: Comprobante, existente: Comprobante) -> float:
+async def compute_score(
+    nuevo: Comprobante,
+    existente: Comprobante,
+    session: AsyncSession | None = None,
+) -> float:
     """Score de similitud ponderado entre dos comprobantes. Rango [0.0, 1.0].
 
     Formula:
-        Score = 0.35*S_ref + 0.30*S_texto + 0.20*S_monto + 0.15*S_fecha
+        Score = w_ref*S_ref + w_text*S_texto + w_monto*S_monto + w_fecha*S_fecha
+
+    Cuando session es provista, carga pesos desde la DB via get_scoring_weights()
+    (cache lazy — cero round-trips adicionales en llamadas repetidas).
+    Cuando session=None, usa los constantes W_* del modulo (backward compat).
 
     Cuando texto_extraido es NULL en cualquiera, S_texto = 0.0 (no
-    renormalizacion). Score maximo sin texto: 0.70.
+    renormalizacion). Score maximo sin texto: 0.70 con pesos default.
     """
+    if session is not None:
+        weights = await get_scoring_weights(session)
+    else:
+        weights = DEFAULTS
+
     return (
-        W_REF * _s_ref(nuevo.referencia, existente.referencia)
-        + W_TEXT * _s_texto(nuevo.texto_extraido, existente.texto_extraido)
-        + W_MONTO * _s_monto(nuevo.monto, existente.monto)
-        + W_FECHA * _s_fecha(nuevo.fecha_deposito, existente.fecha_deposito)
+        weights.w_ref * _s_ref(nuevo.referencia, existente.referencia)
+        + weights.w_text * _s_texto(nuevo.texto_extraido, existente.texto_extraido)
+        + weights.w_monto * _s_monto(nuevo.monto, existente.monto)
+        + weights.w_fecha * _s_fecha(nuevo.fecha_deposito, existente.fecha_deposito)
     )
 
 
@@ -216,7 +234,7 @@ async def run_capa3(
     best_score = 0.0
 
     for cand in candidates:
-        score = compute_score(nuevo, cand)
+        score = await compute_score(nuevo, cand, session=session)
         if score > best_score:
             best_score = score
             best_comp = cand

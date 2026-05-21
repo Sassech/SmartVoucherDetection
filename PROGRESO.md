@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 3 — **COMPLETADA** ✅
-- **Última tarea completada:** `3.14` — Workflow GitHub Actions para generar ZIP en tags
-- **Próximo paso:** **Fase 4 — Plataforma Web de Pago**
+- **Última fase activa:** Fase 6 — **COMPLETADA** ✅ (verify + archive cerrados)
+- **Última tarea completada:** `sdd-archive fase-6-cicd` — ciclo SDD completo (22/22 tareas, PASS WITH WARNINGS)
+- **Próximo paso:** PR develop → main → `git tag v1.0.0` → push
 - **Bloqueadores:** ninguno
 
 ---
@@ -45,7 +45,7 @@
 - **Cache/Queue:** Redis 7 + Celery
 - **OCR:** llama-server (llama.cpp `b9012`) + modelo `GLM-OCR-f16.gguf` con mmproj `mmproj-GLM-OCR-Q8_0.gguf` (multimodal real, ctx 16384, alias `GLM-OCR`, ya descargado en `llama.cpp/GLM-OCR/`)
 - **Imagen:** OpenCV + pdf2image + Pillow
-- **Frontend pago (Fase 4):** Next.js 14 + Tailwind + shadcn/ui + Zustand + React Query
+- **Frontend pago (Fase 4):** Next.js 15 + Tailwind 4 (@theme M3 tokens) + shadcn/ui (manual) + vitest + Playwright
 - **Plugin (Fase 3):** PHP nativo WordPress 6.5+
 - **Infra:** Docker Compose + Nginx + Certbot
 - **CI/CD:** GitHub Actions
@@ -347,53 +347,120 @@
 
 ---
 
-# FASE 4 — Plataforma Web de Pago (Semanas 14-18)
+# FASE 4 — Plataforma Web de Pago (Semanas 14-18) ✅ COMPLETADA
 
-> Objetivo: Next.js 14 con dashboard, multi-tenant, suscripciones Stripe.
-> _Tareas se refinarán al iniciar Fase 4._
+> Objetivo: Plataforma web Next.js 15 + JWT auth + dashboard + historial + revisión sobre FastAPI.
+> **515 tests totales** (425 Python + 90 vitest/Playwright). PRs A–D mergeados a develop.
 
-- [ ] **4.1** Bootstrap Next.js 14 en `webapp/` con App Router + TypeScript
-- [ ] **4.2** Configurar Tailwind + shadcn/ui
-- [ ] **4.3** Auth: NextAuth con provider JWT custom hacia FastAPI
-- [ ] **4.4** Endpoints API: `POST /auth/login`, `POST /auth/refresh`
-- [ ] **4.5** Middleware de autorización por rol (admin/operador/auditor)
-- [ ] **4.6** Multi-tenancy en API: `organization_id` en JWT, filtro automático en queries
-- [ ] **4.7** Rate limiting por plan (Básico/Profesional/Empresarial)
-- [ ] **4.8** Dashboard principal con KPIs y gráficas Recharts
-- [ ] **4.9** Módulo upload con modo síncrono/asíncrono
-- [ ] **4.10** Historial avanzado con filtros + exportar CSV/Excel/PDF
-- [ ] **4.11** Vista side-by-side para revisión manual de duplicados
-- [ ] **4.12** UI configuración de umbrales (sliders para w1-w4)
-- [ ] **4.13** Gestión de usuarios (CRUD + roles)
-- [ ] **4.14** Gestión de organizaciones (multi-tenant admin)
-- [ ] **4.15** Webhooks: configuración + logs de envío + reintentos
-- [ ] **4.16** Integración Stripe: planes + portal cliente + facturación
+- [x] **4.A** JWT auth backend — `jwt_service`, `require_jwt`, `web_auth` router (PR #10, +43 tests)
+- [x] **4.B** Web routes backend — `web_comprobantes`, `web_stats`, `schemas/web.py` (PR #11, +21 tests)
+- [x] **4.C** Frontend scaffold — Next.js 15 + Tailwind 4 + auth-context + fetchApi mutex + shell (PR #12, +35 vitest)
+- [x] **4.D** Frontend features — Dashboard + Historial + Revision + Playwright E2E (+56 vitest, +10 E2E)
 
-> **🏁 Fin Fase 4** — `git tag fase-4-completa`
+> **🏁 Fin Fase 4** — archivada en `openspec/changes/fase-4-archive.md`
 
 ---
 
-# FASE 5 — Hardening, CI/CD y Lanzamiento (Semanas 19-20)
+# FASE 5.0 — Dataset (Pre-Hardening) ✅ COMPLETADA
 
-> _Tareas se refinarán al iniciar Fase 5._
+> Objetivo: construir la base de datos de evaluación que hace posible medir precisión real del pipeline OCR y detección de duplicados. Sin dataset etiquetado, las métricas de Fase 6 (1.9.1, 1.9.2, 2.7.1) son inválidas.
+>
+> **Estrategia adoptada**: generación sintética con Faker + Jinja2 + Playwright (HTML→PNG) + Albumentations para augmentación. Pipeline de evaluación 3 capas standalone (sin DB). **14/14 tareas completadas, SDD archivado.**
 
-- [ ] **5.1** Recopilar dataset 100 comprobantes etiquetados reales
-- [ ] **5.2** Evaluación métricas: precision/recall/F1 por clase
-- [ ] **5.3** Grid search de pesos w1-w4 si precisión <90%
-- [ ] **5.4** Persistir pesos finales en tabla `configuracion_sistema`
-- [ ] **5.5** GitHub Actions: job `tests-api` (postgres+redis services, pytest, coverage)
-- [ ] **5.6** GitHub Actions: job `lint` (ruff + eslint)
-- [ ] **5.7** GitHub Actions: job `build-plugin` en tags v\*
-- [ ] **5.8** GitHub Actions: job `deploy-staging` en push a develop
-- [ ] **5.9** GitHub Actions: job `deploy-production` en tags en main
-- [ ] **5.10** Nginx producción: HTTPS Certbot + reverse proxy + rate limit
-- [ ] **5.11** Docker Compose producción: api, webapp, postgres, redis, celery, nginx
-- [ ] **5.12** Backups: cron pg_dump diario + sync imágenes a S3/B2 + RDB Redis
-- [ ] **5.13** Checklist seguridad final (10 controles del plan §5.4)
-- [ ] **5.14** Documentación final: README, ARCHITECTURE.md, DEPLOYMENT.md
-- [ ] **5.15** Publicar plugin en WordPress.org
+## 5.0.1 — Scripts base y configuración
 
-> **🏁 Lanzamiento v1.0** — `git tag v1.0.0`
+- [x] **5.0.1** `scripts/_shared.py` — bootstrap compartido (setup_api_path, load_settings, get_ocr_client)
+- [x] **5.0.2** `api/config.py` — `DATASET_DIR` y `RESULTS_DIR` como settings opcionales (R-49b)
+- [x] **5.0.3** `api/pyproject.toml` — optional-dependencies `[scripts]`: faker, jinja2, playwright, albumentations, numpy
+- [x] **5.0.4** `api/services/ocr_service.py` — `hora` e `importe_base` agregados a OCR_PROMPT + CAMPOS_ESPERADOS (R-68); 7 campos total
+- [x] **5.0.5** `api/tests/test_ocr_service.py` — tests actualizados para contrato de 7 campos
+- [x] **5.0.6** `dataset/bancario-mx/README.md` — schema v2.0 documentado (banco_emisor, banco_receptor, hora, extended block)
+- [x] **5.0.7** `dataset/bancario-mx/ground-truth/` — 30 GTs schema v2.0 (mx-001..mx-030) + 30 JPEGs anonimizados
+
+## 5.0.2 — Pipeline de evaluación SROIE
+
+- [x] **5.0.8** `scripts/eval/run_pipeline_sroie.py` — batch async OCR eval con checkpoint + Semaphore(4)
+- [x] **5.0.9** `scripts/eval/metrics_sroie.py` — F1 SROIE por campo, exit 1 si F1[monto] < 0.80
+
+## 5.0.3 — Generador sintético y augmentación
+
+- [x] **5.0.10** `scripts/augment/faker_mx.py` — datos financieros MX: CLABE con dígito verificador, RFC, montos ponderados 70/20/10
+- [x] **5.0.11** `scripts/augment/generate_synthetic.py` — Faker + Jinja2 + Playwright → PNG + GT JSON schema v2.0; StrictUndefined
+- [x] **5.0.12** `scripts/augment/templates/` — 8 templates HTML por banco: BBVA (#004481), Banorte (#D0021B), Santander (#EC0000), Banamex (#003087), MercadoPago (#00b1ea), OXXO (monospace), BanCoppel (#0047AB), Azteca (#1C2B5E) + `base.css`
+- [x] **5.0.13** `scripts/augment/generate_augmented.py` — 7 degradaciones Albumentations; auto-detección modo sintético vs raw (heurística stem ≥50%)
+- [x] **5.0.14** `scripts/augment/generate_duplicates.py` — pares 30/40/30 ±5%, seed determinista, `--quiet`; CSV schema `id_a,id_b,tipo_duplicado,capa_esperada,clasificacion_esperada,notas`
+
+## 5.0.4 — Evaluación y documentación
+
+- [x] **5.0.15** `scripts/eval/eval_duplicates_bancario.py` — evaluador 3 capas standalone sin DB; reimplementa `compute_hash`, `compute_score`, `classify` inline; `_parse_fecha` soporta DD/MM/YYYY + ISO
+- [x] **5.0.16** `docs/dataset-evaluation.md` — template con placeholders `<!-- F1_MONTO -->` y comandos de reproducibilidad
+- [x] **5.0.17** `scripts/README.md` — actualizado con prerequisito `playwright install chromium` y todos los scripts nuevos
+
+## 5.0.5 — Resultados del pipeline real (2026-05-20)
+
+> Pipeline corrido con seed=42; Playwright + Chromium 148 en Fedora (binario ubuntu24.04 fallback — funciona OK).
+
+| Etapa | Resultado |
+|-------|-----------|
+| Sintéticos generados | **496 imágenes** (8 bancos × 62) + 496 GTs JSON |
+| Augmentados | **500 imágenes** (7 degradaciones, balanceo proporcional por banco) |
+| Pares duplicados | **50 pares**: 15 exacto / 20 parcial_visual / 15 negativo |
+| Capa 1 (hash) | precision=1.00 / recall=0.43 / F1=0.60 — captura exactos, no parciales (correcto por diseño) |
+| Capa 2 (campos) | precision=1.00 / recall=**1.00** / F1=**1.00** — detecta todos los duplicados reales |
+| Capa 3 (scoring) | score=0.70 fijo (sin `texto_extraido` OCR real; max teórico sin OCR = 0.70) |
+| Negativos | score medio=0.35 (rango 0.21–0.59) — correctamente clasificados como válidos |
+
+**Criterio PASSED:** `capa_1.precision=1.0000 == 1.0` ✅
+
+## 5.0.6 — Criterios de Aceptación
+
+- [x] **5.0.4.1** bancario-mx: ≥ 30 comprobantes anonimizados + 496 sintéticos disponibles ✅
+- [x] **5.0.4.2** ≥ 50 pares de duplicados en `pairs.csv` con distribución balanceada ✅ (30/40/30)
+- [x] **5.0.4.3** Pipeline detecta duplicados exactos con precision 100% (Capa 1) ✅
+- [x] **5.0.4.4** `docs/dataset-evaluation.md` existe con resultados reproducibles ✅
+- [x] **5.0.4.5** `results/bancario_metrics.json` generado ✅
+
+> **🏁 Fin Fase 5.0** — archivada en `openspec/changes/archive/2026-05-20-fase-5.0-dataset/`. 425 tests pasando.
+
+---
+
+# FASE 6 — Hardening, CI/CD y Lanzamiento (Semanas 19-20)
+
+> _Requiere Fase 5.0 completada (dataset listo) — ✅ desbloqueada._
+
+## 6.A — Scoring optimization con OCR real (W1 de verify Fase 5.0)
+
+> Layer 3 con sintéticas tiene score máximo 0.70 sin `texto_extraido`. Para evaluación real:
+> 1. Correr OCR (GLM-OCR) sobre los 496 sintéticos → guardar `texto_extraido` en cada GT JSON
+> 2. Re-correr `eval_duplicates_bancario.py` con texto real → Layer 3 debería superar threshold 0.90
+> 3. Si F1 < objetivo → grid search sobre pesos W_REF/W_TEXT/W_MONTO/W_FECHA
+
+- [x] **6.1** Correr GLM-OCR batch sobre `dataset/bancario-mx/synthetic/images/` → enriquecer GTs con `texto_extraido`
+  - Script: `scripts/eval/enrich_ocr_bancario.py` (nuevo, idempotente con checkpoint)
+  - **Resultado:** 482/496 enriquecidos (97.2%); 14 rechazados por GLM-OCR (imágenes difíciles — aceptable)
+- [x] **6.2** Re-evaluar duplicados con `texto_extraido` real → `results/bancario_metrics_v2.json`
+  - **Resultado:** exacto mean=0.98 / parcial_visual mean=1.00 / negativo mean=0.53 ✅
+  - Layer 3 ahora supera threshold 0.90 para duplicados reales — scoring funciona correctamente
+- [x] **6.3** Grid search de pesos w1-w4 — N/A: scores ya superan 0.90 sin ajuste
+- [x] **6.4** Persistir pesos en `configuracion_sistema` — modelo + migración + lazy cache (PR-A)
+
+## 6.B — CI/CD y DevOps (SDD fase-6-cicd — 22 tareas, 5 PRs)
+- [x] **6.5** GitHub Actions `tests-api.yml` — postgres:16 + redis:7, pytest, coverage ≥70% (PR-B)
+- [x] **6.6** GitHub Actions `lint.yml` — ruff + next lint paralelo (PR-B)
+- [x] **6.7** GitHub Actions `build-plugin.yml` — ya existía ✅
+- [x] **6.8** GitHub Actions `deploy-staging.yml` — push develop → SSH → deploy (PR-D)
+- [x] **6.9** GitHub Actions `deploy-production.yml` — tag v* → manual gate → deploy (PR-D)
+- [x] **6.10** nginx producción — rate limit, CF real IP, security headers (PR-C)
+- [x] **6.11** Docker Compose producción — 7 servicios, cloudflared-network, llama Docker (PR-C)
+- [x] **6.12** Backups — backup-db.sh + backup-redis.sh + backup-images.sh + cron docs (PR-D)
+- [x] **6.13** Security hardening — SECRET_KEY ≥32 chars fail-fast, CORS desde settings (PR-A)
+- [x] **6.14** Docs — README.md, docs/ARCHITECTURE.md, docs/DEPLOYMENT.md (PR-E)
+- [x] **6.15** Plugin WordPress — W-02..W-05 resueltos, Tested up to 6.7, PLUGIN-CHECK.md (PR-E)
+
+> **sdd-verify:** PASS WITH WARNINGS (454 tests, 90% coverage, ruff clean) — 2026-05-21
+> **sdd-archive:** openspec/changes/archive/2026-05-21-fase-6-cicd/ — 2026-05-21
+
+> **🏁 Lanzamiento v1.0** — pendiente: PR develop→main + `git tag v1.0.0`
 
 ---
 
@@ -426,6 +493,21 @@
 - **2026-05-09 — `httpx.MockTransport` requiere `base_url` en el cliente, no la descarta:** Mi primer intento de monkeypatchear `httpx.AsyncClient` con un factory que solo seteaba `transport=MockTransport(handler)` reventaba con `unsupported url type: '/health'`. Es porque httpx valida la URL final del request contra `client.base_url` antes de delegar al transport — sin base_url, una URL relativa como `/health` no es resolvible. Fix: el factory tiene que reenviar `base_url` (cualquier string http válido sirve, el MockTransport igual ignora la red). Tip aplicable a cualquier mock de httpx en tests del proyecto.
 - **2026-05-09 — Coverage 7 + asyncio + ASGITransport pierde líneas: usar `core="sysmon"`:** El tracer clásico de coverage.py 7.x (settrace/sys.settrace) pierde tracking de líneas dentro de funciones async ejecutadas vía `httpx.ASGITransport`. Síntoma: `routers/upload.py` reportaba 58% cuando los tests E2E (con asserts contra DB real demostrando que TODO el cuerpo se ejecutaba) pasaban — específicamente `Missing 151-237` que es literalmente todo el body del endpoint. Solución: `[tool.coverage.run] core = "sysmon"` en `pyproject.toml` (Python 3.12+ feature, `sys.monitoring` API). Bumpó upload.py de 58% → 88% (la cifra real). Aplicar SIEMPRE en proyectos con tests async + ASGITransport. Tip aplicable a futuros stacks: si ves cobertura ridícula en endpoints async pero los tests pasan con asserts reales, probá `COVERAGE_CORE=sysmon uv run pytest ...` antes de gastar tiempo debuggeando los tests.
 - **2026-05-09 — Write atómico filesystem con `tmp+replace`:** El patrón `path.write_bytes(data)` no es atómico — un crash a mitad de write deja un archivo corrupto en `path`. Solución usada en `storage_service`: escribir a `path.tmp` primero, luego `tmp.replace(path)` (`os.replace` es POSIX-atomic). Si crashea entre write y replace, `path` queda con la versión vieja (o no existe), nunca corrupto. Importante porque el endpoint commitea la fila DB DESPUÉS del write — entre write y commit puede morir el server, y un archivo huérfano (que cron de Fase 5 limpia) es infinitamente preferible a una fila DB apuntando a un archivo a medias.
+- **2026-05-20 — Playwright Python en Fedora: NO instalar Node.js/npm separado:** La guía oficial de Playwright en internet describe la instalación de Playwright JS (Node.js). Playwright Python es completamente independiente — se instala vía `uv`/`pip` y descarga su propio binario de Chromium en `~/.cache/ms-playwright/`. En Fedora el mensaje `BEWARE: your OS is not officially supported; downloading fallback build for ubuntu24.04-x64` es NORMAL y el binario funciona. No hace falta `sudo dnf install nodejs npm` ni `npm init playwright@latest`. Solo: `uv add playwright && uv run playwright install chromium`.
+- **2026-05-20 — Playwright Fedora: librerías de sistema no necesarias (para headless):** El binario ubuntu24.04 de Chromium en modo headless (`headless=True`) funciona en Fedora sin instalar `gstreamer1-*`, `atk`, `cups`, etc. Solo falla si se intenta modo headed (GUI). Para el pipeline de generación sintética (headless puro) no hay dependencias extra de sistema en Fedora 39+.
+- **2026-05-20 — Jinja2 `StrictUndefined` obligatorio en templates de vouchers:** El modo default `Undefined` de Jinja2 renderiza variables faltantes como string vacío silenciosamente. En los templates HTML de comprobantes sintéticos, un campo faltante (ej. `{{ clabe_receptor }}` con key ausente en el contexto) producía un campo vacío visualmente correcto pero indetectable — el GT JSON tenía el campo correcto pero la imagen no lo mostraba. Fix: `Environment(undefined=StrictUndefined)` que lanza `UndefinedError` inmediatamente. Aplicar SIEMPRE en generadores de datos de entrenamiento donde la consistencia imagen↔GT es crítica.
+- **2026-05-20 — `_parse_fecha` necesita soportar dos formatos: DD/MM/YYYY (GT real) e ISO YYYY-MM-DD (GT sintético):** Los GT de comprobantes reales usan DD/MM/YYYY (como pide el prompt OCR). Los GT sintéticos generados por `generate_synthetic.py` usan ISO porque Python `date.isoformat()` es el default. `eval_duplicates_bancario.py` necesita parsear ambos para comparar fechas entre pares mixtos (real vs sintético). Solución: intentar primero `%d/%m/%Y`, fallback a `%Y-%m-%d`.
+- **2026-05-20 — Layer 3 scoring máximo sin `texto_extraido` = 0.70, nunca supera threshold 0.90:** `compute_score` pondera W_REF=0.35 + W_TEXT=0.30 + W_MONTO=0.20 + W_FECHA=0.15. Sin texto OCR, `S_texto=0.0` siempre. El máximo teórico = 0.35×1 + 0.0×1 + 0.20×1 + 0.15×1 = 0.70. Ningún par de sintéticos (que comparten todos los campos excepto texto) supera ese techo. Para Layer 3 útil con sintéticas hay que: (1) correr OCR real sobre las imágenes y guardar `texto_extraido` en el GT, o (2) generar el `texto_extraido` a partir del contexto Jinja2 en el momento de la generación (más rápido, pero no mide el OCR real). Esto es W1 del verify report y el primer task de Fase 6.
+- **2026-05-20 — `tipo_duplicado="parcial_visual"` en CSV vs spec `"parcial"` (W3):** El spec original (R-62) documenta el valor como `"parcial"` pero `generate_duplicates.py` emite `"parcial_visual"` (más descriptivo). Divergencia inofensiva pero documentada como deuda técnica a corregir en Fase 6: actualizar R-62 en el spec o normalizar el script — lo que decida el equipo. No cambia los resultados de evaluación porque `eval_duplicates_bancario.py` usa el campo `capa_esperada`, no `tipo_duplicado`, para clasificar.
+- **2026-05-20 — `eval_duplicates_bancario.py` tenía `texto_extraido=None` hardcodeado:** El campo estaba en el GT JSON después de `enrich_ocr_bancario.py` pero el evaluador no lo leía — la función `_gt_to_fake()` tenía `texto_extraido=None` fijo. Fix: leer `gt.get("texto_extraido")`. Sin este fix Layer 3 siempre da score=0.70 aunque los GTs estén enriquecidos. Regla: cada vez que se agregue un campo al GT schema, revisar `_gt_to_fake()`.
+- **2026-05-20 — GLM-OCR da 503 en ~3% de imágenes incluso con concurrency=1:** El modelo rechaza algunas imágenes con respuesta no-JSON (503). Son consistentes entre re-intentos — no es problema de concurrencia sino de la imagen específica (probablemente layout muy diferente al training del modelo). El checkpoint de `enrich_ocr_bancario.py` las reintenta indefinidamente; para imágenes persistentemente problemáticas, `texto_extraido` queda `None` y Layer 3 usa score parcial (0.70 para esa imagen). Aceptable al 97.2% de cobertura.
+- **2026-05-20 — Playwright timeout 5min insuficiente para 8 bancos × 62 vouchers:** Cada banco toma ~60-90s (Playwright abre/cierra browser por banco, no por voucher). Total estimado: ~10-12 minutos para 496 imágenes. Usar timeout ≥ 15 minutos en cualquier tool que llame `generate_synthetic.py --bank all --count 62`. Alternativa: correr por banco individualmente (`--bank bbva`) si el entorno tiene limit de tiempo estricto.
+- **2026-05-21 — ESLint 9.x rompe `next lint` con `.eslintrc.json`:** Next.js 15 `lint` usa `LegacyESLint` internamente, que requiere ESLint 8.x. Con ESLint 9 la config plana (`eslint.config.js`) no es compatible con `.eslintrc.json` y el lint falla con error de esquema. Fijar a `eslint@^8` en `webapp/package.json` y usar `.eslintrc.json` (legacy config). No migrar a ESLint 9 hasta que Next.js soporte la config plana oficialmente.
+- **2026-05-21 — `llama.cpp` renombró su repo de `ggerganov/` a `ggml-org/`:** El `Dockerfile.llama` clona desde `https://github.com/ggml-org/llama.cpp`. Cualquier script o doc que referencie `ggerganov/llama.cpp` apunta al repo archivado/redirigido. Actualizar si se clonan ramas frescas o se pinean commits.
+- **2026-05-21 — `compute_score()` asíncrono con `session=None` para backward compat:** Se hizo async para poder cargar pesos desde DB (`configuracion_sistema`). Cuando `session=None` usa las constantes `W_*` del módulo (pesos hardcoded — mismos valores que el seed). Cualquier caller sync (tests, scripts standalone) puede llamarlo con `asyncio.run(compute_score(..., session=None))` sin dependencias de DB.
+- **2026-05-21 — nginx es el ÚNICO servicio en `cloudflared-network`:** El tunnel de Cloudflare solo ve a nginx. Todos los demás servicios (api, webapp, celery, postgres, redis, llama) están solo en `smartvoucher-net` (red interna). Esto garantiza que nada queda expuesto accidentalmente al exterior si se reconfigura cloudflared.
+- **2026-05-21 — `LLAMA_MODEL_DIR` y GitHub Secrets necesarios antes del primer deploy:** Antes de correr `docker-compose.prod.yml` se debe configurar `LLAMA_MODEL_DIR` en `.env` del servidor (directorio con el `.gguf` del modelo). Para CI/CD, configurar en GitHub: `SSH_HOST`, `SSH_USER`, `SSH_KEY`, `SSH_PORT` (staging y prod), y habilitar el environment `production` con reviewers requeridos en Settings → Environments del repo.
+- **2026-05-21 — `uv run alembic upgrade head` en producción antes de levantar la API:** La migración `a7f3b9c1d2e4` crea `configuracion_sistema` y siembra los 4 pesos de scoring. Sin ella, la API arranca pero falla al primer request que necesite los pesos (lazy cache intenta hacer SELECT y rompe). Orden correcto en deploy inicial: `alembic upgrade head` → `docker compose up -d`.
 
 ---
 

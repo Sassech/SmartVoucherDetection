@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banamex Comprobante</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  body {
+    width: 620px;
+    background: #eef2f7;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .page {
+    background: #ffffff;
+    width: 600px;
+    margin: 0 auto;
+  }
+  /* Header */
+  .header {
+    background: #003087;
+    padding: 16px 24px 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand-name {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+  }
+  .brand-parent {
+    color: rgba(255,255,255,0.65);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .header-right {
+    color: rgba(255,255,255,0.7);
+    font-size: 9px;
+    text-align: right;
+  }
+  /* Blue stripe */
+  .stripe {
+    height: 3px;
+    background: linear-gradient(90deg, #003087 60%, #cc0000 100%);
+  }
+  /* Title area */
+  .title-area {
+    padding: 18px 24px 12px 24px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .title-area h1 {
+    font-size: 16px;
+    font-weight: bold;
+    color: #003087;
+  }
+  .title-area .txn-id {
+    font-size: 11px;
+    color: #888;
+    margin-top: 3px;
+  }
+  /* Success notice */
+  .success-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f0f8f0;
+    border-left: 3px solid #00a651;
+    margin: 14px 24px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    color: #006030;
+    font-weight: bold;
+  }
+  .success-check {
+    width: 20px;
+    height: 20px;
+    background: #00a651;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .success-check::after {
+    content:"";
+    position: absolute;
+    left: 4px;
+    top: 8px;
+    width: 7px;
+    height: 4px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg);
+  }
+  /* Amount box */
+  .amount-box {
+    border: 1px solid #d0d8e8;
+    border-radius: 4px;
+    margin: 0 24px 16px 24px;
+    padding: 16px;
+    text-align: center;
+    background: #f7f9ff;
+  }
+  .amount-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .amount-value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #003087;
+    margin: 6px 0 2px 0;
+  }
+  .amount-moneda { font-size: 11px; color: #888; }
+  /* Section */
+  .section {
+    margin: 0 24px 4px 24px;
+  }
+  .section-header {
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #ffffff;
+    background: #003087;
+    padding: 6px 12px;
+    letter-spacing: 0.5px;
+  }
+  /* Two-col table */
+  .info-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    border: 1px solid #e0e0e0;
+    border-top: none;
+  }
+  .info-grid tr:nth-child(even) td { background: #f9fafc; }
+  .info-grid td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #eeeeee;
+    vertical-align: top;
+  }
+  .info-grid td.lbl {
+    color: #555;
+    width: 42%;
+  }
+  .info-grid td.val {
+    color: #111;
+    font-weight: 600;
+    word-break: break-all;
+  }
+  /* Transaction number (has hash prefix #XXXXXX) */
+  .txn-number {
+    font-family: "Courier New", monospace;
+    font-size: 13px;
+    color: #003087;
+  }
+  /* Footer */
+  .footer {
+    background: #003087;
+    color: rgba(255,255,255,0.75);
+    font-size: 9.5px;
+    padding: 12px 24px;
+    margin-top: 16px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="brand-name">Banamex</div>
+      <div class="brand-parent">Citibanamex</div>
+    </div>
+    <div class="header-right">
+      Banca en línea<br>
+      <span style="font-size:9px;">banamex.com</span>
+    </div>
+  </div>
+  <div class="stripe"></div>
+
+  <!-- Title -->
+  <div class="title-area">
+    <h1>Comprobante de Transferencia</h1>
+    <div class="txn-id">Transacción <span class="txn-number">#{{ numero_comprobante }}</span></div>
+  </div>
+
+  <!-- Success notice -->
+  <div class="success-notice">
+    <div class="success-check"></div>
+    Operación {{ estatus }} — {{ fecha_display }} &nbsp; {{ hora }}
+  </div>
+
+  <!-- Amount -->
+  <div class="amount-box">
+    <div class="amount-label">Monto de la transferencia</div>
+    <div class="amount-value">{{ monto_fmt }}</div>
+    <div class="amount-moneda">Pesos mexicanos (MXN)</div>
+  </div>
+
+  <!-- Cuentas -->
+  <div class="section">
+    <div class="section-header">Cuentas</div>
+    <table class="info-grid">
+      <tr>
+        <td class="lbl">Banco origen</td>
+        <td class="val">{{ banco_emisor }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">CLABE origen</td>
+        <td class="val">{{ clabe_emisor_mascara }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Nombre del ordenante</td>
+        <td class="val">{{ nombre_ordenante }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">RFC ordenante</td>
+        <td class="val">{{ rfc_ordenante }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Banco destino</td>
+        <td class="val">{{ banco_receptor }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">CLABE destino</td>
+        <td class="val">{{ clabe_receptor_mascara }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Nombre del beneficiario</td>
+        <td class="val">{{ nombre_beneficiario }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Datos de la transferencia -->
+  <div class="section" style="margin-top:12px; margin-bottom:4px;">
+    <div class="section-header">Datos de la transferencia</div>
+    <table class="info-grid">
+      <tr>
+        <td class="lbl">Clave de rastreo</td>
+        <td class="val">{{ clave_rastreo }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Concepto</td>
+        <td class="val">{{ concepto }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Referencia numérica</td>
+        <td class="val">{{ numero_referencia }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Tipo de operación</td>
+        <td class="val">{{ tipo_operacion }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Fecha de operación</td>
+        <td class="val">{{ fecha_display }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Hora</td>
+        <td class="val">{{ hora }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Comisión</td>
+        <td class="val">$0.00</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    Banamex S.A., Institución de Banca Múltiple, Integrante del Grupo Financiero Banamex.<br>
+    Consultas y aclaraciones: 55 1226 2639 &nbsp;|&nbsp; banamex.com
+  </div>
+
+</div>
+</body>
+</html>

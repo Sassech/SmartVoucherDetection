@@ -8,6 +8,12 @@ Estrategia:
   deterministicos.
 
 Cobertura minima: 25 casos (spec B3 requiere >=25).
+
+Nota 6.A.3: compute_score es ahora async. Los tests que lo llaman directamente
+usan `await compute_score(..., session=None)` para mantener backward compat.
+Los tests de run_capa3 pre-populan el cache de weights para evitar que el mock
+de session sea interceptado por get_scoring_weights (que tiene una interfaz
+diferente al mock de Comprobante).
 """
 
 from __future__ import annotations
@@ -21,6 +27,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 # Las funciones puras se importan directamente para unit tests sin instancias
+import services.config_service as _config_mod
+from services.config_service import ScoringWeights, invalidate_weights_cache
 from services.duplicate_service import (
     THRESHOLD_DUPLICADO,
     THRESHOLD_SOSPECHOSO,
@@ -195,7 +203,8 @@ def test_s_fecha_beyond_30_days_caps_at_zero():
 # ---------------------------------------------------------------------------
 
 
-def test_compute_score_identical_comprobantes_returns_one():
+@pytest.mark.asyncio
+async def test_compute_score_identical_comprobantes_returns_one():
     """Spec CAP-05 Scenario 1: ambos textos iguales, todos campos iguales → 1.0."""
     nuevo = _make_comp(referencia="TRF-001", texto_extraido="texto igual")
     existente = _make_comp(
@@ -204,11 +213,12 @@ def test_compute_score_identical_comprobantes_returns_one():
         referencia="TRF-001",
         texto_extraido="texto igual",
     )
-    score = compute_score(nuevo, existente)
+    score = await compute_score(nuevo, existente, session=None)
     assert score == pytest.approx(1.0, abs=0.01)
 
 
-def test_compute_score_null_texto_caps_at_070():
+@pytest.mark.asyncio
+async def test_compute_score_null_texto_caps_at_070():
     """Spec CAP-05 Scenario 2: texto NULL → max 0.70 (0.35+0.20+0.15)."""
     nuevo = _make_comp(referencia="TRF-001", texto_extraido=None)
     existente = _make_comp(
@@ -217,11 +227,12 @@ def test_compute_score_null_texto_caps_at_070():
         referencia="TRF-001",
         texto_extraido=None,
     )
-    score = compute_score(nuevo, existente)
+    score = await compute_score(nuevo, existente, session=None)
     assert score <= 0.70 + 0.001  # ceil con tolerancia
 
 
-def test_compute_score_null_texto_still_weights_other_components():
+@pytest.mark.asyncio
+async def test_compute_score_null_texto_still_weights_other_components():
     """Con texto NULL, score = 0.35*s_ref + 0.20*s_monto + 0.15*s_fecha."""
     nuevo = _make_comp(texto_extraido=None)
     existente = _make_comp(
@@ -229,7 +240,7 @@ def test_compute_score_null_texto_still_weights_other_components():
         id_usuario=nuevo.id_usuario,
         texto_extraido=None,
     )
-    score = compute_score(nuevo, existente)
+    score = await compute_score(nuevo, existente, session=None)
     # Misma referencia, monto, fecha → 0.35 + 0 + 0.20 + 0.15 = 0.70
     assert score == pytest.approx(0.70, abs=0.01)
 
@@ -417,96 +428,120 @@ async def test_run_capa2_skips_when_fecha_is_none():
 
 @pytest.mark.asyncio
 async def test_run_capa3_no_candidates_returns_valido():
-    """Sin candidatos → (None, 0.0, 'valido')."""
-    nuevo = _make_comp(fecha_deposito=date(2026, 5, 1))
+    """Sin candidatos → (None, 0.0, 'valido').
 
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = []
+    Pre-popula el cache de weights para que el mock de session no sea
+    interceptado por get_scoring_weights (que espera una sesion real con
+    configuracion_sistema, no la sesion mock de comprobantes).
+    """
+    # Pre-popular cache con DEFAULTS para evitar colision con mock session
+    _config_mod._weights_cache = ScoringWeights()
+    try:
+        nuevo = _make_comp(fecha_deposito=date(2026, 5, 1))
 
-    session = AsyncMock()
-    session.execute = AsyncMock(return_value=mock_result)
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
 
-    best, score, clasif = await run_capa3(session, nuevo)
+        session = AsyncMock()
+        session.execute = AsyncMock(return_value=mock_result)
 
-    assert best is None
-    assert score == 0.0
-    assert clasif == "valido"
+        best, score, clasif = await run_capa3(session, nuevo)
+
+        assert best is None
+        assert score == 0.0
+        assert clasif == "valido"
+    finally:
+        invalidate_weights_cache()
 
 
 @pytest.mark.asyncio
 async def test_run_capa3_sospechoso_when_score_in_range():
-    """Score entre 0.75 y 0.90 → clasificacion 'sospechoso'."""
-    user_id = uuid.uuid4()
-    nuevo = _make_comp(
-        id_usuario=user_id,
-        referencia="TRF-123",
-        monto=Decimal("1500.00"),
-        fecha_deposito=date(2026, 5, 1),
-        texto_extraido="comprobante deposito ref 123",
-    )
-    # Candidato similar pero no identico (monto ligeramente diferente)
-    candidato = _make_comp(
-        id_comprobante=uuid.uuid4(),
-        id_usuario=user_id,
-        referencia="TRF-123",
-        monto=Decimal("1480.00"),  # diferencia pequenia
-        fecha_deposito=date(2026, 5, 1),
-        texto_extraido="comprobante deposito ref 123",
-    )
+    """Score entre 0.75 y 0.90 → clasificacion 'sospechoso'.
 
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = [candidato]
+    Pre-popula el cache de weights con DEFAULTS para aislar el mock de session.
+    """
+    _config_mod._weights_cache = ScoringWeights()
+    try:
+        user_id = uuid.uuid4()
+        nuevo = _make_comp(
+            id_usuario=user_id,
+            referencia="TRF-123",
+            monto=Decimal("1500.00"),
+            fecha_deposito=date(2026, 5, 1),
+            texto_extraido="comprobante deposito ref 123",
+        )
+        # Candidato similar pero no identico (monto ligeramente diferente)
+        candidato = _make_comp(
+            id_comprobante=uuid.uuid4(),
+            id_usuario=user_id,
+            referencia="TRF-123",
+            monto=Decimal("1480.00"),  # diferencia pequenia
+            fecha_deposito=date(2026, 5, 1),
+            texto_extraido="comprobante deposito ref 123",
+        )
 
-    session = AsyncMock()
-    session.execute = AsyncMock(return_value=mock_result)
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = [candidato]
 
-    best, score, clasif = await run_capa3(session, nuevo)
+        session = AsyncMock()
+        session.execute = AsyncMock(return_value=mock_result)
 
-    assert best is candidato
-    assert 0.0 < score <= 1.0
-    assert clasif in (
-        "sospechoso",
-        "duplicado",
-        "valido",
-    )  # resultado depende del score real
+        best, score, clasif = await run_capa3(session, nuevo)
+
+        assert best is candidato
+        assert 0.0 < score <= 1.0
+        assert clasif in (
+            "sospechoso",
+            "duplicado",
+            "valido",
+        )  # resultado depende del score real
+    finally:
+        invalidate_weights_cache()
 
 
 @pytest.mark.asyncio
 async def test_run_capa3_returns_best_candidate_when_multiple():
-    """Con multiples candidatos, retorna el de mayor score."""
-    user_id = uuid.uuid4()
-    nuevo = _make_comp(
-        id_usuario=user_id,
-        referencia="TRF-001",
-        monto=Decimal("1500.00"),
-        fecha_deposito=date(2026, 5, 1),
-        texto_extraido="mismo texto exacto para forzar score alto",
-    )
-    cand_alto = _make_comp(
-        id_comprobante=uuid.uuid4(),
-        id_usuario=user_id,
-        referencia="TRF-001",
-        monto=Decimal("1500.00"),
-        fecha_deposito=date(2026, 5, 1),
-        texto_extraido="mismo texto exacto para forzar score alto",
-    )
-    cand_bajo = _make_comp(
-        id_comprobante=uuid.uuid4(),
-        id_usuario=user_id,
-        referencia="XYZ-999",
-        monto=Decimal("1.00"),
-        fecha_deposito=date(2026, 1, 1),
-        texto_extraido="texto completamente diferente banco otro",
-    )
+    """Con multiples candidatos, retorna el de mayor score.
 
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = [cand_bajo, cand_alto]
+    Pre-popula el cache de weights con DEFAULTS para aislar el mock de session.
+    """
+    _config_mod._weights_cache = ScoringWeights()
+    try:
+        user_id = uuid.uuid4()
+        nuevo = _make_comp(
+            id_usuario=user_id,
+            referencia="TRF-001",
+            monto=Decimal("1500.00"),
+            fecha_deposito=date(2026, 5, 1),
+            texto_extraido="mismo texto exacto para forzar score alto",
+        )
+        cand_alto = _make_comp(
+            id_comprobante=uuid.uuid4(),
+            id_usuario=user_id,
+            referencia="TRF-001",
+            monto=Decimal("1500.00"),
+            fecha_deposito=date(2026, 5, 1),
+            texto_extraido="mismo texto exacto para forzar score alto",
+        )
+        cand_bajo = _make_comp(
+            id_comprobante=uuid.uuid4(),
+            id_usuario=user_id,
+            referencia="XYZ-999",
+            monto=Decimal("1.00"),
+            fecha_deposito=date(2026, 1, 1),
+            texto_extraido="texto completamente diferente banco otro",
+        )
 
-    session = AsyncMock()
-    session.execute = AsyncMock(return_value=mock_result)
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = [cand_bajo, cand_alto]
 
-    best, score, _ = await run_capa3(session, nuevo)
+        session = AsyncMock()
+        session.execute = AsyncMock(return_value=mock_result)
 
-    # El mejor candidato debe ser cand_alto (mayor similitud)
-    assert best is cand_alto
-    assert score > 0.5  # Score alto por similitud real
+        best, score, _ = await run_capa3(session, nuevo)
+
+        # El mejor candidato debe ser cand_alto (mayor similitud)
+        assert best is cand_alto
+        assert score > 0.5  # Score alto por similitud real
+    finally:
+        invalidate_weights_cache()

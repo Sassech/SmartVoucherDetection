@@ -38,6 +38,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from unittest.mock import MagicMock
 
+import fakeredis.aioredis
 import httpx
 import pytest
 import pytest_asyncio
@@ -46,10 +47,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from config import settings
-from database import get_session
+from database import get_redis, get_session
 from dependencies.auth_api_key import require_api_key
 from main import app
-from models.seed import SYSTEM_USER_ID
+from models.seed import SYSTEM_ORG_ID, SYSTEM_USER_ID
 
 
 @pytest_asyncio.fixture
@@ -80,6 +81,17 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest_asyncio.fixture
+async def redis_client() -> AsyncGenerator[fakeredis.aioredis.FakeRedis, None]:
+    """Async fakeredis client — no real Redis needed in unit tests.
+
+    Used by JWT auth tests and any test that needs Redis.
+    """
+    client = fakeredis.aioredis.FakeRedis(decode_responses=True)
+    yield client
+    await client.aclose()
+
+
+@pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[httpx.AsyncClient, None]:
     """`httpx.AsyncClient` con `get_session` y `require_api_key` override-ados.
 
@@ -107,3 +119,48 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[httpx.AsyncClient, 
     finally:
         app.dependency_overrides.pop(get_session, None)
         app.dependency_overrides.pop(require_api_key, None)
+
+
+@pytest_asyncio.fixture
+async def client_jwt(
+    db_session: AsyncSession,
+    redis_client: fakeredis.aioredis.FakeRedis,
+) -> AsyncGenerator[httpx.AsyncClient, None]:
+    """`httpx.AsyncClient` with `require_jwt` overridden (parallel to `client`).
+
+    - `get_session` → uses `db_session` (same transaction, rollback at end).
+    - `get_redis` → uses fakeredis (no real Redis needed).
+    - `require_jwt` → returns a mock Usuario (admin, SYSTEM_USER_ID).
+
+    Used by web route tests (web_comprobantes, web_stats) that need JWT auth.
+    """
+    from dependencies.auth_jwt import require_jwt
+
+    mock_usuario = MagicMock()
+    mock_usuario.id_usuario = SYSTEM_USER_ID
+    mock_usuario.id_organizacion = SYSTEM_ORG_ID
+    mock_usuario.rol = "admin"
+    mock_usuario.correo = "admin@test.com"
+    mock_usuario.nombre = "Test Admin"
+    mock_usuario.deleted_at = None
+
+    async def _override_session() -> AsyncGenerator[AsyncSession, None]:
+        yield db_session
+
+    async def _override_redis() -> AsyncGenerator[fakeredis.aioredis.FakeRedis, None]:
+        yield redis_client
+
+    def _override_jwt() -> MagicMock:
+        return mock_usuario
+
+    app.dependency_overrides[get_session] = _override_session
+    app.dependency_overrides[get_redis] = _override_redis
+    app.dependency_overrides[require_jwt] = _override_jwt
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        yield c
+
+    app.dependency_overrides.pop(get_session, None)
+    app.dependency_overrides.pop(get_redis, None)
+    app.dependency_overrides.pop(require_jwt, None)

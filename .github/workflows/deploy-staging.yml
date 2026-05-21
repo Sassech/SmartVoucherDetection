@@ -1,0 +1,40 @@
+# .github/workflows/deploy-staging.yml
+#
+# Deploys the staging environment whenever code is pushed to the `develop` branch.
+#
+# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+#   SSH_HOST   — hostname or IP of the staging server
+#   SSH_USER   — SSH login user on the staging server
+#   SSH_KEY    — private SSH key (PEM format) with access to the staging server
+#   SSH_PORT   — SSH port (usually 22; defaults to 22 if not set)
+#
+# The deploy script must already be present on the server:
+#   ~/SmartVoucherDetection/infra/scripts/deploy.sh
+
+name: deploy-staging
+
+on:
+  push:
+    branches:
+      - develop
+
+# Never cancel a running deploy — finish what's in flight first.
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH deploy to staging
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            bash ~/SmartVoucherDetection/infra/scripts/deploy.sh staging

@@ -8,6 +8,7 @@ them up via `target_metadata = Base.metadata` in `alembic/env.py`.
 
 from collections.abc import AsyncGenerator
 
+import redis.asyncio as aioredis
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -55,3 +56,36 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
     async with SessionLocal() as session:
         yield session
+
+
+# Redis connection pool — re-used across requests (one pool per process).
+# `decode_responses=True` so we get str from Redis, not bytes.
+_redis_pool: aioredis.Redis | None = None
+
+
+def _get_redis_pool() -> aioredis.Redis:
+    """Return the shared Redis connection (lazy init, singleton per process)."""
+    global _redis_pool
+    if _redis_pool is None:
+        _redis_pool = aioredis.from_url(
+            settings.redis_url,
+            decode_responses=True,
+        )
+    return _redis_pool
+
+
+async def get_redis() -> AsyncGenerator[aioredis.Redis, None]:
+    """FastAPI dependency that yields a Redis client per request.
+
+    Usage in a router:
+
+        from fastapi import Depends
+        from database import get_redis
+        import redis.asyncio as aioredis
+
+        @router.post(...)
+        async def handler(redis: aioredis.Redis = Depends(get_redis)):
+            ...
+    """
+    redis_client = _get_redis_pool()
+    yield redis_client

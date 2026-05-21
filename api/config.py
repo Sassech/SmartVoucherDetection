@@ -7,6 +7,7 @@ debe `from config import settings`.
 
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # api/config.py -> api/ -> raiz del repo
@@ -52,6 +53,57 @@ class Settings(BaseSettings):
     # mismo contrato de `services/storage_service.py`. Default `./data/uploads`
     # relativo a la raiz del repo para que en dev local no requiera setup.
     upload_dir: Path = ROOT_DIR / "data" / "uploads"
+
+    # --- JWT Auth (Fase 4) -------------------------------------------------
+    # Clave secreta para firmar tokens HS256. Generar con:
+    #   openssl rand -hex 32
+    # MUST be set in production. En dev, si no existe en .env, Settings()
+    # falla con ValidationError — esto es intencional (fuerza config explicita).
+    jwt_secret_key: str = "dev-secret-change-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 7
+
+    # --- Security (Fase 6.F) -----------------------------------------------
+    # Clave secreta de la aplicacion para firmar sesiones, tokens, etc.
+    # Debe tener al menos 32 caracteres. Generar con:
+    #   openssl rand -hex 32  (produce 64 chars hex)
+    # El valor default es >= 32 chars para que dev mode funcione sin .env.
+    # En produccion DEBE ser reemplazado por un valor aleatorio fuerte.
+    secret_key: str = "dev-secret-key-change-in-production-ok"
+
+    @model_validator(mode="after")
+    def validate_secret_key(self) -> "Settings":
+        """Falla rapido si secret_key es demasiado corta (< 32 chars).
+
+        Previene el despliegue accidental con claves debiles. El validador
+        corre en modo 'after' para tener acceso al valor ya procesado.
+        """
+        if len(self.secret_key) < 32:
+            raise ValueError(
+                f"SECRET_KEY must be at least 32 characters, "
+                f"got {len(self.secret_key)}"
+            )
+        return self
+
+    # --- CORS (Fase 4 / Fase 6.F) ------------------------------------------
+    # Origenes permitidos para CORS. `allow_credentials=True` requiere que
+    # `allow_origins` sea una lista de origenes especificos (no "*").
+    #
+    # Fase 6.F: `cors_origins` reemplaza a `webapp_origin` para soportar
+    # multiples origenes. `webapp_origin` se mantiene por compatibilidad
+    # hacia atras — usar `cors_origins` en codigo nuevo.
+    cors_origins: list[str] = ["http://localhost:3000"]
+
+    # DEPRECATED: usar cors_origins. Se mantiene para no romper configuraciones
+    # existentes que lo lean directamente.
+    webapp_origin: str = "http://localhost:3000"
+
+    # --- Dataset evaluation (Fase 5.0) ------------------------------------
+    # Opcionales — solo usados por scripts de evaluación en scripts/.
+    # En producción estos campos no existen en .env y quedan None.
+    dataset_dir: Path | None = None
+    results_dir: Path | None = None
 
 
 settings = Settings()  # type: ignore[call-arg]
