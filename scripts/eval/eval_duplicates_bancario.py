@@ -189,7 +189,7 @@ class FakeComprobante:
 
     Only the 4 attributes used by compute_score are needed:
       - referencia        (str | None)
-      - texto_extraido    (str | None) — always None for synthetic images
+      - texto_extraido    (str | None) — OCR text (None if not yet enriched)
       - monto             (Decimal | None)
       - fecha_deposito    (date | None)
     """
@@ -335,7 +335,7 @@ def _gt_to_fake(gt: dict | None) -> FakeComprobante:
 
     Maps GT fields to the attributes expected by compute_score:
       - referencia     ← numero_referencia (or numero_comprobante as fallback)
-      - texto_extraido ← None (no OCR text for synthetic images)
+      - texto_extraido ← texto_extraido field (populated by enrich_ocr_bancario.py)
       - monto          ← monto as Decimal
       - fecha_deposito ← fecha as date
 
@@ -358,9 +358,15 @@ def _gt_to_fake(gt: dict | None) -> FakeComprobante:
     fecha_raw = gt.get("fecha")
     fecha: date | None = _parse_fecha(fecha_raw)
 
+    # Texto extraido por OCR real (enrich_ocr_bancario.py lo escribe en el GT)
+    texto_raw = gt.get("texto_extraido")
+    texto_extraido: str | None = str(texto_raw).strip() if texto_raw else None
+    if texto_extraido == "":
+        texto_extraido = None
+
     return FakeComprobante(
         referencia=referencia,
-        texto_extraido=None,  # never available for synthetic images
+        texto_extraido=texto_extraido,
         monto=monto,
         fecha_deposito=fecha,
     )
@@ -725,7 +731,7 @@ def _build_output(
             "threshold_duplicado": _THRESHOLD_DUPLICADO,
             "threshold_sospechoso": _THRESHOLD_SOSPECHOSO,
             # precision/recall/F1: Layer 3 classify=="duplicado" is the detection signal
-            # (note: with texto_extraido=None, max score=0.70 < threshold=0.90,
+            # (note: if texto_extraido=None, max score=0.70 < threshold=0.90,
             #  so all pairs are classified "valido" — this accurately reflects Layer 3
             #  limitations on synthetic data without OCR text)
             **_compute_binary_metrics(
