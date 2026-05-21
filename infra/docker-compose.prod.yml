@@ -36,7 +36,11 @@ services:
     volumes:
       - ${LLAMA_MODEL_DIR}:/models:ro
     environment:
-      MODEL_FILE: ${LLAMA_MODEL_FILE:-GLM-OCR-f16.gguf}
+      MODEL_FILE: ${LLAMA_MODEL_FILE:-gemma-4-E2B-it-UD-Q4_K_XL.gguf}
+      MMPROJ_FILE: ${LLAMA_MMPROJ_FILE:-mmproj-BF16.gguf}
+      MODEL_ALIAS: ${LLAMA_MODEL_ALIAS:-gemma-4-E2B-it}
+      NGL: ${LLAMA_NGL:-14}
+      BATCH_SIZE: ${LLAMA_BATCH_SIZE:-512}
     networks:
       - smartvoucher-net
     healthcheck:

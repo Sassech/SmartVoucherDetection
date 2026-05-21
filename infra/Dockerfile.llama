@@ -33,9 +33,14 @@ RUN useradd -r -u 1000 -s /sbin/nologin llamauser
 
 COPY --from=builder /build/build/bin/llama-server /usr/local/bin/llama-server
 
-ENV MODEL_FILE=GLM-OCR-f16.gguf
+ENV MODEL_FILE=gemma-4-E2B-it-UD-Q4_K_XL.gguf
+ENV MMPROJ_FILE=mmproj-BF16.gguf
+ENV MODEL_ALIAS=gemma-4-E2B-it
 ENV CTX_SIZE=16384
 ENV PORT=8080
+# CPU offload layers (0 = full CPU, adjust if GPU available)
+ENV NGL=14
+ENV BATCH_SIZE=512
 
 USER llamauser
 EXPOSE 8080
@@ -44,4 +49,25 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
 ENTRYPOINT ["sh", "-c", \
-    "llama-server --model /models/${MODEL_FILE} --port ${PORT} --host 0.0.0.0 --ctx-size ${CTX_SIZE}"]
+    "llama-server \
+     --model /models/${MODEL_FILE} \
+     --mmproj /models/${MMPROJ_FILE} \
+     -a ${MODEL_ALIAS} \
+     --port ${PORT} \
+     --host 0.0.0.0 \
+     --ctx-size ${CTX_SIZE} \
+     -ngl ${NGL} \
+     -b ${BATCH_SIZE} \
+     -ub ${BATCH_SIZE} \
+     -ctk q8_0 \
+     -ctv q8_0 \
+     --flash-attn on \
+     --temp 0 \
+     --top-p 1 \
+     --top-k 1 \
+     --repeat-penalty 1 \
+     --presence-penalty 0 \
+     --reasoning off \
+     -np 1 \
+     -sm none \
+     --no-warmup"]
