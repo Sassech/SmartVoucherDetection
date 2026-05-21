@@ -13,14 +13,13 @@ from datetime import date
 
 import bcrypt
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import AsyncMock, patch
 
 from models.comprobante import Comprobante
 from models.organizacion import Organizacion
-from models.seed import SYSTEM_ORG_ID, SYSTEM_USER_ID
+from models.seed import SYSTEM_USER_ID
 from models.usuario import Usuario
 
 
