@@ -19,17 +19,14 @@ Scenarios covered:
 from __future__ import annotations
 
 import time
-import uuid
 from collections.abc import AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import fakeredis
 import fakeredis.aioredis
 import httpx
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI
-from jose import jwt
 
 from config import settings
 from database import get_redis, get_session

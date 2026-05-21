@@ -11,17 +11,16 @@ admin user belonging to SYSTEM_ORG_ID.
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.comprobante import Comprobante
 from models.organizacion import Organizacion
-from models.seed import SYSTEM_ORG_ID, SYSTEM_USER_ID
+from models.seed import SYSTEM_USER_ID
 from models.usuario import Usuario
 
 
