@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const API_BASE = process.env.API_BASE_URL ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   async rewrites() {
     return [
       {

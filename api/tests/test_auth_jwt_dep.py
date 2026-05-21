@@ -6,10 +6,9 @@ Tests run WITHOUT real DB (unit-level mocking via dependency_overrides).
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
-import pytest
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from database import get_session
@@ -61,7 +60,6 @@ class TestRequireJwt:
 
     def test_missing_token_raises_401(self):
         """Missing Authorization header → 401."""
-        from dependencies.auth_jwt import require_jwt
 
         app = _make_test_app()
 
@@ -76,7 +74,6 @@ class TestRequireJwt:
 
     def test_tampered_token_raises_401(self):
         """Tampered Bearer token → 401."""
-        from dependencies.auth_jwt import require_jwt
 
         app = _make_test_app()
 

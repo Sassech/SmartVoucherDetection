@@ -1,0 +1,53 @@
+# .github/workflows/deploy-production.yml
+#
+# Deploys to production when a version tag (v*) is pushed.
+# Requires manual approval via the GitHub `production` environment.
+#
+# Setup required in GitHub repo settings:
+#   1. Go to Settings → Environments → New environment → name it "production"
+#   2. Add required reviewers (the approvers who must sign off before deploy runs)
+#   3. Optionally set deployment branch rules to "Protected branches only"
+#
+# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+#   SSH_HOST   — hostname or IP of the production server
+#   SSH_USER   — SSH login user on the production server
+#   SSH_KEY    — private SSH key (PEM format) with access to the production server
+#   SSH_PORT   — SSH port (usually 22; defaults to 22 if not set)
+#
+# The deploy script must already be present on the server:
+#   ~/SmartVoucherDetection/infra/scripts/deploy.sh
+
+name: deploy-production
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Never cancel a running deploy — finish what's in flight first.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    # The `production` environment gate triggers the manual approval flow.
+    # Reviewers configured in GitHub Settings → Environments → production
+    # must approve before this job runs.
+    environment:
+      name: production
+      url: https://app.yourdomain.com
+
+    steps:
+      - name: SSH deploy to production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            bash ~/SmartVoucherDetection/infra/scripts/deploy.sh production

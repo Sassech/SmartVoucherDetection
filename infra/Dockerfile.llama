@@ -1,0 +1,47 @@
+# Stage 1: builder — compile llama.cpp llama-server binary from source
+# Repo: https://github.com/ggml-org/llama.cpp (renamed from ggerganov/llama.cpp)
+# Tag: b9264 (latest stable — check https://github.com/ggml-org/llama.cpp/releases)
+FROM ubuntu:24.04 AS builder
+
+ARG GGML_AVX2=ON
+ARG GGML_AVX512=OFF
+ARG GGML_CUDA=OFF
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake git curl libcurl4-openssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+RUN git clone --depth 1 --branch b9264 https://github.com/ggml-org/llama.cpp.git .
+
+RUN cmake -B build \
+    -DGGML_AVX2=${GGML_AVX2} \
+    -DGGML_AVX512=${GGML_AVX512} \
+    -DGGML_CUDA=${GGML_CUDA} \
+    -DLLAMA_BUILD_SERVER=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build build --config Release -j$(nproc) --target llama-server
+
+# Stage 2: runtime — copy binary only, minimal image
+FROM ubuntu:24.04 AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcurl4 libgomp1 curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -r -u 1000 -s /sbin/nologin llamauser
+
+COPY --from=builder /build/build/bin/llama-server /usr/local/bin/llama-server
+
+ENV MODEL_FILE=GLM-OCR-f16.gguf
+ENV CTX_SIZE=16384
+ENV PORT=8080
+
+USER llamauser
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+ENTRYPOINT ["sh", "-c", \
+    "llama-server --model /models/${MODEL_FILE} --port ${PORT} --host 0.0.0.0 --ctx-size ${CTX_SIZE}"]

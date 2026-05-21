@@ -194,7 +194,8 @@ async def test_2_7_1_capa2_detection():
 # ---------------------------------------------------------------------------
 
 
-def test_2_7_1_capa3_scoring_duplicado():
+@pytest.mark.asyncio
+async def test_2_7_1_capa3_scoring_duplicado():
     """2.7.1: compute_score returns ≥0.90 for identical comprobantes → 'duplicado'."""
     comp = _make_comp_ns(
         referencia="TRF-EXACTO",
@@ -203,12 +204,13 @@ def test_2_7_1_capa3_scoring_duplicado():
         texto_extraido="deposito banco BBVA referencia TRF-EXACTO monto 1000",
     )
     # Same comprobante (identical fields) → score should be 1.0
-    score = compute_score(comp, comp)
+    score = await compute_score(comp, comp, session=None)
     assert score >= 0.90, f"Identical comprobante score {score} should be ≥0.90"
     assert classify(score) == "duplicado"
 
 
-def test_2_7_1_capa3_scoring_sospechoso():
+@pytest.mark.asyncio
+async def test_2_7_1_capa3_scoring_sospechoso():
     """2.7.1: compute_score returns 0.75–0.90 for near-duplicate → 'sospechoso'."""
     base = _make_comp_ns(
         referencia="TRF-BASE-001",
@@ -225,8 +227,8 @@ def test_2_7_1_capa3_scoring_sospechoso():
     )
     # With same text + same fecha + similar monto, the pair may score near or above
     # duplicado threshold — the key check is that classify() thresholds are correct:
-    compute_score(base, near_dup)
-    compute_score(
+    await compute_score(base, near_dup, session=None)
+    await compute_score(
         base,
         _make_comp_ns(
             referencia="TRF-BASE-002",
@@ -234,6 +236,7 @@ def test_2_7_1_capa3_scoring_sospechoso():
             fecha_deposito=date(2026, 4, 1),
             texto_extraido="pago cuota diferente",
         ),
+        session=None,
     )
     # The critical assertions — threshold boundary behavior:
     assert classify(0.89) == "sospechoso", "0.89 should classify as sospechoso"
@@ -242,7 +245,8 @@ def test_2_7_1_capa3_scoring_sospechoso():
     assert classify(0.74) == "valido", "0.74 should classify as valido"
 
 
-def test_2_7_1_capa3_scoring_valido():
+@pytest.mark.asyncio
+async def test_2_7_1_capa3_scoring_valido():
     """2.7.1: compute_score returns <0.75 for clearly different comprobantes → 'valido'."""
     comp1 = _make_comp_ns(
         referencia="TRF-COMPLETELY-DIFFERENT",
@@ -256,12 +260,13 @@ def test_2_7_1_capa3_scoring_valido():
         fecha_deposito=date(2026, 12, 31),
         texto_extraido="transferencia internacional divisas",
     )
-    score = compute_score(comp1, comp2)
+    score = await compute_score(comp1, comp2, session=None)
     assert score < 0.75, f"Clearly different comprobante score {score} should be <0.75"
     assert classify(score) == "valido"
 
 
-def test_2_7_1_null_fields_score_ceiling():
+@pytest.mark.asyncio
+async def test_2_7_1_null_fields_score_ceiling():
     """2.7.1: NULL texto_extraido limits max score to 0.70 (prevents false duplicado)."""
     comp_with_null_text = _make_comp_ns(
         referencia="TRF-SAME",
@@ -270,7 +275,7 @@ def test_2_7_1_null_fields_score_ceiling():
         texto_extraido=None,  # NULL text
     )
     # Identical in all fields EXCEPT texto → max 0.70
-    score = compute_score(comp_with_null_text, comp_with_null_text)
+    score = await compute_score(comp_with_null_text, comp_with_null_text, session=None)
     # Allow tiny float epsilon (0.35 + 0.20 + 0.15 = 0.70 in exact math)
     assert score <= 0.71, f"Score with NULL text should be ≤0.70, got {score}"
     assert classify(score) != "duplicado", (
