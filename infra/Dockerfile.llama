@@ -1,55 +1,39 @@
-# Stage 1: builder — compile llama.cpp llama-server binary from source
-# Repo: https://github.com/ggml-org/llama.cpp (renamed from ggerganov/llama.cpp)
-# Tag: b9264 (latest stable — check https://github.com/ggml-org/llama.cpp/releases)
-FROM ubuntu:24.04 AS builder
-
-ARG GGML_AVX2=ON
-ARG GGML_AVX512=OFF
-ARG GGML_CUDA=OFF
+# llama-server — usa el binario pre-compilado local (llama.cpp/llama-b9012/llama-server)
+# El contexto de build debe incluir el binario: se pasa desde la raíz del repo.
+# Ver docker-compose.prod.yml: context: ..  (raíz del repo)
+FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential cmake git curl libcurl4-openssl-dev \
+    libcurl4 libgomp1 curl libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /build
-RUN git clone --depth 1 --branch b9264 https://github.com/ggml-org/llama.cpp.git .
+RUN useradd -r -u 1001 -s /sbin/nologin llamauser
 
-RUN cmake -B build \
-    -DGGML_AVX2=${GGML_AVX2} \
-    -DGGML_AVX512=${GGML_AVX512} \
-    -DGGML_CUDA=${GGML_CUDA} \
-    -DLLAMA_BUILD_SERVER=ON \
-    -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build build --config Release -j$(nproc) --target llama-server
-
-# Stage 2: runtime — copy binary only, minimal image
-FROM ubuntu:24.04 AS runtime
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcurl4 libgomp1 curl \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN useradd -r -u 1000 -s /sbin/nologin llamauser
-
-COPY --from=builder /build/build/bin/llama-server /usr/local/bin/llama-server
+# Copiar binario y todas las shared libs en el mismo directorio
+# (ggml carga los backends buscando libggml-cpu-*.so relativos al binario o en LD_LIBRARY_PATH)
+# El binario llama-server se monta desde el host como volumen en /opt/llama
+# junto con sus .so — ggml_backend_load_all() busca los backends en el mismo
+# directorio que el ejecutable. No los copiamos aquí: se montan en runtime.
+# Ver docker-compose.prod.yml: volumes llama-b9012 bind mount
+ENV LD_LIBRARY_PATH=/opt/llama
 
 ENV MODEL_FILE=gemma-4-E2B-it-UD-Q4_K_XL.gguf
 ENV MMPROJ_FILE=mmproj-BF16.gguf
 ENV MODEL_ALIAS=gemma-4-E2B-it
 ENV CTX_SIZE=16384
 ENV PORT=8080
-# CPU offload layers (0 = full CPU, adjust if GPU available)
-ENV NGL=14
+# CPU-only por defecto — sin GPU en contenedor Docker estándar
+ENV NGL=0
 ENV BATCH_SIZE=512
 
 USER llamauser
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
 ENTRYPOINT ["sh", "-c", \
-    "llama-server \
+    "cd /opt/llama && ./llama-server \
      --model /models/${MODEL_FILE} \
      --mmproj /models/${MMPROJ_FILE} \
      -a ${MODEL_ALIAS} \
@@ -61,6 +45,7 @@ ENTRYPOINT ["sh", "-c", \
      -ub ${BATCH_SIZE} \
      -ctk q8_0 \
      -ctv q8_0 \
+     -fit off \
      --flash-attn on \
      --temp 0 \
      --top-p 1 \

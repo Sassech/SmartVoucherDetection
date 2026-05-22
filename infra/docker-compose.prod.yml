@@ -1,3 +1,11 @@
+# env-file relativo al directorio del repo (un nivel arriba de infra/)
+# Correr siempre desde la raíz con el wrapper: infra/scripts/compose-prod.sh
+#
+# ARQUITECTURA llama-server:
+# llama-server corre NATIVO en el host (via llama.cpp/gemma-4-E2B-it.sh)
+# La API lo accede via host-gateway (172.17.0.1:8080 o host.docker.internal:8080)
+# Esto evita el problema de binarios compilados para host corriendo en contenedor.
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -28,28 +36,6 @@ services:
       timeout: 5s
       retries: 5
 
-  llama-server:
-    build:
-      context: .
-      dockerfile: Dockerfile.llama
-    restart: unless-stopped
-    volumes:
-      - ${LLAMA_MODEL_DIR}:/models:ro
-    environment:
-      MODEL_FILE: ${LLAMA_MODEL_FILE:-gemma-4-E2B-it-UD-Q4_K_XL.gguf}
-      MMPROJ_FILE: ${LLAMA_MMPROJ_FILE:-mmproj-BF16.gguf}
-      MODEL_ALIAS: ${LLAMA_MODEL_ALIAS:-gemma-4-E2B-it}
-      NGL: ${LLAMA_NGL:-14}
-      BATCH_SIZE: ${LLAMA_BATCH_SIZE:-512}
-    networks:
-      - smartvoucher-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
   api:
     build:
       context: ../api
@@ -57,15 +43,16 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
-      LLAMA_SERVER_URL: http://llama-server:8080
+      # llama-server corre en el host — acceso via host-gateway
+      LLAMA_SERVER_URL: http://host-gateway:8080
+    extra_hosts:
+      - "host-gateway:host-gateway"
     networks:
       - smartvoucher-net
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      llama-server:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
@@ -92,8 +79,10 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
-      LLAMA_SERVER_URL: http://llama-server:8080
-    command: ["celery", "-A", "celery_app", "worker", "--concurrency=2", "-l", "info"]
+      LLAMA_SERVER_URL: http://host-gateway:8080
+    extra_hosts:
+      - "host-gateway:host-gateway"
+    command: ["python", "-m", "celery", "-A", "celery_app", "worker", "--concurrency=2", "-l", "info"]
     networks:
       - smartvoucher-net
     depends_on:
@@ -122,5 +111,5 @@ networks:
   smartvoucher-net:
     driver: bridge
   cloudflared-network:
-    external: true
     name: cloudflared-network
+    external: true

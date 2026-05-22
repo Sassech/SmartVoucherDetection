@@ -3,8 +3,11 @@
 /**
  * Historial list page — client component with URL-driven filters.
  * R-39, R-40, R-41, S-27, S-28, S-29, S-30, S-31, S-32, 4.D.6
+ *
+ * useSearchParams() must be inside a <Suspense> boundary for Next.js static export.
  */
 
+import { Suspense } from "react";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchApi } from "@/lib/api";
@@ -52,7 +55,8 @@ function searchParamsToFilter(sp: URLSearchParams): FilterState {
   };
 }
 
-export default function HistorialPage() {
+// Inner component that uses useSearchParams — must be inside <Suspense>
+function HistorialContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -103,11 +107,7 @@ export default function HistorialPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-on-surface)]">
-        Historial
-      </h1>
-
+    <>
       <FilterBar value={filter} onChange={handleFilterChange} />
 
       {loading ? (
@@ -122,6 +122,25 @@ export default function HistorialPage() {
           onRowClick={handleRowClick}
         />
       )}
+    </>
+  );
+}
+
+export default function HistorialPage() {
+  return (
+    <div className="flex flex-col gap-5">
+      <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-on-surface)]">
+        Historial
+      </h1>
+      <Suspense
+        fallback={
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-outline-variant)] bg-[var(--color-surface)] p-10 text-center">
+            <p className="text-sm text-[var(--color-on-surface-variant)]">Cargando…</p>
+          </div>
+        }
+      >
+        <HistorialContent />
+      </Suspense>
     </div>
   );
 }

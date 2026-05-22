@@ -19,6 +19,9 @@
     "react-dom": "^19.1.0",
     "tailwind-merge": "^3.3.0"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp", "unrs-resolver"]
+  },
   "devDependencies": {
     "@next/eslint-plugin-next": "^15.5.18",
     "@playwright/test": "^1.52.0",
