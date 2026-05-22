@@ -2,11 +2,8 @@
 
 /**
  * Login page — 4.C.13, S-19, S-01.
- *
- * Public page (middleware skips /login).
- * Form: correo + contrasena → calls useAuth().login() → redirects to / on success.
- *
- * Layout: split — left branding panel (hidden on mobile) + right form panel.
+ * Split layout: left branding panel (hidden mobile) + right form.
+ * Layout crítico via CSS inline — no depende de Tailwind para el split.
  */
 
 import { useState } from "react";
@@ -16,31 +13,84 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-/* ─── Keyframe animation injected via a <style> tag ─────────────────────── */
-const ANIMATION_CSS = `
+const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-  @keyframes svd-fade-up {
-    from { opacity: 0; transform: translateY(18px); }
-    to   { opacity: 1; transform: translateY(0);    }
-  }
-  .svd-animate {
-    animation: svd-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-  .svd-animate-delay-1 { animation-delay: 0.05s; }
-  .svd-animate-delay-2 { animation-delay: 0.10s; }
-  .svd-animate-delay-3 { animation-delay: 0.15s; }
-  .svd-animate-delay-4 { animation-delay: 0.20s; }
-  .svd-animate-delay-5 { animation-delay: 0.25s; }
+  .sv-root { display: flex; min-height: 100vh; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
 
-  .svd-font { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
+  /* Panel izquierdo — oculto en mobile */
+  .sv-left {
+    display: none;
+    position: relative;
+    overflow: hidden;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 3rem;
+    background: linear-gradient(145deg, #001848 0%, #003d9b 55%, #0052cc 100%);
+  }
 
-  /* Custom focus ring override for inputs inside this page */
-  .svd-input:focus-visible {
-    border-color: #003d9b !important;
-    ring-color: #dae2ff !important;
+  /* Panel derecho — full width en mobile, 45% en desktop */
+  .sv-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    background: #f9f9ff;
+  }
+
+  /* Breakpoint 1024px */
+  @media (min-width: 1024px) {
+    .sv-left  { display: flex; width: 52%; flex-shrink: 0; }
+    .sv-right { flex: 1; }
+    .sv-mobile-logo { display: none !important; }
+  }
+
+  /* Animación entrada */
+  @keyframes sv-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .sv-a  { animation: sv-up 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+  .sv-a1 { animation-delay: 0.04s; }
+  .sv-a2 { animation-delay: 0.10s; }
+  .sv-a3 { animation-delay: 0.16s; }
+  .sv-a4 { animation-delay: 0.22s; }
+  .sv-a5 { animation-delay: 0.28s; }
+
+  /* Input overrides */
+  .sv-input { height: 2.75rem; font-size: 1rem; border-color: #c3c6d6; }
+  .sv-input:focus-visible { border-color: #003d9b; outline: none; box-shadow: 0 0 0 3px rgba(0,61,155,0.15); }
+
+  /* Pill */
+  .sv-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px; font-size: 0.72rem;
+    font-weight: 600; letter-spacing: 0.06em;
+    background: rgba(255,255,255,0.12); color: #c4d2ff;
+  }
+
+  /* Feature row */
+  .sv-feat {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-radius: 14px;
+    background: rgba(255,255,255,0.08);
+    font-size: 0.875rem; font-weight: 500; color: #dae2ff;
   }
 `;
+
+// Shield SVG inline
+const ShieldIcon = ({ size = 36, dark = false }: { size?: number; dark?: boolean }) => (
+  <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="36" height="36" rx="9" fill={dark ? "#003d9b" : "rgba(255,255,255,0.15)"} />
+    <path
+      d="M18 7L8 11v8c0 5.25 4.5 10 10 11.5C23.5 29 28 24.25 28 19v-8L18 7Z"
+      fill="white" fillOpacity="0.9"
+    />
+    <path d="M14 18.5l2.5 2.5 5.5-6" stroke={dark ? "#003d9b" : "#003d9b"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -55,7 +105,6 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     try {
       await login(correo, contrasena);
       router.push("/");
@@ -68,196 +117,102 @@ export default function LoginPage() {
 
   return (
     <>
-      {/* Inject font + keyframes without an external package */}
-      <style dangerouslySetInnerHTML={{ __html: ANIMATION_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      <div className="svd-font flex min-h-screen bg-[#f9f9ff]">
+      <div className="sv-root">
 
-        {/* ── LEFT — Branding panel (hidden on mobile) ────────────────────── */}
-        <div
-          className="hidden lg:flex lg:w-[52%] xl:w-[55%] flex-col justify-between relative overflow-hidden"
-          style={{ background: "linear-gradient(145deg, #001848 0%, #003d9b 55%, #0052cc 100%)" }}
-          aria-hidden="true"
-        >
-          {/* Geometric background shapes */}
+        {/* ── PANEL IZQUIERDO — Branding ──────────────────────────────── */}
+        <div className="sv-left" aria-hidden="true">
+
+          {/* Formas geométricas de fondo */}
           <svg
-            className="absolute inset-0 w-full h-full"
-            viewBox="0 0 800 900"
-            preserveAspectRatio="xMidYMid slice"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+            viewBox="0 0 600 900" preserveAspectRatio="xMidYMid slice" fill="none"
           >
-            {/* Large circle top-right */}
-            <circle cx="720" cy="-60" r="340" fill="white" fillOpacity="0.04" />
-            {/* Medium circle bottom-left */}
-            <circle cx="-80" cy="920" r="420" fill="white" fillOpacity="0.035" />
-            {/* Diagonal accent lines */}
-            <line x1="0" y1="650" x2="800" y2="200" stroke="white" strokeOpacity="0.06" strokeWidth="1.5" />
-            <line x1="0" y1="700" x2="800" y2="250" stroke="white" strokeOpacity="0.04" strokeWidth="1" />
-            <line x1="0" y1="750" x2="800" y2="300" stroke="white" strokeOpacity="0.03" strokeWidth="1" />
-            {/* Small geometric accent — top-left */}
-            <rect x="40" y="40" width="60" height="60" rx="12" fill="white" fillOpacity="0.05" transform="rotate(15 40 40)" />
-            <rect x="80" y="55" width="30" height="30" rx="6" fill="white" fillOpacity="0.07" transform="rotate(15 80 55)" />
-            {/* Hexagon-ish accent bottom-right */}
-            <polygon
-              points="680,780 720,756 760,780 760,828 720,852 680,828"
-              fill="white"
-              fillOpacity="0.04"
-            />
-            <polygon
-              points="700,795 720,783 740,795 740,819 720,831 700,819"
-              fill="white"
-              fillOpacity="0.06"
-            />
-            {/* Subtle grid dots */}
-            {[...Array(6)].map((_, row) =>
-              [...Array(4)].map((_, col) => (
-                <circle
-                  key={`dot-${row}-${col}`}
-                  cx={120 + col * 160}
-                  cy={200 + row * 120}
-                  r="1.5"
-                  fill="white"
-                  fillOpacity="0.15"
-                />
+            <circle cx="560" cy="-40" r="280" fill="white" fillOpacity="0.04" />
+            <circle cx="-60" cy="900" r="340" fill="white" fillOpacity="0.035" />
+            <line x1="0" y1="600" x2="600" y2="180" stroke="white" strokeOpacity="0.06" strokeWidth="1.5" />
+            <line x1="0" y1="660" x2="600" y2="240" stroke="white" strokeOpacity="0.035" strokeWidth="1" />
+            <rect x="30" y="30" width="50" height="50" rx="10" fill="white" fillOpacity="0.05" transform="rotate(12 30 30)" />
+            <polygon points="510,760 545,740 580,760 580,800 545,820 510,800" fill="white" fillOpacity="0.05" />
+            {([0,1,2,3,4] as const).map(row =>
+              ([0,1,2] as const).map(col => (
+                <circle key={`${row}-${col}`} cx={100 + col * 180} cy={200 + row * 130} r="1.5" fill="white" fillOpacity="0.18" />
               ))
             )}
           </svg>
 
-          {/* Content over the background */}
-          <div className="relative z-10 flex flex-col h-full px-12 py-12 justify-between">
-            {/* Logo area */}
-            <div className="flex items-center gap-3">
-              {/* Inline SVG shield icon */}
-              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="36" height="36" rx="9" fill="white" fillOpacity="0.15" />
-                <path
-                  d="M18 6L7 10.5V18.75C7 24.3 12 29.4 18 31C24 29.4 29 24.3 29 18.75V10.5L18 6Z"
-                  fill="white"
-                  fillOpacity="0.9"
-                />
-                <path
-                  d="M14 18.5L16.5 21L22 15"
-                  stroke="#003d9b"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="text-white text-xl font-800 tracking-tight" style={{ fontWeight: 800 }}>
-                SmartVoucher
-              </span>
-            </div>
-
-            {/* Center content */}
-            <div className="flex flex-col gap-6 max-w-sm">
-              <div className="flex flex-col gap-3">
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-xs font-600 tracking-wide"
-                  style={{
-                    background: "rgba(255,255,255,0.12)",
-                    color: "#c4d2ff",
-                    fontWeight: 600,
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <circle cx="5" cy="5" r="4" fill="#4ade80" />
-                    <circle cx="5" cy="5" r="2" fill="#86efac" />
-                  </svg>
-                  Sistema activo · México
-                </span>
-
-                <h1 className="text-white text-4xl leading-tight" style={{ fontWeight: 800 }}>
-                  Verificación inteligente de comprobantes bancarios
-                </h1>
-              </div>
-
-              <p className="text-[#c4d2ff] text-base leading-relaxed" style={{ fontWeight: 400 }}>
-                Validá CFDIs, transferencias y estados de cuenta en segundos.
-                Tecnología bancaria al servicio de tu equipo.
-              </p>
-
-              {/* Feature pills */}
-              <div className="flex flex-col gap-2.5 mt-2">
-                {[
-                  { icon: "🔒", text: "Validación en tiempo real" },
-                  { icon: "📄", text: "Soporte CFDI 4.0 y XML SAT" },
-                  { icon: "⚡", text: "Resultados instantáneos" },
-                ].map(({ icon, text }) => (
-                  <div
-                    key={text}
-                    className="flex items-center gap-3 rounded-xl px-4 py-3"
-                    style={{ background: "rgba(255,255,255,0.08)" }}
-                  >
-                    <span className="text-base leading-none">{icon}</span>
-                    <span className="text-sm text-[#dae2ff]" style={{ fontWeight: 500 }}>
-                      {text}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <p className="text-[#7895cc] text-xs" style={{ fontWeight: 400 }}>
-              © 2025 SmartVoucher · Uso exclusivo corporativo
-            </p>
-          </div>
-        </div>
-
-        {/* ── RIGHT — Form panel ───────────────────────────────────────────── */}
-        <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-10 lg:px-16">
-          {/* Mobile-only logo */}
-          <div className="flex lg:hidden items-center gap-2 mb-10">
-            <svg width="28" height="28" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="36" height="36" rx="9" fill="#003d9b" />
-              <path
-                d="M18 6L7 10.5V18.75C7 24.3 12 29.4 18 31C24 29.4 29 24.3 29 18.75V10.5L18 6Z"
-                fill="white"
-                fillOpacity="0.9"
-              />
-              <path
-                d="M14 18.5L16.5 21L22 15"
-                stroke="#003d9b"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-[#003d9b] text-lg" style={{ fontWeight: 800 }}>
+          {/* Logo */}
+          <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12 }}>
+            <ShieldIcon />
+            <span style={{ color: "white", fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.02em" }}>
               SmartVoucher
             </span>
           </div>
 
-          {/* Form card */}
-          <div className="w-full max-w-[400px]">
+          {/* Centro */}
+          <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 24, maxWidth: 380 }}>
+            <div className="sv-pill">
+              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3.5" fill="#4ade80"/></svg>
+              Sistema activo · México
+            </div>
 
-            {/* Header */}
-            <div className="svd-animate svd-animate-delay-1 mb-8">
-              <h2
-                className="text-[#141b2b] text-2xl leading-tight mb-1.5"
-                style={{ fontWeight: 700 }}
-              >
+            <h1 style={{ color: "white", fontSize: "2.25rem", fontWeight: 800, lineHeight: 1.2, letterSpacing: "-0.02em", margin: 0 }}>
+              Verificación inteligente de comprobantes bancarios
+            </h1>
+
+            <p style={{ color: "#c4d2ff", fontSize: "1rem", lineHeight: 1.6, margin: 0 }}>
+              Detectá duplicados, validá CFDIs y procesá transferencias en segundos.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+              {[
+                { icon: "🔒", text: "Validación en tiempo real" },
+                { icon: "📄", text: "Soporte CFDI 4.0 y XML SAT" },
+                { icon: "⚡", text: "Resultados instantáneos" },
+              ].map(({ icon, text }) => (
+                <div key={text} className="sv-feat">
+                  <span style={{ fontSize: "1rem" }}>{icon}</span>
+                  {text}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <p style={{ position: "relative", zIndex: 1, color: "#7895cc", fontSize: "0.75rem" }}>
+            © 2026 SmartVoucher · Uso exclusivo corporativo
+          </p>
+        </div>
+
+        {/* ── PANEL DERECHO — Formulario ──────────────────────────────── */}
+        <div className="sv-right">
+
+          {/* Logo mobile (solo visible < 1024px) */}
+          <div className="sv-mobile-logo" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "2.5rem" }}>
+            <ShieldIcon size={32} dark />
+            <span style={{ color: "#003d9b", fontSize: "1.125rem", fontWeight: 800 }}>SmartVoucher</span>
+          </div>
+
+          {/* Card del formulario */}
+          <div style={{ width: "100%", maxWidth: 400 }}>
+
+            {/* Encabezado */}
+            <div className="sv-a sv-a1" style={{ marginBottom: "2rem" }}>
+              <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#141b2b", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
                 Iniciar sesión
               </h2>
-              <p className="text-sm text-[#434654]">
+              <p style={{ fontSize: "0.875rem", color: "#434654", margin: 0 }}>
                 Portal de Validación · Acceso autorizado
               </p>
             </div>
 
-            {/* Form */}
-            <form
-              onSubmit={handleSubmit}
-              className="flex flex-col gap-5"
-              noValidate
-            >
+            {/* Formulario */}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+
               {/* Email */}
-              <div className="svd-animate svd-animate-delay-2 flex flex-col gap-1.5">
-                <label
-                  htmlFor="correo"
-                  className="text-sm text-[#141b2b]"
-                  style={{ fontWeight: 500 }}
-                >
+              <div className={cn("sv-a sv-a2", "flex flex-col gap-1.5")}>
+                <label htmlFor="correo" style={{ fontSize: "0.875rem", fontWeight: 500, color: "#141b2b" }}>
                   Correo electrónico
                 </label>
                 <Input
@@ -269,17 +224,13 @@ export default function LoginPage() {
                   onChange={(e) => setCorreo(e.target.value)}
                   placeholder="usuario@empresa.com"
                   aria-describedby={error ? "login-error" : undefined}
-                  className="h-11 border-[#c3c6d6] text-base"
+                  className="sv-input"
                 />
               </div>
 
-              {/* Password */}
-              <div className="svd-animate svd-animate-delay-3 flex flex-col gap-1.5">
-                <label
-                  htmlFor="contrasena"
-                  className="text-sm text-[#141b2b]"
-                  style={{ fontWeight: 500 }}
-                >
+              {/* Contraseña */}
+              <div className={cn("sv-a sv-a3", "flex flex-col gap-1.5")}>
+                <label htmlFor="contrasena" style={{ fontSize: "0.875rem", fontWeight: 500, color: "#141b2b" }}>
                   Contraseña
                 </label>
                 <Input
@@ -291,7 +242,7 @@ export default function LoginPage() {
                   onChange={(e) => setContrasena(e.target.value)}
                   placeholder="••••••••"
                   aria-describedby={error ? "login-error" : undefined}
-                  className="h-11 border-[#c3c6d6] text-base"
+                  className="sv-input"
                 />
               </div>
 
@@ -300,64 +251,51 @@ export default function LoginPage() {
                 <div
                   id="login-error"
                   role="alert"
-                  className="flex items-start gap-2.5 rounded-xl border border-[#ffdad6] bg-[#fff4f4] px-4 py-3"
+                  style={{
+                    display: "flex", alignItems: "flex-start", gap: 10,
+                    padding: "12px 16px", borderRadius: 12,
+                    background: "#fff4f4", border: "1px solid #ffdad6",
+                  }}
                 >
-                  <span className="text-base leading-none mt-px" aria-hidden="true">⚠️</span>
-                  <p className="text-sm text-[#93000a]" style={{ fontWeight: 500 }}>
+                  <span aria-hidden="true" style={{ fontSize: "1rem", lineHeight: 1, marginTop: 1 }}>⚠️</span>
+                  <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "#93000a" }}>
                     {error}
                   </p>
                 </div>
               )}
 
               {/* Submit */}
-              <div className={cn("svd-animate svd-animate-delay-4", error ? "" : "mt-1")}>
+              <div className={cn("sv-a sv-a4", error ? "" : "mt-1")}>
                 <Button
                   type="submit"
                   variant="primary"
                   size="lg"
-                  className="w-full h-12 text-base rounded-xl"
+                  className="w-full"
+                  style={{ height: "3rem", borderRadius: 12, fontSize: "1rem", fontWeight: 600 }}
                   disabled={loading}
                   aria-busy={loading}
                 >
                   {loading ? (
-                    <span className="flex items-center gap-2">
+                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <svg
-                        className="animate-spin"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
+                        style={{ animation: "spin 1s linear infinite" }}
+                        width="16" height="16" viewBox="0 0 16 16" fill="none"
                         aria-hidden="true"
                       >
-                        <circle
-                          cx="8" cy="8" r="6"
-                          stroke="currentColor"
-                          strokeOpacity="0.25"
-                          strokeWidth="2"
-                        />
-                        <path
-                          d="M14 8A6 6 0 0 0 8 2"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
+                        <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
+                        <path d="M14 8A6 6 0 0 0 8 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
                       Ingresando…
                     </span>
-                  ) : (
-                    "Ingresar"
-                  )}
+                  ) : "Ingresar"}
                 </Button>
               </div>
             </form>
 
-            {/* Footer note */}
-            <p className="svd-animate svd-animate-delay-5 mt-8 text-center text-xs text-[#737685]">
+            {/* Footer */}
+            <p className="sv-a sv-a5" style={{ marginTop: "2rem", textAlign: "center", fontSize: "0.75rem", color: "#737685" }}>
               Acceso restringido a usuarios autorizados.{" "}
-              <span className="text-[#003d9b]" style={{ fontWeight: 500 }}>
-                Uso corporativo exclusivo.
-              </span>
+              <span style={{ color: "#003d9b", fontWeight: 500 }}>Uso corporativo exclusivo.</span>
             </p>
           </div>
         </div>
