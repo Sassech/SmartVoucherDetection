@@ -7,15 +7,20 @@ export interface ButtonProps
   size?: "sm" | "md" | "lg";
 }
 
+// Estilos inline para variantes — evita dependencia de Tailwind para colores con var()
+// que no se generan correctamente en builds standalone de Next.js
+const variantStyles: Record<NonNullable<ButtonProps["variant"]>, React.CSSProperties> = {
+  primary:  { backgroundColor: "var(--color-primary, #003d9b)", color: "var(--color-on-primary, #ffffff)" },
+  secondary: { backgroundColor: "white", border: "1px solid var(--color-outline-variant, #c3c6d6)", color: "var(--color-on-surface, #141b2b)" },
+  ghost:    { backgroundColor: "transparent", color: "var(--color-primary, #003d9b)" },
+  destructive: { backgroundColor: "var(--color-error, #ba1a1a)", color: "var(--color-on-error, #ffffff)" },
+};
+
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  primary:
-    "bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-95 active:brightness-90",
-  secondary:
-    "bg-white border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] hover:brightness-95",
-  ghost:
-    "bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-surface-container-low)]",
-  destructive:
-    "bg-[var(--color-error)] text-[var(--color-on-error)] hover:brightness-95",
+  primary:     "hover:brightness-95 active:brightness-90",
+  secondary:   "hover:brightness-95",
+  ghost:       "",
+  destructive: "hover:brightness-95",
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -26,15 +31,20 @@ const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { className, variant = "primary", size = "md", disabled, children, ...props },
+    { className, variant = "primary", size = "md", disabled, style, children, ...props },
     ref,
   ) => {
     return (
       <button
         ref={ref}
         disabled={disabled}
+        style={{
+          borderRadius: "var(--radius-DEFAULT, 0.25rem)",
+          ...variantStyles[variant],
+          ...style,  // caller overrides last — pero backgroundColor/color ya están en variantStyles
+        }}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-[var(--radius-DEFAULT)] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center gap-2 font-medium transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
           variantClasses[variant],
           sizeClasses[size],
           className,

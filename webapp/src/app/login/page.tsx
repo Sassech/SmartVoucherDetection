@@ -208,10 +208,10 @@ export default function LoginPage() {
             </div>
 
             {/* Formulario */}
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }} noValidate>
 
               {/* Email */}
-              <div className={cn("sv-a sv-a2", "flex flex-col gap-1.5")}>
+              <div className="sv-a sv-a2" style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
                 <label htmlFor="correo" style={{ fontSize: "0.875rem", fontWeight: 500, color: "#141b2b" }}>
                   Correo electrónico
                 </label>
@@ -229,7 +229,7 @@ export default function LoginPage() {
               </div>
 
               {/* Contraseña */}
-              <div className={cn("sv-a sv-a3", "flex flex-col gap-1.5")}>
+              <div className="sv-a sv-a3" style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
                 <label htmlFor="contrasena" style={{ fontSize: "0.875rem", fontWeight: 500, color: "#141b2b" }}>
                   Contraseña
                 </label>
@@ -270,8 +270,7 @@ export default function LoginPage() {
                   type="submit"
                   variant="primary"
                   size="lg"
-                  className="w-full"
-                  style={{ height: "3rem", borderRadius: 12, fontSize: "1rem", fontWeight: 600 }}
+                  style={{ height: "3rem", borderRadius: 12, fontSize: "1rem", fontWeight: 600, width: "100%", display: "flex" }}
                   disabled={loading}
                   aria-busy={loading}
                 >
