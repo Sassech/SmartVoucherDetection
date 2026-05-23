@@ -18,7 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /app/deps /app/deps
 ENV PYTHONPATH=/app/deps
 COPY . .
-RUN useradd -r -u 1000 -s /sbin/nologin -m -d /home/appuser appuser
+RUN useradd -r -u 1000 -s /sbin/nologin -m -d /home/appuser appuser && \
+    mkdir -p /app/data/uploads && chown -R appuser:appuser /app/data
 USER appuser
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \

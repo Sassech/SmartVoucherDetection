@@ -45,9 +45,9 @@ OCR_PROMPT = """Analiza esta imagen de comprobante bancario y extrae los siguien
   "importe_base": número decimal (monto neto transferido sin comisión; null si no hay comisión separada),
   "fecha": string en formato DD/MM/YYYY,
   "hora": string en formato HH:MM,
-  "referencia": string,
-  "numero_operacion": string,
-  "banco": string
+  "referencia": string (número de referencia o folio de la operación — prioridad: campo "Referencia" > "No. de comprobante" > "No. de rastreo" > "Folio" > null; NUNCA usar el concepto ni la descripción del pago),
+  "numero_operacion": string (número de operación, autorización o rastreo — si ya se usó en referencia, usa el siguiente disponible; null si no hay),
+  "banco": string (nombre del banco emisor/origen; si aparece solo el banco destino, usar null)
 }
 
 Si un campo no es visible, usa null. Responde SOLO el JSON, sin texto adicional."""

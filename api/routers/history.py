@@ -27,6 +27,7 @@ operador espera al abrir el historial.
 
 from __future__ import annotations
 
+import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -143,3 +144,33 @@ async def history(
         offset=offset,
         has_more=offset + len(items_orm) < total,
     )
+
+
+@router.get("/comprobante/{id_comprobante}", response_model=ComprobanteResponse)
+async def get_comprobante(
+    id_comprobante: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    _usuario: Usuario = Depends(require_api_key),
+) -> ComprobanteResponse:
+    """Devuelve un comprobante por su UUID.
+
+    Usado principalmente por el plugin WordPress para enriquecer la fila de
+    un duplicado con los datos del comprobante original (monto, banco, fecha,
+    referencia) sin hacer un scan completo de /history.
+
+    Returns 404 si el id no existe o fue soft-deleted.
+    """
+    stmt = select(Comprobante).where(
+        Comprobante.id_comprobante == id_comprobante,
+        Comprobante.deleted_at.is_(None),
+    )
+    result = await session.execute(stmt)
+    comprobante = result.scalar_one_or_none()
+
+    if comprobante is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Comprobante {id_comprobante} not found.",
+        )
+
+    return ComprobanteResponse.from_orm_model(comprobante)
