@@ -46,8 +46,12 @@ services:
     environment:
       # llama-server corre en el host — acceso via host-gateway
       LLAMA_SERVER_URL: http://host-gateway:8080
+      # Ruta de uploads dentro del contenedor (mapeada al volumen uploads_data)
+      UPLOAD_DIR: /app/data/uploads
     extra_hosts:
       - "host-gateway:host-gateway"
+    volumes:
+      - uploads_data:/app/data/uploads
     networks:
       - smartvoucher-net
     depends_on:
@@ -79,9 +83,12 @@ services:
     env_file: ../.env
     environment:
       LLAMA_SERVER_URL: http://host-gateway:8080
+      UPLOAD_DIR: /app/data/uploads
     extra_hosts:
       - "host-gateway:host-gateway"
     command: ["python", "-m", "celery", "-A", "celery_app", "worker", "--concurrency=2", "-l", "info"]
+    volumes:
+      - uploads_data:/app/data/uploads
     networks:
       - smartvoucher-net
     depends_on:
@@ -105,6 +112,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:
 
 networks:
   smartvoucher-net:
