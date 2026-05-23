@@ -60,26 +60,35 @@ class COCR_Shortcode {
 					type="file"
 					id="cocr-file-input"
 					accept="image/jpeg,image/png,application/pdf"
+					multiple
 					style="display:none"
 				/>
 				<p>
-					<?php esc_html_e( 'Drag & drop your comprobante here or', 'comprobantes-ocr' ); ?>
+					<?php esc_html_e( 'Drag & drop your comprobantes here or', 'comprobantes-ocr' ); ?>
 					<button type="button" id="cocr-browse">
 						<?php esc_html_e( 'Browse', 'comprobantes-ocr' ); ?>
 					</button>
 				</p>
 				<p class="cocr-hint">
-					<?php esc_html_e( 'Accepted: JPEG, PNG, PDF · Max 10 MB', 'comprobantes-ocr' ); ?>
+					<?php esc_html_e( 'Accepted: JPEG, PNG, PDF · Max 10 MB each · Multiple files supported', 'comprobantes-ocr' ); ?>
 				</p>
 			</div>
 
-			<div class="cocr-semaphore" id="cocr-semaphore" style="display:none">
-				<div class="cocr-light cocr-red"    id="cocr-light-red"></div>
-				<div class="cocr-light cocr-yellow" id="cocr-light-yellow"></div>
-				<div class="cocr-light cocr-green"  id="cocr-light-green"></div>
-			</div>
-
 			<div class="cocr-message" id="cocr-message"></div>
+
+			<table class="cocr-results" id="cocr-results" style="display:none">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'File', 'comprobantes-ocr' ); ?></th>
+						<th><?php esc_html_e( 'Status', 'comprobantes-ocr' ); ?></th>
+						<th><?php esc_html_e( 'Amount', 'comprobantes-ocr' ); ?></th>
+						<th><?php esc_html_e( 'Bank', 'comprobantes-ocr' ); ?></th>
+						<th><?php esc_html_e( 'Date', 'comprobantes-ocr' ); ?></th>
+						<th><?php esc_html_e( 'Reference', 'comprobantes-ocr' ); ?></th>
+					</tr>
+				</thead>
+				<tbody id="cocr-results-body"></tbody>
+			</table>
 
 		</div>
 		<?php

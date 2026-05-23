@@ -2,11 +2,12 @@
  *
  * Covers:
  *   - Upload drag-and-drop area (.cocr-dropzone)
- *   - Traffic-light semaphore (.cocr-semaphore, .cocr-light)
+ *   - Results table (.cocr-results)
+ *   - Status badges (.cocr-badge)
+ *   - Processing spinner (.cocr-spinner)
  *   - Status message (.cocr-message)
  *
  * No external framework; no !important abuse; responsive (max-width: 100%).
- * CSS transition on semaphore lights ≥ 300ms (R-06 requirement).
  */
 
 /* -------------------------------------------------------------------------
@@ -14,7 +15,7 @@
    ---------------------------------------------------------------------- */
 
 .cocr-upload-wrap {
-	max-width: 520px;
+	max-width: 760px;
 	width: 100%;
 	font-family: inherit;
 }
@@ -67,46 +68,113 @@
 }
 
 /* -------------------------------------------------------------------------
-   Traffic-light semaphore
-   Spec: .cocr-semaphore, lights named by colour class; transition ≥ 300ms (R-06)
-   ---------------------------------------------------------------------- */
-
-.cocr-semaphore {
-	display: flex;
-	gap: 12px;
-	margin-top: 20px;
-	align-items: center;
-	justify-content: center;
-}
-
-.cocr-light {
-	width: 36px;
-	height: 36px;
-	border-radius: 50%;
-	opacity: 0.2;
-	transition: opacity 0.35s ease, box-shadow 0.35s ease;
-}
-
-.cocr-light.cocr-active {
-	opacity: 1;
-}
-
-/* Individual light colours */
-.cocr-red    { background: #cc1818; }
-.cocr-yellow { background: #e6a817; }
-.cocr-green  { background: #1e7e34; }
-
-/* Glow effect on active light */
-.cocr-light.cocr-red.cocr-active    { box-shadow: 0 0 12px 2px rgba( 204, 24, 24, 0.6 ); }
-.cocr-light.cocr-yellow.cocr-active { box-shadow: 0 0 12px 2px rgba( 230, 168, 23, 0.6 ); }
-.cocr-light.cocr-green.cocr-active  { box-shadow: 0 0 12px 2px rgba( 30, 126, 52, 0.6 ); }
-
-/* -------------------------------------------------------------------------
    Status message
    ---------------------------------------------------------------------- */
 
 .cocr-message {
-	margin-top: 12px;
+	margin-top: 10px;
 	font-size: 0.9em;
 	min-height: 1.4em;
+}
+
+/* -------------------------------------------------------------------------
+   Results table
+   ---------------------------------------------------------------------- */
+
+.cocr-results {
+	width: 100%;
+	margin-top: 20px;
+	border-collapse: collapse;
+	font-size: 0.9em;
+}
+
+.cocr-results th,
+.cocr-results td {
+	padding: 8px 12px;
+	text-align: left;
+	border-bottom: 1px solid #e5e5e5;
+	vertical-align: middle;
+}
+
+.cocr-results th {
+	background: #f5f5f5;
+	font-weight: 600;
+	color: #444;
+	white-space: nowrap;
+}
+
+.cocr-results tbody tr:hover {
+	background: #fafafa;
+}
+
+/* Highlight duplicate rows */
+.cocr-results tbody tr.cocr-row--duplicate {
+	background: #fff5f5;
+}
+
+.cocr-results tbody tr.cocr-row--duplicate:hover {
+	background: #ffe8e8;
+}
+
+.cocr-col-file {
+	max-width: 180px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: #555;
+	font-size: 0.85em;
+}
+
+/* -------------------------------------------------------------------------
+   Status badges
+   ---------------------------------------------------------------------- */
+
+.cocr-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 3px 10px;
+	border-radius: 12px;
+	font-size: 0.82em;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.cocr-badge--green {
+	background: #e6f4ea;
+	color: #1e7e34;
+}
+
+.cocr-badge--yellow {
+	background: #fef9e7;
+	color: #9a6700;
+}
+
+.cocr-badge--red {
+	background: #fdecea;
+	color: #cc1818;
+}
+
+.cocr-badge--pending {
+	background: #f0f0f0;
+	color: #666;
+}
+
+/* -------------------------------------------------------------------------
+   Processing spinner
+   ---------------------------------------------------------------------- */
+
+.cocr-spinner {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	border: 2px solid #ccc;
+	border-top-color: #666;
+	border-radius: 50%;
+	animation: cocr-spin 0.7s linear infinite;
+	flex-shrink: 0;
+}
+
+@keyframes cocr-spin {
+	to { transform: rotate( 360deg ); }
 }

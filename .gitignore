@@ -30,8 +30,4 @@ results/
 
 # -- Exceptions ---
 dataset/bancario-mx/duplicates/
-webapp/next-env.d.ts
-webapp/package-lock.json
-webapp/pnpm-workspace.yaml
-webapp/tsconfig.tsbuildinfo
 .gitignore

@@ -48,7 +48,7 @@ class COCR_API_Client {
 		$boundary = $this->_generate_boundary();
 		$body     = $this->_build_multipart( $boundary, [], $file_path );
 
-		return $this->_make_request(
+		$result = $this->_make_request(
 			'POST',
 			trailingslashit( $api_url ) . 'upload-slip',
 			[
@@ -60,6 +60,24 @@ class COCR_API_Client {
 				'body'    => $body,
 			]
 		);
+
+		// Enrich duplicate result with original comprobante fields.
+		if ( is_array( $result ) && ( $result['_cocr_status'] ?? '' ) === 'duplicado' ) {
+			$id_comprobante = $result['id_comprobante'] ?? null;
+			$original       = $id_comprobante ? $this->_fetch_comprobante( $id_comprobante, $api_url, $api_key ) : null;
+
+			return [
+				'estado_actual'    => 'duplicado',
+				'id_comprobante'   => $id_comprobante,
+				'hash_documento'   => $result['hash_documento'] ?? null,
+				'campos_extraidos' => ( is_array( $original ) && isset( $original['campos_extraidos'] ) )
+					? $original['campos_extraidos']
+					: [],
+				'message'          => __( 'Duplicate: this comprobante was already submitted.', 'comprobantes-ocr' ),
+			];
+		}
+
+		return $result;
 	}
 
 	/**
@@ -169,6 +187,39 @@ class COCR_API_Client {
 	// -------------------------------------------------------------------------
 
 	/**
+	 * Fetch a single comprobante by UUID via GET /comprobante/{id}.
+	 *
+	 * Used to enrich duplicate rows with the original record's fields.
+	 * Returns the decoded array on success, or null on any error (best-effort).
+	 *
+	 * @param string $id_comprobante UUID of the original comprobante.
+	 * @param string $api_url        Base URL of the FastAPI service.
+	 * @param string $api_key        API key.
+	 * @return array|null
+	 */
+	private function _fetch_comprobante( string $id_comprobante, string $api_url, string $api_key ): ?array {
+		$response = wp_remote_get(
+			trailingslashit( $api_url ) . 'comprobante/' . rawurlencode( $id_comprobante ),
+			[
+				'timeout' => 5,
+				'headers' => [ 'X-API-Key' => $api_key ],
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return null;
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		if ( 200 !== $code ) {
+			return null;
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		return is_array( $data ) ? $data : null;
+	}
+
+	/**
 	 * Generate a unique MIME boundary string.
 	 *
 	 * @return string
@@ -264,6 +315,17 @@ class COCR_API_Client {
 				),
 				[ 'status' => $code, 'retry' => true ]
 			);
+		}
+
+		// 409 Conflict = duplicate detected — return raw detail so upload_slip can enrich it.
+		if ( 409 === $code ) {
+			$detail         = json_decode( $body, true );
+			$detail         = is_array( $detail ) && isset( $detail['detail'] ) ? $detail['detail'] : [];
+			return [
+				'_cocr_status'   => 'duplicado',
+				'id_comprobante' => $detail['id_comprobante'] ?? null,
+				'hash_documento' => $detail['hash_documento'] ?? null,
+			];
 		}
 
 		if ( $code >= 400 ) {

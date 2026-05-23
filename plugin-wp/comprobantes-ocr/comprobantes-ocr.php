@@ -3,7 +3,7 @@
  * Plugin Name: Comprobantes OCR
  * Plugin URI:  https://github.com/sassech/SmartVoucherDetection
  * Description: Upload and validate payment vouchers via OCR with duplicate detection.
- * Version:     1.0.0
+ * Version:     1.0.6
  * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author:      SmartVoucher
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'COCR_VERSION', '1.0.0' );
+define( 'COCR_VERSION', '1.0.6' );
 define( 'COCR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'COCR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'COCR_PLUGIN_FILE', __FILE__ );
