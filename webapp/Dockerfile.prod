@@ -1,21 +1,41 @@
-# webapp — usa el build standalone pre-compilado localmente.
-# El build de Next.js se corre en la máquina host antes de buildear la imagen:
-#   cd webapp && NODE_ENV=production npm run build
-# Luego se ejecuta: docker compose -f infra/docker-compose.prod.yml build webapp
+# webapp — multi-stage build
+# Stage 1: build Next.js standalone output
+# Stage 2: runtime image con solo el output compilado
 
+# ── builder ──────────────────────────────────────────────────────────────────
+FROM node:22-alpine AS builder
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+
+# API_BASE_URL se pasa como build arg; en prod apunta al servicio Docker
+ARG API_BASE_URL=http://api:8000
+ENV API_BASE_URL=${API_BASE_URL}
+ENV CI=true
+
+RUN pnpm run build
+
+# ── runtime ───────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+
 RUN addgroup -S nextgroup && adduser -S nextuser -G nextgroup
 
-# Copiar el output standalone ya compilado desde el host
-COPY .next/standalone ./
-COPY .next/static ./.next/static
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
 USER nextuser
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD wget -qO- http://localhost:3000/ || exit 1
+
 CMD ["node", "server.js"]
