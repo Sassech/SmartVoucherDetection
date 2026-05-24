@@ -22,6 +22,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Subir Comprobantes", href: "/subir", icon: "cloud_upload" },
   { label: "Historial", href: "/historial", icon: "history" },
   { label: "Cola de Revisión", href: "/revision", icon: "fact_check" },
+  { label: "Mi Perfil", href: "/profile", icon: "manage_accounts" },
   { label: "Configuración", href: "/configuracion", icon: "settings" },
 ];
 

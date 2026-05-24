@@ -48,7 +48,7 @@ export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
   const [pending, setPending] = useState(false);
   const [comment, setComment] = useState("");
 
-  const candidates = parseCandidates(item.texto_extraido);
+  const candidates = parseCandidates(item.texto_extraido ?? null);
 
   async function handleDecision(decision: "valido" | "duplicado") {
     const prevEstado = estado;
