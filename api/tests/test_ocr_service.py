@@ -14,6 +14,8 @@ import pytest
 from fastapi import HTTPException
 from tenacity import wait_fixed
 
+from config import settings
+
 from services import ocr_service
 from services.ocr_service import CAMPOS_ESPERADOS, extract_fields
 
@@ -132,7 +134,7 @@ async def test_payload_structure_openai_compatible():
         await extract_fields("MY_IMAGE_B64", client=client)
 
     body = captured["body"]
-    assert body["model"] == "GLM-OCR"
+    assert body["model"] == settings.llama_model_alias
     assert body["temperature"] == 0.0
     assert len(body["messages"]) == 1
 

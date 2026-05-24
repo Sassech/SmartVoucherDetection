@@ -1,16 +1,17 @@
 "use client";
 
 /**
- * Login page — 4.C.13, S-19, S-01.
- * Split layout: left branding panel (hidden mobile) + right form.
- * Layout crítico via CSS inline — no depende de Tailwind para el split.
- * R-80: shows success banner when ?registered=1 is present.
+ * Register page — R-80.
+ * Split-panel layout mirroring login/page.tsx.
+ * Left: branding panel (hidden mobile). Right: registration form.
+ * POST /web/auth/register → 201 redirects to /login?registered=1
+ *                         → 409 shows "Email already registered"
+ *                         → 422 shows validation error
  */
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,7 @@ const CSS = `
 
   .sv-root { display: flex; min-height: 100vh; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
 
-  /* Panel izquierdo — oculto en mobile */
+  /* Left panel — hidden on mobile */
   .sv-left {
     display: none;
     position: relative;
@@ -31,7 +32,7 @@ const CSS = `
     background: linear-gradient(145deg, #001848 0%, #003d9b 55%, #0052cc 100%);
   }
 
-  /* Panel derecho — full width en mobile, 45% en desktop */
+  /* Right panel — full width on mobile, 45% on desktop */
   .sv-right {
     flex: 1;
     display: flex;
@@ -49,7 +50,7 @@ const CSS = `
     .sv-mobile-logo { display: none !important; }
   }
 
-  /* Animación entrada */
+  /* Entry animation */
   @keyframes sv-up {
     from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -60,6 +61,8 @@ const CSS = `
   .sv-a3 { animation-delay: 0.16s; }
   .sv-a4 { animation-delay: 0.22s; }
   .sv-a5 { animation-delay: 0.28s; }
+  .sv-a6 { animation-delay: 0.34s; }
+  .sv-a7 { animation-delay: 0.40s; }
 
   /* Input overrides */
   .sv-input { height: 2.75rem; font-size: 1rem; border-color: #c3c6d6; }
@@ -82,7 +85,7 @@ const CSS = `
   }
 `;
 
-// Shield SVG inline
+// Shield SVG — same as login
 const ShieldIcon = ({ size = 36, dark = false }: { size?: number; dark?: boolean }) => (
   <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="36" height="36" rx="9" fill={dark ? "#003d9b" : "rgba(255,255,255,0.15)"} />
@@ -94,26 +97,89 @@ const ShieldIcon = ({ size = 36, dark = false }: { size?: number; dark?: boolean
   </svg>
 );
 
-function LoginForm() {
-  const { login } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const registered = searchParams.get("registered") === "1";
+// Spinner — same pattern as login
+const Spinner = () => (
+  <svg
+    style={{ animation: "spin 1s linear infinite" }}
+    width="16" height="16" viewBox="0 0 16 16" fill="none"
+    aria-hidden="true"
+  >
+    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
+    <path d="M14 8A6 6 0 0 0 8 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
 
+interface ApiValidationError {
+  loc: (string | number)[];
+  msg: string;
+  type: string;
+}
+
+export default function RegisterPage() {
+  const router = useRouter();
+
+  const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
+  const [confirmar, setConfirmar] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Client-side validation
+  function validate(): string | null {
+    if (!nombre.trim()) return "El nombre es requerido";
+    if (contrasena.length < 8) return "La contraseña debe tener al menos 8 caracteres";
+    if (contrasena !== confirmar) return "Las contraseñas no coinciden";
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+
+    const clientError = validate();
+    if (clientError) {
+      setError(clientError);
+      return;
+    }
+
     setLoading(true);
     try {
-      await login(correo, contrasena);
-      router.push("/");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al iniciar sesión");
+      const res = await fetch("/api/web/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: nombre.trim(), correo, contrasena }),
+      });
+
+      if (res.status === 201) {
+        router.push("/login?registered=1");
+        return;
+      }
+
+      if (res.status === 409) {
+        setError("Email already registered. Try logging in instead.");
+        return;
+      }
+
+      if (res.status === 422) {
+        const body = (await res.json().catch(() => ({}))) as {
+          detail?: ApiValidationError[] | string;
+        };
+        if (Array.isArray(body.detail) && body.detail.length > 0) {
+          setError(body.detail[0].msg);
+        } else if (typeof body.detail === "string") {
+          setError(body.detail);
+        } else {
+          setError("Validation error. Please check your data.");
+        }
+        return;
+      }
+
+      // Other error
+      const body = (await res.json().catch(() => ({}))) as { detail?: string };
+      setError(body.detail ?? `Error ${res.status}. Please try again.`);
+    } catch {
+      setError("Network error. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -125,10 +191,10 @@ function LoginForm() {
 
       <div className="sv-root">
 
-        {/* ── PANEL IZQUIERDO — Branding ──────────────────────────────── */}
+        {/* ── LEFT PANEL — Branding ──────────────────────────────── */}
         <div className="sv-left" aria-hidden="true">
 
-          {/* Formas geométricas de fondo */}
+          {/* Background geometric shapes */}
           <svg
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
             viewBox="0 0 600 900" preserveAspectRatio="xMidYMid slice" fill="none"
@@ -139,8 +205,8 @@ function LoginForm() {
             <line x1="0" y1="660" x2="600" y2="240" stroke="white" strokeOpacity="0.035" strokeWidth="1" />
             <rect x="30" y="30" width="50" height="50" rx="10" fill="white" fillOpacity="0.05" transform="rotate(12 30 30)" />
             <polygon points="510,760 545,740 580,760 580,800 545,820 510,800" fill="white" fillOpacity="0.05" />
-            {([0,1,2,3,4] as const).map(row =>
-              ([0,1,2] as const).map(col => (
+            {([0, 1, 2, 3, 4] as const).map(row =>
+              ([0, 1, 2] as const).map(col => (
                 <circle key={`${row}-${col}`} cx={100 + col * 180} cy={200 + row * 130} r="1.5" fill="white" fillOpacity="0.18" />
               ))
             )}
@@ -154,10 +220,10 @@ function LoginForm() {
             </span>
           </div>
 
-          {/* Centro */}
+          {/* Center content */}
           <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 24, maxWidth: 380 }}>
             <div className="sv-pill">
-              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3.5" fill="#4ade80"/></svg>
+              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3.5" fill="#4ade80" /></svg>
               Sistema activo · México
             </div>
 
@@ -189,50 +255,51 @@ function LoginForm() {
           </p>
         </div>
 
-        {/* ── PANEL DERECHO — Formulario ──────────────────────────────── */}
+        {/* ── RIGHT PANEL — Registration Form ──────────────────────── */}
         <div className="sv-right">
 
-          {/* Logo mobile (solo visible < 1024px) */}
+          {/* Mobile logo (visible < 1024px) */}
           <div className="sv-mobile-logo" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "2.5rem" }}>
             <ShieldIcon size={32} dark />
             <span style={{ color: "#003d9b", fontSize: "1.125rem", fontWeight: 800 }}>SmartVoucher</span>
           </div>
 
-          {/* Card del formulario */}
-          <div style={{ width: "100%", maxWidth: 400 }}>
+          {/* Form card */}
+          <div style={{ width: "100%", maxWidth: 420 }}>
 
-            {/* Encabezado */}
+            {/* Header */}
             <div className="sv-a sv-a1" style={{ marginBottom: "2rem" }}>
               <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#141b2b", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
-                Iniciar sesión
+                Crear cuenta
               </h2>
               <p style={{ fontSize: "0.875rem", color: "#434654", margin: 0 }}>
-                Portal de Validación · Acceso autorizado
+                Portal de Validación · Registro de usuario
               </p>
             </div>
 
-            {/* Success banner — shown after successful registration (R-80) */}
-            {registered && (
-              <div
-                role="status"
-                style={{
-                  display: "flex", alignItems: "flex-start", gap: 10,
-                  padding: "12px 16px", borderRadius: 12, marginBottom: "1.25rem",
-                  background: "#f0fdf4", border: "1px solid #bbf7d0",
-                }}
-              >
-                <span aria-hidden="true" style={{ fontSize: "1rem", lineHeight: 1, marginTop: 1 }}>✅</span>
-                <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "#166534" }}>
-                  Account created successfully. Please log in.
-                </p>
-              </div>
-            )}
-
-            {/* Formulario */}
+            {/* Form */}
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }} noValidate>
 
-              {/* Email */}
+              {/* Name */}
               <div className="sv-a sv-a2" style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                <label htmlFor="nombre" style={{ fontSize: "0.875rem", fontWeight: 500, color: "#141b2b" }}>
+                  Nombre completo
+                </label>
+                <Input
+                  id="nombre"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Juan Pérez"
+                  aria-describedby={error ? "register-error" : undefined}
+                  className="sv-input"
+                />
+              </div>
+
+              {/* Email */}
+              <div className="sv-a sv-a3" style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
                 <label htmlFor="correo" style={{ fontSize: "0.875rem", fontWeight: 500, color: "#141b2b" }}>
                   Correo electrónico
                 </label>
@@ -244,33 +311,52 @@ function LoginForm() {
                   value={correo}
                   onChange={(e) => setCorreo(e.target.value)}
                   placeholder="usuario@empresa.com"
-                  aria-describedby={error ? "login-error" : undefined}
+                  aria-describedby={error ? "register-error" : undefined}
                   className="sv-input"
                 />
               </div>
 
-              {/* Contraseña */}
-              <div className="sv-a sv-a3" style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+              {/* Password */}
+              <div className="sv-a sv-a4" style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
                 <label htmlFor="contrasena" style={{ fontSize: "0.875rem", fontWeight: 500, color: "#141b2b" }}>
                   Contraseña
                 </label>
                 <Input
                   id="contrasena"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   required
+                  minLength={8}
                   value={contrasena}
                   onChange={(e) => setContrasena(e.target.value)}
-                  placeholder="••••••••"
-                  aria-describedby={error ? "login-error" : undefined}
+                  placeholder="Mínimo 8 caracteres"
+                  aria-describedby={error ? "register-error" : undefined}
                   className="sv-input"
                 />
               </div>
 
-              {/* Error */}
+              {/* Confirm password */}
+              <div className="sv-a sv-a5" style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                <label htmlFor="confirmar" style={{ fontSize: "0.875rem", fontWeight: 500, color: "#141b2b" }}>
+                  Confirmar contraseña
+                </label>
+                <Input
+                  id="confirmar"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={confirmar}
+                  onChange={(e) => setConfirmar(e.target.value)}
+                  placeholder="••••••••"
+                  aria-describedby={error ? "register-error" : undefined}
+                  className="sv-input"
+                />
+              </div>
+
+              {/* Inline error */}
               {error && (
                 <div
-                  id="login-error"
+                  id="register-error"
                   role="alert"
                   style={{
                     display: "flex", alignItems: "flex-start", gap: 10,
@@ -286,7 +372,7 @@ function LoginForm() {
               )}
 
               {/* Submit */}
-              <div className={cn("sv-a sv-a4", error ? "" : "mt-1")}>
+              <div className={cn("sv-a sv-a6", error ? "" : "mt-1")}>
                 <Button
                   type="submit"
                   variant="primary"
@@ -297,23 +383,23 @@ function LoginForm() {
                 >
                   {loading ? (
                     <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <svg
-                        style={{ animation: "spin 1s linear infinite" }}
-                        width="16" height="16" viewBox="0 0 16 16" fill="none"
-                        aria-hidden="true"
-                      >
-                        <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
-                        <path d="M14 8A6 6 0 0 0 8 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
-                      Ingresando…
+                      <Spinner />
+                      Creando cuenta…
                     </span>
-                  ) : "Ingresar"}
+                  ) : "Crear cuenta"}
                 </Button>
               </div>
             </form>
 
-            {/* Footer */}
-            <p className="sv-a sv-a5" style={{ marginTop: "2rem", textAlign: "center", fontSize: "0.75rem", color: "#737685" }}>
+            {/* Link to login */}
+            <p className="sv-a sv-a7" style={{ marginTop: "1.5rem", textAlign: "center", fontSize: "0.875rem", color: "#434654" }}>
+              Already have an account?{" "}
+              <Link href="/login" style={{ color: "#003d9b", fontWeight: 600, textDecoration: "none" }}>
+                Log in
+              </Link>
+            </p>
+
+            <p style={{ marginTop: "1rem", textAlign: "center", fontSize: "0.75rem", color: "#737685" }}>
               Acceso restringido a usuarios autorizados.{" "}
               <span style={{ color: "#003d9b", fontWeight: 500 }}>Uso corporativo exclusivo.</span>
             </p>
@@ -321,14 +407,5 @@ function LoginForm() {
         </div>
       </div>
     </>
-  );
-}
-
-// Suspense boundary required because LoginForm uses useSearchParams()
-export default function LoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <LoginForm />
-    </Suspense>
   );
 }

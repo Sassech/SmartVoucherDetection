@@ -37,6 +37,8 @@ export interface AuthUser {
   nombre: string;
   rol: string;
   id_organizacion: string;
+  /** R-75: plan returned by /web/auth/me — "basic" | "pro" | "enterprise" */
+  plan?: string;
 }
 
 interface AuthContextValue {

@@ -7,12 +7,15 @@ Decisiones:
   necesita API key (e.g., admin que solo entra por web).
 - `rol`: CHECK constraint con valores fijos del plan (Fase 4).
 - `correo`: UNIQUE global (no por organizacion) — invitaciones cross-org en Fase 4.
+- `plan`: VARCHAR(20) con CHECK IN ('basic','pro','enterprise'). Default 'basic'.
+  Controla el limite mensual de uploads via PLAN_LIMITS en config.py (Fase 7).
+- `sin_cuota`: BOOLEAN. True para usuarios exentos de cuota (e.g., system user).
 """
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid_utils.compat import uuid7
 
@@ -21,6 +24,7 @@ from database import Base
 from ._mixins import SoftDeleteMixin
 
 ROLES_VALIDOS = ("admin", "operador", "auditor")
+PLANES_VALIDOS = ("basic", "pro", "enterprise")
 
 
 class Usuario(Base, SoftDeleteMixin):
@@ -45,6 +49,8 @@ class Usuario(Base, SoftDeleteMixin):
     token_api_prefix: Mapped[str | None] = mapped_column(
         String(8), nullable=True, index=True
     )
+    plan: Mapped[str] = mapped_column(String(20), nullable=False, default="basic")
+    sin_cuota: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     fecha_registro: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -63,5 +69,9 @@ class Usuario(Base, SoftDeleteMixin):
         CheckConstraint(
             f"rol IN {ROLES_VALIDOS!r}",
             name="ck_usuarios_rol",
+        ),
+        CheckConstraint(
+            f"plan IN {PLANES_VALIDOS!r}",
+            name="ck_usuarios_plan",
         ),
     )

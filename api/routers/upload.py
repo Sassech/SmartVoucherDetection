@@ -72,6 +72,7 @@ from models.validacion import Validacion
 from schemas.comprobante import CamposExtraidos, ComprobanteResponse
 from services.cache_service import check_hash, set_hash
 from services.duplicate_service import run_capa2, run_capa3
+from services.quota_service import check_quota
 from services.image_service import (
     pdf_to_image,
     preprocess,
@@ -154,11 +155,18 @@ async def upload_slip(
     """Procesa un comprobante: OCR + normalizacion + deteccion de duplicados.
 
     Cascade de deteccion (Fase 2):
+    - Step 0: check_quota — verifica cuota mensual ANTES de leer el archivo (R-79)
     - Capa 1 DB: hash UNIQUE en tabla comprobantes (pre-OCR fast-path)
     - Capa 1 Redis: check_hash (pre-OCR, fire-and-forget fallback)
     - Capa 2: exact match (referencia + monto + fecha) via indice compuesto
     - Capa 3: scoring ponderado (Levenshtein + TF-IDF + monto + fecha)
     """
+    # 0. Verificar cuota mensual ANTES de leer el archivo (R-79).
+    #    Si la cuota fue superada, levanta HTTP 429 inmediatamente.
+    #    Duplicates (hash check) occur AFTER this step — a duplicate upload
+    #    with exceeded quota still returns 429 (per spec R-79 scenario 2).
+    await check_quota(usuario, session)
+
     # 1. Leer bytes del upload (con cap de tamanio).
     raw_bytes = await _read_upload(file)
 

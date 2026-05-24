@@ -107,3 +107,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()  # type: ignore[call-arg]
+
+# ---------------------------------------------------------------------------
+# Plan limits (Fase 7 — R-73)
+# ---------------------------------------------------------------------------
+# Monthly upload limits per plan. -1 means unlimited (enterprise).
+# Module-level constant — NOT a Settings field (never changes at runtime).
+PLAN_LIMITS: dict[str, int] = {"basic": 100, "pro": 500, "enterprise": -1}
