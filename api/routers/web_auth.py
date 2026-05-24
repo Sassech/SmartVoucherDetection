@@ -1,18 +1,25 @@
 """Router: POST /web/auth/login, /refresh, /logout — GET /web/auth/me.
 
-Covers: R-21 (login), R-22 (refresh), R-23 (logout), R-24 (me).
+Covers:
+  R-21 (login), R-22 (refresh), R-23 (logout), R-24 (me)
+  R-75 (register), R-76 (api-key generate), R-77 (api-key revoke), R-78 (api-key status)
 
-Design decisions (fase-4-design.md):
+Design decisions (fase-4-design.md + fase-7-design.md):
 - Login sets BOTH access_token (HttpOnly, 15min) and refresh_token (HttpOnly, 7d) cookies.
 - Refresh uses atomic rotate_jti (GETDEL + SET) — prevents replay on concurrent calls.
 - Login runs dummy bcrypt when user not found — prevents timing oracle (S-03).
 - Logout requires valid Bearer token (require_jwt) before invalidating JTI.
 - /me returns UsuarioPublic (no sensitive fields).
+- /register creates user with plan='basic', sin_cuota=False, rol='operador' (R-75).
+- /api-key (POST) generates 32-byte URL-safe token, stores prefix+bcrypt hash (R-76).
+- /api-key (DELETE) nullifies prefix+hash (R-77).
+- /api-key/status (GET) returns {has_key, prefix} without exposing hash (R-78).
 - All endpoints under /web/auth prefix; login/refresh skip require_jwt explicitly.
 """
 
 from __future__ import annotations
 
+import secrets
 import uuid
 
 import bcrypt
@@ -24,7 +31,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_redis, get_session
 from dependencies.auth_jwt import require_jwt
 from models.usuario import Usuario
-from schemas.auth import LoginRequest, TokenResponse, UsuarioPublic
+from schemas.auth import (
+    ApiKeyResponse,
+    ApiKeyStatus,
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+    UsuarioPublic,
+    UsuarioWithPlan,
+)
 from services.jwt_service import (
     create_access_token,
     create_refresh_token,
@@ -260,3 +275,108 @@ async def logout(
 async def me(usuario: Usuario = Depends(require_jwt)) -> UsuarioPublic:
     """GET /web/auth/me — return public user info for authenticated user."""
     return UsuarioPublic.model_validate(usuario)
+
+
+# ---------------------------------------------------------------------------
+# Fase 7 — Multi-user: register + API key endpoints (R-75/R-76/R-77/R-78)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/register", response_model=UsuarioWithPlan, status_code=status.HTTP_201_CREATED)
+async def register(
+    body: RegisterRequest,
+    db: AsyncSession = Depends(get_session),
+) -> UsuarioWithPlan:
+    """POST /web/auth/register — crear nuevo usuario con plan=basic (R-75).
+
+    Valida unicidad de email (409 si ya existe). Hashea password con bcrypt.
+    Retorna 201 con {id_usuario, correo, nombre, rol, plan}. Sin JWT.
+    """
+    # Check email uniqueness
+    existing = await _get_user_by_email(body.correo, db)
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
+    # Hash password with bcrypt
+    hashed = bcrypt.hashpw(body.contrasena.encode("utf-8"), bcrypt.gensalt()).decode()
+
+    # New users are assigned to the system org (SYSTEM_ORG_ID).
+    # Multi-tenant org selection is deferred to a future phase.
+    from models.seed import SYSTEM_ORG_ID  # noqa: PLC0415
+
+    new_user = Usuario(
+        nombre=body.nombre,
+        correo=str(body.correo),
+        contrasena_hash=hashed,
+        rol="operador",
+        plan="basic",
+        sin_cuota=False,
+        id_organizacion=SYSTEM_ORG_ID,
+    )
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+
+    return UsuarioWithPlan.model_validate(new_user)
+
+
+@router.post(
+    "/api-key",
+    response_model=ApiKeyResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_api_key(
+    usuario: Usuario = Depends(require_jwt),
+    db: AsyncSession = Depends(get_session),
+) -> ApiKeyResponse:
+    """POST /web/auth/api-key — generar (o regenerar) API key para usuario JWT (R-76).
+
+    Genera token_urlsafe(32), guarda prefix[:8] y bcrypt hash.
+    Sobreescribe cualquier key anterior. Retorna plaintext UNA vez.
+    """
+    plain_key = secrets.token_urlsafe(32)
+    prefix = plain_key[:8]
+    hashed = bcrypt.hashpw(plain_key.encode("utf-8"), bcrypt.gensalt()).decode()
+
+    usuario.token_api_prefix = prefix
+    usuario.token_api_hash = hashed
+    await db.commit()
+
+    return ApiKeyResponse(
+        api_key=plain_key,
+        message="API key generated. Store it securely — it will not be shown again.",
+    )
+
+
+@router.delete("/api-key", status_code=status.HTTP_200_OK)
+async def revoke_api_key(
+    usuario: Usuario = Depends(require_jwt),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    """DELETE /web/auth/api-key — revocar API key del usuario autenticado (R-77).
+
+    Nullifica token_api_hash y token_api_prefix.
+    """
+    usuario.token_api_hash = None
+    usuario.token_api_prefix = None
+    await db.commit()
+
+    return {"message": "API key revoked."}
+
+
+@router.get("/api-key/status", response_model=ApiKeyStatus)
+async def api_key_status(
+    usuario: Usuario = Depends(require_jwt),
+) -> ApiKeyStatus:
+    """GET /web/auth/api-key/status — estado del API key sin exponer hash (R-78).
+
+    Retorna {has_key: bool, prefix: str|null}.
+    """
+    has_key = usuario.token_api_prefix is not None
+    return ApiKeyStatus(
+        has_key=has_key,
+        prefix=usuario.token_api_prefix,
+    )
