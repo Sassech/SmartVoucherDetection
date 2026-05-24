@@ -6,16 +6,16 @@
  *
  * Props:
  *   plan      — "basic" | "pro" | "enterprise"
- *   used      — uploads consumed this month
+ *   used      — uploads consumed this month (null = loading)
  *   limit     — plan cap (-1 = unlimited)
- *   resetDate — ISO date string for quota reset (first day of next month)
+ *   resetDate — ISO date string for quota reset (null if unlimited)
  */
 
 interface QuotaCardProps {
   plan: string;
-  used: number;
+  used: number | null;
   limit: number;
-  resetDate: string;
+  resetDate: string | null;
 }
 
 const PLAN_LABELS: Record<string, string> = {
@@ -44,7 +44,9 @@ function formatResetDate(isoDate: string): string {
 
 export function QuotaCard({ plan, used, limit, resetDate }: QuotaCardProps) {
   const unlimited = limit === -1;
-  const pct = unlimited ? 0 : Math.min(100, Math.round((used / limit) * 100));
+  const loading = used === null;
+  const usedVal = used ?? 0;
+  const pct = unlimited || loading ? 0 : Math.min(100, Math.round((usedVal / limit) * 100));
   const labelKey = plan.toLowerCase();
   const planLabel = PLAN_LABELS[labelKey] ?? plan;
   const badgeStyle = PLAN_BADGE_STYLES[labelKey] ?? PLAN_BADGE_STYLES.basic;
@@ -87,22 +89,26 @@ export function QuotaCard({ plan, used, limit, resetDate }: QuotaCardProps) {
             Uploads this month
           </span>
           <span className="text-base font-semibold text-[var(--color-on-surface)]">
-            {unlimited ? (
+            {loading ? (
+              <span className="text-sm font-normal text-[var(--color-on-surface-variant)]">
+                Loading…
+              </span>
+            ) : unlimited ? (
               <>
-                {used}
+                {usedVal}
                 <span className="text-sm font-normal text-[var(--color-on-surface-variant)]"> / Unlimited</span>
               </>
             ) : (
               <>
-                {used}
+                {usedVal}
                 <span className="text-sm font-normal text-[var(--color-on-surface-variant)]"> / {limit}</span>
               </>
             )}
           </span>
         </div>
 
-        {/* Progress bar — hidden for unlimited plans */}
-        {!unlimited && (
+        {/* Progress bar — hidden for unlimited plans and while loading */}
+        {!unlimited && !loading && (
           <div role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${pct}% of monthly quota used`}>
             <div className="h-2 w-full bg-[var(--color-surface-container)] rounded-full overflow-hidden">
               <div
@@ -117,20 +123,19 @@ export function QuotaCard({ plan, used, limit, resetDate }: QuotaCardProps) {
         )}
 
         {/* Reset date */}
-        <p className="text-xs text-[var(--color-on-surface-variant)]">
-          Quota resets on{" "}
-          <span className="font-medium text-[var(--color-on-surface)]">
-            {formatResetDate(resetDate)}
-          </span>
-        </p>
-
-        {/*
-         * TODO (deuda técnica): el conteo mensual requiere un endpoint
-         * dedicado en el backend que devuelva el uso del mes en curso.
-         * Actualmente se muestra el plan y la fecha de reset, pero `used`
-         * proviene de una estimación (historial total, no mensual).
-         * Ver: sdd/fase-7-multiuser — open item quota usage endpoint.
-         */}
+        {resetDate && (
+          <p className="text-xs text-[var(--color-on-surface-variant)]">
+            Quota resets on{" "}
+            <span className="font-medium text-[var(--color-on-surface)]">
+              {formatResetDate(resetDate)}
+            </span>
+          </p>
+        )}
+        {unlimited && (
+          <p className="text-xs text-[var(--color-on-surface-variant)]">
+            No monthly limit on this plan.
+          </p>
+        )}
       </div>
     </div>
   );

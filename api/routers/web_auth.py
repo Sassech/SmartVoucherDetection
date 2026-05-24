@@ -48,6 +48,7 @@ from services.jwt_service import (
     rotate_jti,
     store_jti,
 )
+from services.quota_service import get_quota_usage
 
 router = APIRouter(prefix="/web/auth", tags=["web-auth"])
 
@@ -380,3 +381,16 @@ async def api_key_status(
         has_key=has_key,
         prefix=usuario.token_api_prefix,
     )
+
+
+@router.get("/quota")
+async def quota_usage(
+    usuario: Usuario = Depends(require_jwt),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """GET /web/auth/quota — uso de cuota mensual del usuario autenticado.
+
+    Devuelve {used, limit, plan, reset_date, unlimited} para que el
+    frontend pueda mostrar el medidor de uso en /dashboard/profile.
+    """
+    return await get_quota_usage(usuario, session)

@@ -77,3 +77,56 @@ async def check_quota(usuario: Usuario, session: AsyncSession) -> None:
         )
 
     return None
+
+
+async def get_quota_usage(usuario: Usuario, session: AsyncSession) -> dict:
+    """Devuelve el uso de cuota del mes actual sin lanzar excepcion.
+
+    Usado por GET /web/auth/quota para que el frontend muestre
+    el medidor de uso sin necesitar que falle un upload primero.
+
+    Returns:
+        dict con keys: used, limit, plan, reset_date, unlimited (bool)
+    """
+    if usuario.sin_cuota:
+        return {
+            "used": 0,
+            "limit": -1,
+            "plan": usuario.plan,
+            "reset_date": None,
+            "unlimited": True,
+        }
+
+    limit = PLAN_LIMITS.get(usuario.plan, 0)
+
+    if limit == -1:
+        return {
+            "used": 0,
+            "limit": -1,
+            "plan": usuario.plan,
+            "reset_date": None,
+            "unlimited": True,
+        }
+
+    now = datetime.now(timezone.utc)
+    month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+
+    stmt = select(func.count()).where(
+        Comprobante.id_usuario == usuario.id_usuario,
+        Comprobante.fecha_registro >= month_start,
+    )
+    result = await session.execute(stmt)
+    used = result.scalar()
+
+    if now.month == 12:
+        reset_date = date(now.year + 1, 1, 1).isoformat()
+    else:
+        reset_date = date(now.year, now.month + 1, 1).isoformat()
+
+    return {
+        "used": used,
+        "limit": limit,
+        "plan": usuario.plan,
+        "reset_date": reset_date,
+        "unlimited": False,
+    }

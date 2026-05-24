@@ -7,19 +7,9 @@
  *   - Plan & Usage (QuotaCard)
  *   - API Key management (ApiKeyCard)
  *
- * Client component because it manages the interactive state of ApiKeyCard
- * (generate/revoke actions update the has_key + prefix display without a
- * full page reload).
- *
  * Data fetching:
+ *   - GET /web/auth/quota → { used, limit, plan, reset_date, unlimited }
  *   - GET /web/auth/api-key/status → { has_key, prefix }
- *   - GET /web/auth/me → { plan, ... }  (available via AuthContext user)
- *
- * Quota usage (TODO — deuda técnica):
- *   The backend does not yet expose a monthly-count endpoint.
- *   `used` is currently hardcoded to 0 pending a dedicated endpoint.
- *   The 429 on upload already enforces quota server-side.
- *   See: sdd/fase-7-multiuser — open item quota usage endpoint.
  */
 
 import { useEffect, useState, useCallback } from "react";
@@ -35,17 +25,12 @@ interface ApiKeyStatus {
   prefix: string | null;
 }
 
-// Plan quota limits — mirrors PLAN_LIMITS in api/config.py
-const PLAN_LIMITS: Record<string, number> = {
-  basic: 100,
-  pro: 500,
-  enterprise: -1,
-};
-
-function getResetDate(): string {
-  const now = new Date();
-  const firstOfNext = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return firstOfNext.toISOString().split("T")[0];
+interface QuotaUsage {
+  used: number;
+  limit: number;
+  plan: string;
+  reset_date: string | null;
+  unlimited: boolean;
 }
 
 // ── Page component ────────────────────────────────────────────────────────────
@@ -57,7 +42,10 @@ export default function ProfilePage() {
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [statusError, setStatusError] = useState<string | null>(null);
 
-  // Fetch API key status on mount
+  const [quota, setQuota] = useState<QuotaUsage | null>(null);
+  const [loadingQuota, setLoadingQuota] = useState(true);
+
+  // Fetch API key status
   const fetchKeyStatus = useCallback(async () => {
     setLoadingStatus(true);
     setStatusError(null);
@@ -75,9 +63,23 @@ export default function ProfilePage() {
     }
   }, []);
 
+  // Fetch quota usage
+  const fetchQuota = useCallback(async () => {
+    setLoadingQuota(true);
+    try {
+      const data = await fetchApi<QuotaUsage>("/api/web/auth/quota");
+      setQuota(data);
+    } catch {
+      // non-blocking — QuotaCard shows fallback if null
+    } finally {
+      setLoadingQuota(false);
+    }
+  }, []);
+
   useEffect(() => {
     void fetchKeyStatus();
-  }, [fetchKeyStatus]);
+    void fetchQuota();
+  }, [fetchKeyStatus, fetchQuota]);
 
   // Callbacks from ApiKeyCard — refresh status after generate or revoke
   const handleKeyGenerated = useCallback(() => {
@@ -87,11 +89,6 @@ export default function ProfilePage() {
   const handleKeyRevoked = useCallback(() => {
     void fetchKeyStatus();
   }, [fetchKeyStatus]);
-
-  // Derive plan info from AuthContext user
-  const plan = user?.plan ?? "basic";
-  const planLimit = PLAN_LIMITS[plan.toLowerCase()] ?? 100;
-  const resetDate = getResetDate();
 
   return (
     <div className="flex flex-col gap-6">
@@ -140,10 +137,10 @@ export default function ProfilePage() {
 
         {/* Quota card */}
         <QuotaCard
-          plan={plan}
-          used={0}       // TODO: replace with real monthly count once backend endpoint is available
-          limit={planLimit}
-          resetDate={resetDate}
+          plan={quota?.plan ?? user?.plan ?? "basic"}
+          used={loadingQuota ? null : (quota?.used ?? 0)}
+          limit={quota?.unlimited ? -1 : (quota?.limit ?? 100)}
+          resetDate={quota?.reset_date ?? null}
         />
 
         {/* API Key card */}
