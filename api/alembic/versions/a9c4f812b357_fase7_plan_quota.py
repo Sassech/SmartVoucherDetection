@@ -11,7 +11,7 @@ Cubre requerimientos R-70 (plan), R-71 (sin_cuota) y R-72 (indice).
 - CREATE INDEX ix_comprobantes_usuario_fecha ON comprobantes(id_usuario, fecha_registro DESC)
 
 Revision ID: a9c4f812b357
-Revises: f3a8e2d1c094
+Revises: a7f3b9c1d2e4
 Create Date: 2026-05-23
 """
 
@@ -26,7 +26,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "a9c4f812b357"
-down_revision: Union[str, Sequence[str], None] = "f3a8e2d1c094"
+down_revision: Union[str, Sequence[str], None] = "a7f3b9c1d2e4"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
