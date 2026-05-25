@@ -12,9 +12,9 @@
 
 ## Estado Actual
 
-- **Última fase activa:** Fase 6 — **COMPLETADA** ✅ (verify + archive cerrados)
-- **Última tarea completada:** `sdd-archive fase-6-cicd` — ciclo SDD completo (22/22 tareas, PASS WITH WARNINGS)
-- **Próximo paso:** PR develop → main → `git tag v1.0.0` → push
+- **Última fase activa:** Fase 7 — **COMPLETADA** ✅ (verify + archive cerrados, todos los warnings resueltos)
+- **Última tarea completada:** `sdd-archive fase-7-multiuser` — ciclo SDD completo (27/27 tareas, PASS — W1+W2 resueltos en commit 3901f5f)
+- **Próximo paso:** PR `fase-7-multiuser-backend` → `main` → migración producción → `alembic upgrade head`
 - **Bloqueadores:** ninguno
 
 ---
@@ -461,6 +461,29 @@
 > **sdd-archive:** openspec/changes/archive/2026-05-21-fase-6-cicd/ — 2026-05-21
 
 > **🏁 Lanzamiento v1.0** — pendiente: PR develop→main + `git tag v1.0.0`
+
+---
+
+# FASE 7 — Multi-User, API Keys, Cuota Mensual ✅ COMPLETADA
+
+> Objetivo: gestión de usuarios con autoregistro, planes de cuota mensual (basic=100, pro=500, enterprise=ilimitado) y API Keys via webapp.
+> **Branch**: `fase-7-multiuser-backend` | **~413 tests** | **3 commits** | **12/12 requirements PASS**
+
+- [x] **7.1** Migración Alembic — columnas `plan` + `sin_cuota` + índice compuesto `ix_comprobantes_usuario_fecha` (1b6801a)
+- [x] **7.2** `api/services/quota_service.py` — `check_quota()` + `get_quota_usage()` con PLAN_LIMITS constant
+- [x] **7.3** Schemas — `RegisterRequest`, `UsuarioWithPlan`, `ApiKeyResponse`, `ApiKeyStatus`
+- [x] **7.4** Endpoints auth — `POST /web/auth/register` + `POST/DELETE/GET /web/auth/api-key` + `GET /web/auth/quota`
+- [x] **7.5** Upload integration — `check_quota()` como step 0 (antes de MIME validation y OCR)
+- [x] **7.6** Tests TDD — 24 tests nuevos (9 unit + 5+7+3 integration), RED→GREEN comprobado
+- [x] **7.7** Frontend `/register` — split-panel form, inline errors, redirect a /login con banner
+- [x] **7.8** Frontend `/dashboard/profile` — QuotaCard (real usage via GET /web/auth/quota) + ApiKeyCard (generate/revoke modal)
+- [x] **7.9** Fix W1 — `GET /web/auth/quota` endpoint + QuotaCard fetches real `used` count (3901f5f)
+- [x] **7.10** Fix W2 — `test_ocr_service.py` usa `settings.llama_model_alias` en vez de hardcoded "GLM-OCR" (3901f5f)
+
+> **sdd-verify:** PASS WITH WARNINGS → resueltos → PASS (24 nuevos tests, 0 regresiones) — 2026-05-24
+> **sdd-archive:** `openspec/changes/archive/2026-05-24-fase-7-multiuser/` — 2026-05-24
+
+> **🏁 Fin Fase 7** — pendiente: PR `fase-7-multiuser-backend` → `main` + `alembic upgrade head` en producción
 
 ---
 

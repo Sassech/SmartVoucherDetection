@@ -5,9 +5,9 @@
 import Link from "next/link";
 import type { WebComprobanteItem } from "@/lib/types";
 
-function estadoBadge(estado: WebComprobanteItem["estado"]) {
+function estadoBadge(estado: WebComprobanteItem["estado_actual"]) {
   switch (estado) {
-    case "procesado":
+    case "valido":
       return (
         <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
           Válido
@@ -71,7 +71,7 @@ export function RecentActivity({ items }: RecentActivityProps) {
         <thead className="bg-[var(--color-surface-container-low)]">
           <tr>
             <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[var(--color-secondary)]">
-              Carga
+              Referencia
             </th>
             <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[var(--color-secondary)]">
               Estado
@@ -90,16 +90,16 @@ export function RecentActivity({ items }: RecentActivityProps) {
               <td className="px-5 py-3">
                 <div className="flex flex-col">
                   <span className="font-bold text-[var(--color-on-surface)] text-sm">
-                    {item.folio.slice(0, 12)}
+                    {(item.referencia ?? item.id_comprobante).slice(0, 12)}
                   </span>
                   <span className="text-[10px] text-[var(--color-secondary)]">
                     {item.fecha_deposito ?? "—"}
                   </span>
                 </div>
               </td>
-              <td className="px-5 py-3">{estadoBadge(item.estado)}</td>
+              <td className="px-5 py-3">{estadoBadge(item.estado_actual)}</td>
               <td className="px-5 py-3 text-right font-mono text-sm text-[var(--color-on-surface)]">
-                {item.monto !== null ? `$${item.monto.toLocaleString()}` : "—"}
+                {item.monto !== null ? `$${Number(item.monto).toLocaleString()}` : "—"}
               </td>
             </tr>
           ))}

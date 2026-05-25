@@ -31,3 +31,6 @@ results/
 # -- Exceptions ---
 dataset/bancario-mx/duplicates/
 .gitignore
+webapp/test-results/
+api/tests/e2e/
+webapp/playwright-report/

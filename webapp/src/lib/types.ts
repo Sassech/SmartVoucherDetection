@@ -3,34 +3,37 @@
  */
 
 export interface StatsResponse {
-  total_comprobantes: number;
-  pendientes: number;
-  procesados_hoy: number;
-  duplicados_detectados: number;
+  total_mes: number;
+  duplicados_mes: number;
+  tasa_error: number;
 }
 
 export interface WebComprobanteItem {
   id_comprobante: string;
-  folio: string;
-  monto: number | null;
-  banco: string | null;
+  imagen_path: string;
   referencia: string | null;
+  monto: string | number | null;
   fecha_deposito: string | null;
-  estado: "pendiente" | "procesado" | "duplicado" | "error" | "sospechoso" | "en_revision";
-  imagen_path: string | null;
-  texto_extraido: string | null;
+  banco: string | null;
+  estado_actual: "recibido" | "procesando" | "comparando" | "sospechoso" | "en_revision" | "valido" | "duplicado" | "error";
+  fecha_registro: string;
+  // Campos extendidos del endpoint de detalle
+  texto_extraido?: string | null;
+  numero_operacion?: string | null;
+  campos_extraidos?: Record<string, unknown> | null;
 }
 
 export interface WebListResponse {
   items: WebComprobanteItem[];
   total: number;
   page: number;
+  page_size: number;
   has_more: boolean;
 }
 
 export interface DecisionRequest {
-  decision: "valido" | "duplicado";
-  notas?: string;
+  accion: "aceptar" | "rechazar";
+  motivo?: string;
 }
 
 export interface FilterState {
