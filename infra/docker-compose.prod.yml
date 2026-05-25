@@ -87,6 +87,12 @@ services:
     extra_hosts:
       - "host-gateway:host-gateway"
     command: ["python", "-m", "celery", "-A", "celery_app", "worker", "--concurrency=2", "-l", "info"]
+    healthcheck:
+      test: ["CMD-SHELL", "/app/deps/bin/celery -A celery_app inspect ping --timeout 5 2>&1 | grep -q pong"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
     volumes:
       - uploads_data:/app/data/uploads
     networks:
