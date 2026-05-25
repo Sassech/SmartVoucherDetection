@@ -4,6 +4,10 @@
  * R-37, R-38, S-23, S-24, S-25, S-26, 4.D.3
  */
 
+// Force dynamic rendering — this page fetches live data per request.
+// Without this Next.js may serve a stale RSC payload from the build cache.
+export const dynamic = "force-dynamic";
+
 import { cookies } from "next/headers";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
@@ -194,54 +198,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* OCR Banner */}
-      <div className="bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] rounded-xl overflow-hidden flex flex-col md:flex-row">
-        {/* Left content */}
-        <div className="flex-1 p-6 flex flex-col justify-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
-            <span className="text-[11px] font-bold uppercase tracking-wider">
-              Motor Optimizado
-            </span>
-          </div>
-          <div>
-            <h2 className="text-xl font-bold leading-snug">
-              Inteligencia OCR Avanzada
-            </h2>
-            <p className="mt-2 text-sm opacity-80 leading-relaxed max-w-md">
-              Motor de reconocimiento óptico entrenado con millones de comprobantes bancarios. Precisión superior al 99% en condiciones estándar de digitalización.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
-              <span className="material-symbols-outlined text-[18px]">tune</span>
-              Configurar Motor
-            </button>
-            <button
-              type="button"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--color-on-primary-container)]/30 text-[var(--color-on-primary-container)] text-sm font-semibold hover:bg-white/10 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[18px]">list_alt</span>
-              Ver Registros
-            </button>
-          </div>
-        </div>
-
-        {/* Right decorative */}
-        <div className="w-full md:w-1/3 min-h-[200px] relative flex items-center justify-center bg-gradient-to-br from-[var(--color-primary)] via-[var(--color-primary-container)] to-[var(--color-surface-tint)]">
-          <div className="p-6 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
-            <span
-              className="material-symbols-outlined text-white"
-              style={{ fontSize: "64px" }}
-            >
-              memory
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

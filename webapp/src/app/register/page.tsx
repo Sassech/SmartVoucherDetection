@@ -120,6 +120,7 @@ export default function RegisterPage() {
 
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
+  const [nombreOrg, setNombreOrg] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -128,6 +129,7 @@ export default function RegisterPage() {
   // Client-side validation
   function validate(): string | null {
     if (!nombre.trim()) return "El nombre es requerido";
+    if (!nombreOrg.trim()) return "El nombre de la organización es requerido";
     if (contrasena.length < 8) return "La contraseña debe tener al menos 8 caracteres";
     if (contrasena !== confirmar) return "Las contraseñas no coinciden";
     return null;
@@ -148,7 +150,12 @@ export default function RegisterPage() {
       const res = await fetch("/api/web/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: nombre.trim(), correo, contrasena }),
+        body: JSON.stringify({
+          nombre: nombre.trim(),
+          correo,
+          contrasena,
+          nombre_organizacion: nombreOrg.trim(),
+        }),
       });
 
       if (res.status === 201) {
@@ -298,8 +305,26 @@ export default function RegisterPage() {
                 />
               </div>
 
-              {/* Email */}
+              {/* Organización */}
               <div className="sv-a sv-a3" style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                <label htmlFor="nombre-org" style={{ fontSize: "0.875rem", fontWeight: 500, color: "#141b2b" }}>
+                  Nombre de la organización
+                </label>
+                <Input
+                  id="nombre-org"
+                  type="text"
+                  autoComplete="organization"
+                  required
+                  value={nombreOrg}
+                  onChange={(e) => setNombreOrg(e.target.value)}
+                  placeholder="Mi Empresa S.A."
+                  aria-describedby={error ? "register-error" : undefined}
+                  className="sv-input"
+                />
+              </div>
+
+              {/* Email */}
+              <div className="sv-a sv-a4" style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
                 <label htmlFor="correo" style={{ fontSize: "0.875rem", fontWeight: 500, color: "#141b2b" }}>
                   Correo electrónico
                 </label>

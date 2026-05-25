@@ -7,7 +7,7 @@
  * - Concurrent 401s share one in-flight refresh (not N parallel refreshes).
  */
 
-import { getAccessToken, setAccessToken } from "./auth-context";
+import { getAccessToken, setAccessToken, waitForAuth } from "./auth-context";
 
 // ── Mutex ─────────────────────────────────────────────────────────────────────
 
@@ -55,6 +55,11 @@ export async function fetchApi<T>(
   url: string,
   options: RequestInit = {},
 ): Promise<T> {
+  // Wait for the silent refresh on mount to complete before sending any request.
+  // This prevents race conditions where pages fetch immediately on mount
+  // before AuthProvider has restored the access token from the refresh_token cookie.
+  await waitForAuth();
+
   const token = getAccessToken();
   const headers = new Headers(options.headers);
   if (token) {

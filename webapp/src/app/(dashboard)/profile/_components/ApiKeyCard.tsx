@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { fetchApi, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
@@ -100,12 +101,12 @@ function KeyModal({ plainKey, onClose }: KeyModalProps) {
     }
   }
 
-  return (
+  const content = (
     /* Backdrop */
     <div
       role="presentation"
       style={{
-        position: "fixed", inset: 0, zIndex: 50,
+        position: "fixed", inset: 0, zIndex: 9999,
         background: "rgba(0,0,0,0.45)", display: "flex",
         alignItems: "center", justifyContent: "center",
         padding: "1rem",
@@ -204,6 +205,8 @@ function KeyModal({ plainKey, onClose }: KeyModalProps) {
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
 
 // ── Confirm dialog ────────────────────────────────────────────────────────────
@@ -229,11 +232,11 @@ function ConfirmDialog({ onConfirm, onCancel, loading = false }: ConfirmDialogPr
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onCancel]);
 
-  return (
+  return createPortal(
     <div
       role="presentation"
       style={{
-        position: "fixed", inset: 0, zIndex: 50,
+        position: "fixed", inset: 0, zIndex: 9999,
         background: "rgba(0,0,0,0.45)", display: "flex",
         alignItems: "center", justifyContent: "center", padding: "1rem",
       }}
@@ -282,7 +285,8 @@ function ConfirmDialog({ onConfirm, onCancel, loading = false }: ConfirmDialogPr
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -303,7 +307,9 @@ export function ApiKeyCard({ hasKey, prefix, onGenerate, onRevoke }: ApiKeyCardP
         method: "POST",
       });
       setModalKey(data.api_key);
-      onGenerate();
+      // onGenerate() is called when the modal closes — NOT here.
+      // Calling it here triggers a parent re-render that unmounts the modal
+      // before the user can copy the key.
     } catch (err) {
       if (err instanceof ApiError) {
         setError(`Failed to generate key (${err.status}): ${err.message}`);
@@ -313,7 +319,7 @@ export function ApiKeyCard({ hasKey, prefix, onGenerate, onRevoke }: ApiKeyCardP
     } finally {
       setGenerating(false);
     }
-  }, [onGenerate]);
+  }, []);
 
   const handleRevoke = useCallback(async () => {
     setError(null);
@@ -336,9 +342,15 @@ export function ApiKeyCard({ hasKey, prefix, onGenerate, onRevoke }: ApiKeyCardP
 
   return (
     <>
-      {/* One-time key modal */}
+      {/* One-time key modal — onGenerate refreshes parent AFTER user closes */}
       {modalKey && (
-        <KeyModal plainKey={modalKey} onClose={() => setModalKey(null)} />
+        <KeyModal
+          plainKey={modalKey}
+          onClose={() => {
+            setModalKey(null);
+            onGenerate();
+          }}
+        />
       )}
 
       {/* Revoke confirmation */}

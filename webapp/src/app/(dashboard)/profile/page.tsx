@@ -36,7 +36,7 @@ interface QuotaUsage {
 // ── Page component ────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
 
   const [keyStatus, setKeyStatus] = useState<ApiKeyStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -76,10 +76,13 @@ export default function ProfilePage() {
     }
   }, []);
 
+  // Wait for AuthProvider to complete the silent refresh before fetching.
+  // Without this guard, on page reload fetchApi runs with no token → 401.
   useEffect(() => {
+    if (!isReady) return;
     void fetchKeyStatus();
     void fetchQuota();
-  }, [fetchKeyStatus, fetchQuota]);
+  }, [isReady, fetchKeyStatus, fetchQuota]);
 
   // Callbacks from ApiKeyCard — refresh status after generate or revoke
   const handleKeyGenerated = useCallback(() => {
