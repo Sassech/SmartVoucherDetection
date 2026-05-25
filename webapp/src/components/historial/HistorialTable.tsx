@@ -9,9 +9,9 @@ import type { WebComprobanteItem } from "@/lib/types";
 
 type ItemWithSimilitud = WebComprobanteItem & { similitud?: number };
 
-function StatusBadge({ estado }: { estado: WebComprobanteItem["estado"] }) {
+function StatusBadge({ estado }: { estado: WebComprobanteItem["estado_actual"] }) {
   switch (estado) {
-    case "procesado":
+    case "valido":
       return (
         <span className="px-3 py-1 rounded-[4px] bg-green-100 text-green-800 text-[11px] font-bold uppercase">
           Válido
@@ -39,6 +39,14 @@ function StatusBadge({ estado }: { estado: WebComprobanteItem["estado"] }) {
       return (
         <span className="px-3 py-1 rounded-[4px] bg-red-50 text-red-500 text-[11px] font-bold uppercase">
           Error
+        </span>
+      );
+    case "recibido":
+    case "procesando":
+    case "comparando":
+      return (
+        <span className="px-3 py-1 rounded-[4px] bg-slate-100 text-slate-500 text-[11px] font-bold uppercase">
+          Procesando
         </span>
       );
     default:
@@ -122,13 +130,13 @@ export function HistorialTable({
                     {item.fecha_deposito ?? "—"}
                   </td>
                   <td className="px-6 py-4 font-mono text-sm text-blue-600 font-medium">
-                    {item.folio.slice(0, 14)}
+                    {(item.referencia ?? item.id_comprobante).slice(0, 14)}
                   </td>
                   <td className="px-6 py-4 text-sm font-semibold text-[var(--color-on-surface)]">
-                    {item.monto !== null ? `$${item.monto.toLocaleString()}` : "—"}
+                    {item.monto !== null ? `$${Number(item.monto).toLocaleString()}` : "—"}
                   </td>
                   <td className="px-6 py-4">
-                    <StatusBadge estado={item.estado} />
+                    <StatusBadge estado={item.estado_actual} />
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
@@ -154,7 +162,7 @@ export function HistorialTable({
                         onRowClick(item.id_comprobante);
                       }}
                       className="p-2 text-slate-400 hover:text-[var(--color-primary)] transition-colors"
-                      aria-label={`Ver comprobante ${item.folio.slice(0, 8)}`}
+                      aria-label={`Ver comprobante ${(item.referencia ?? item.id_comprobante).slice(0, 8)}`}
                       title="Ver Detalles"
                     >
                       <span className="material-symbols-outlined text-[20px]">visibility</span>
@@ -163,7 +171,7 @@ export function HistorialTable({
                       type="button"
                       onClick={(e) => e.stopPropagation()}
                       className="p-2 text-slate-400 hover:text-[var(--color-primary)] transition-colors"
-                      aria-label={`Descargar comprobante ${item.folio.slice(0, 8)}`}
+                      aria-label={`Descargar comprobante ${(item.referencia ?? item.id_comprobante).slice(0, 8)}`}
                       title="Descargar"
                     >
                       <span className="material-symbols-outlined text-[20px]">download</span>

@@ -16,16 +16,16 @@ vi.mock("next/headers", () => ({
 }));
 
 const mockStatsData = {
-  total_comprobantes: 10,
-  pendientes: 2,
-  procesados_hoy: 5,
-  duplicados_detectados: 1,
+  total_mes: 10,
+  duplicados_mes: 1,
+  tasa_error: 3.5,
 };
 
 const mockListData = {
   items: [],
   total: 0,
   page: 1,
+  page_size: 10,
   has_more: false,
 };
 
@@ -55,18 +55,16 @@ describe("Dashboard page", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders 4 KpiCards with fetched stats", async () => {
+  it("renders KpiCards with fetched stats", async () => {
     const jsx = await DashboardPage();
     render(jsx);
 
-    expect(screen.getByText("Total Comprobantes")).toBeInTheDocument();
+    expect(screen.getByText("Total del Mes")).toBeInTheDocument();
     expect(screen.getByText("10")).toBeInTheDocument();
-    expect(screen.getByText("Pendientes")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("Procesados Hoy")).toBeInTheDocument();
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("Duplicados Detectados")).toBeInTheDocument();
+    expect(screen.getByText("Duplicados del Mes")).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("Tasa de Error")).toBeInTheDocument();
+    expect(screen.getByText("3.5%")).toBeInTheDocument();
   });
 
   it("renders RecentActivity section", async () => {

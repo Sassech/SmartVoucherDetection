@@ -30,11 +30,11 @@ export default async function DashboardPage() {
     const cookieStore = await cookies();
     const token = cookieStore.get("access_token")?.value;
 
-    const baseUrl = process.env.BACKEND_URL ?? "http://localhost:8000";
+    const baseUrl = process.env.API_BASE_URL ?? "http://api:8000";
 
     [stats, recentItems] = await Promise.all([
-      fetchWithToken<StatsResponse>(`${baseUrl}/api/web/stats/`, token),
-      fetchWithToken<WebListResponse>(`${baseUrl}/api/web/comprobantes/?limit=10`, token),
+      fetchWithToken<StatsResponse>(`${baseUrl}/web/stats/`, token),
+      fetchWithToken<WebListResponse>(`${baseUrl}/web/comprobantes/?page_size=10`, token),
     ]);
   } catch (err) {
     error = err instanceof Error ? err.message : "Error desconocido";
@@ -91,42 +91,29 @@ export default async function DashboardPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          label="Total Procesados"
-          value={stats.total_comprobantes}
+          label="Total del Mes"
+          value={stats.total_mes}
           icon="analytics"
           iconBgClass="bg-[var(--color-surface-container)]"
           iconColorClass="text-[var(--color-primary)]"
-          badge="+12.5%"
           badgeColorClass="text-[var(--color-secondary)]"
         />
         <KpiCard
-          label="Validados"
-          value={stats.procesados_hoy}
-          icon="check_circle"
-          iconBgClass="bg-green-50"
-          iconColorClass="text-green-600"
-          valueColorClass="text-green-600"
-          badge="94% Tasa"
-          badgeColorClass="text-green-600"
-        />
-        <KpiCard
-          label="Duplicados"
-          value={stats.duplicados_detectados}
+          label="Duplicados del Mes"
+          value={stats.duplicados_mes}
           icon="content_copy"
           iconBgClass="bg-red-50"
           iconColorClass="text-red-600"
           valueColorClass="text-red-600"
-          badge="2.1% Error"
           badgeColorClass="text-red-600"
         />
         <KpiCard
-          label="Pendientes"
-          value={stats.pendientes}
+          label="Tasa de Error"
+          value={`${stats.tasa_error.toFixed(1)}%`}
           icon="warning"
           iconBgClass="bg-orange-50"
           iconColorClass="text-orange-600"
           valueColorClass="text-orange-600"
-          badge="Acción Requerida"
           badgeColorClass="text-orange-600"
         />
       </div>

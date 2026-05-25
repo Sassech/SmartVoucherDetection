@@ -8,51 +8,31 @@ import { useState } from "react";
 import { fetchApi } from "@/lib/api";
 import type { WebComprobanteItem } from "@/lib/types";
 
-interface DuplicateCandidate {
-  id_comprobante_original: string;
-  score_similitud: number;
-}
-
-function parseCandidates(texto: string | null): DuplicateCandidate[] {
-  if (!texto) return [];
-  try {
-    const parsed = JSON.parse(texto) as unknown;
-    if (Array.isArray(parsed)) {
-      return parsed as DuplicateCandidate[];
-    }
-    return [];
-  } catch {
-    return [];
-  }
-}
-
-function estadoLabel(estado: WebComprobanteItem["estado"]): string {
+function estadoLabel(estado: WebComprobanteItem["estado_actual"]): string {
   switch (estado) {
-    case "procesado": return "Válido";
+    case "valido": return "Válido";
     case "duplicado": return "Duplicado";
     case "sospechoso": return "Sospechoso";
     case "en_revision": return "En Revisión";
     case "error": return "Error";
-    default: return "Pendiente";
+    default: return "Procesando";
   }
 }
 
 interface DuplicatePanelProps {
   item: WebComprobanteItem;
-  onDecision?: (decision: "valido" | "duplicado") => void;
+  onDecision?: (decision: "aceptar" | "rechazar") => void;
 }
 
 export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
-  const [estado, setEstado] = useState<WebComprobanteItem["estado"]>(item.estado);
+  const [estado, setEstado] = useState<WebComprobanteItem["estado_actual"]>(item.estado_actual);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [comment, setComment] = useState("");
+  const [motivo, setMotivo] = useState("");
 
-  const candidates = parseCandidates(item.texto_extraido ?? null);
-
-  async function handleDecision(decision: "valido" | "duplicado") {
+  async function handleDecision(accion: "aceptar" | "rechazar") {
     const prevEstado = estado;
-    setEstado(decision === "valido" ? "procesado" : "duplicado");
+    setEstado(accion === "aceptar" ? "valido" : "duplicado");
     setError(null);
     setPending(true);
 
@@ -60,9 +40,9 @@ export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
       await fetchApi(`/api/web/comprobantes/${item.id_comprobante}/decision`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decision, comment }),
+        body: JSON.stringify({ accion, motivo: motivo || undefined }),
       });
-      onDecision?.(decision);
+      onDecision?.(accion);
     } catch (err) {
       setEstado(prevEstado);
       setError(err instanceof Error ? err.message : "Error al procesar la decisión");
@@ -87,52 +67,13 @@ export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
       </div>
 
       <div className="p-5 flex flex-col gap-5">
-        {/* Candidates table */}
-        {candidates.length > 0 && (
-          <div>
-            <div className="border border-[var(--color-error-container)]/30 bg-[var(--color-error-container)]/5 rounded-lg overflow-hidden">
-              {/* Warning header */}
-              <div className="px-4 py-3 border-b border-[var(--color-error-container)]/30 bg-red-50/50 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[var(--color-error)] text-[18px]">
-                  content_copy
-                </span>
-                <h3 className="text-xs font-semibold text-[var(--color-error)]">
-                  Posibles Duplicados Encontrados
-                </h3>
-              </div>
-              <table className="w-full text-left text-sm">
-                <thead className="bg-[var(--color-surface-container-low)] border-b border-[var(--color-outline-variant)]">
-                  <tr>
-                    <th className="px-4 py-2 text-[10px] font-bold uppercase text-[var(--color-secondary)]">
-                      ID Original
-                    </th>
-                    <th className="px-4 py-2 text-[10px] font-bold uppercase text-[var(--color-secondary)] text-right">
-                      Similitud
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-outline-variant)]/50">
-                  {candidates.map((c) => (
-                    <tr key={c.id_comprobante_original} className="hover:bg-[var(--color-surface-container-low)] transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs text-[var(--color-primary)]">
-                        {c.id_comprobante_original}
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs font-semibold text-[var(--color-on-surface)]">
-                        {Math.round(c.score_similitud * 100)}%
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-3 flex items-start gap-2 bg-[var(--color-surface-container-high)]/50 p-3 rounded-lg">
-              <span className="material-symbols-outlined text-[var(--color-secondary)] text-[18px] shrink-0">info</span>
-              <p className="text-[11px] text-[var(--color-secondary)] italic leading-relaxed">
-                Este registro comparte características similares con entradas previas. Verifique antes de confirmar.
-              </p>
-            </div>
-          </div>
-        )}
+        {/* No duplicate candidates available — texto_extraido is plain OCR text, not JSON */}
+        <div className="rounded-lg bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] px-4 py-3 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[var(--color-secondary)] text-[18px]">info</span>
+          <p className="text-xs text-[var(--color-secondary)]">
+            No hay candidatos duplicados disponibles
+          </p>
+        </div>
 
         {/* Reviewer comment */}
         <div>
@@ -144,8 +85,8 @@ export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
           </label>
           <textarea
             id="reviewer-comment"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
             placeholder="Explique su decisión aquí..."
             rows={3}
             className="w-full rounded-lg border border-[var(--color-outline-variant)] p-3 text-sm text-[var(--color-on-surface)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] resize-none placeholder:text-[var(--color-outline)]"
@@ -164,7 +105,7 @@ export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
         <div className="flex flex-col gap-3 mt-auto">
           <button
             type="button"
-            onClick={() => void handleDecision("duplicado")}
+            onClick={() => void handleDecision("rechazar")}
             disabled={pending}
             className="w-full flex items-center justify-center gap-2 bg-[var(--color-error)] text-white py-3 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50 shadow-sm"
           >
@@ -173,7 +114,7 @@ export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
           </button>
           <button
             type="button"
-            onClick={() => void handleDecision("valido")}
+            onClick={() => void handleDecision("aceptar")}
             disabled={pending}
             className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white py-3 rounded-lg text-sm font-bold hover:bg-emerald-600 transition-colors disabled:opacity-50 shadow-sm"
           >

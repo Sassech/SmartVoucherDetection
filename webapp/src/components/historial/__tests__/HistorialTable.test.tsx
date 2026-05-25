@@ -10,13 +10,13 @@ import type { WebComprobanteItem } from "@/lib/types";
 
 const makeItem = (overrides: Partial<WebComprobanteItem>): WebComprobanteItem => ({
   id_comprobante: "id-001",
-  folio: "abcdef1234567890",
   monto: 500,
   banco: "BANAMEX",
   referencia: "REF-001",
   fecha_deposito: "2024-01-15",
-  estado: "pendiente",
-  imagen_path: null,
+  estado_actual: "recibido",
+  imagen_path: "",
+  fecha_registro: "2024-01-15T10:00:00Z",
   texto_extraido: null,
   ...overrides,
 });
@@ -36,8 +36,8 @@ describe("HistorialTable", () => {
 
   it("renders rows when items provided", () => {
     const items = [
-      makeItem({ id_comprobante: "id-001", folio: "aaaaaaaa12345678" }),
-      makeItem({ id_comprobante: "id-002", folio: "bbbbbbbb87654321" }),
+      makeItem({ id_comprobante: "id-001", referencia: "aaaaaaaa12345678" }),
+      makeItem({ id_comprobante: "id-002", referencia: "bbbbbbbb87654321" }),
     ];
     render(
       <HistorialTable
@@ -47,14 +47,14 @@ describe("HistorialTable", () => {
         onRowClick={vi.fn()}
       />,
     );
-    expect(screen.getByText("aaaaaaaa")).toBeInTheDocument();
-    expect(screen.getByText("bbbbbbbb")).toBeInTheDocument();
+    expect(screen.getByText("aaaaaaaa12345")).toBeInTheDocument();
+    expect(screen.getByText("bbbbbbbb87654")).toBeInTheDocument();
   });
 
   it("row click calls onRowClick with correct id (S-31)", async () => {
     const user = userEvent.setup();
     const onRowClick = vi.fn();
-    const items = [makeItem({ id_comprobante: "abc-123", folio: "folio001xxxxxxxx" })];
+    const items = [makeItem({ id_comprobante: "abc-123", referencia: "REF-folio001" })];
     render(
       <HistorialTable
         items={items}
@@ -95,9 +95,9 @@ describe("HistorialTable", () => {
     expect(screen.queryByRole("button", { name: /siguiente/i })).not.toBeInTheDocument();
   });
 
-  it("badge renders correct variant for each status", () => {
+  it("badge renders correct variant for duplicado status", () => {
     const items = [
-      makeItem({ id_comprobante: "a", folio: "folioa00xxxxxxxx", estado: "duplicado" }),
+      makeItem({ id_comprobante: "a", estado_actual: "duplicado" }),
     ];
     render(
       <HistorialTable
@@ -107,11 +107,11 @@ describe("HistorialTable", () => {
         onRowClick={vi.fn()}
       />,
     );
-    expect(screen.getByText("duplicado")).toBeInTheDocument();
+    expect(screen.getByText("Duplicado")).toBeInTheDocument();
   });
 
-  it("folio truncated to 8 chars", () => {
-    const items = [makeItem({ folio: "abcdef1234567890" })];
+  it("referencia truncated to 14 chars", () => {
+    const items = [makeItem({ referencia: "abcdef1234567890" })];
     render(
       <HistorialTable
         items={items}
@@ -120,7 +120,7 @@ describe("HistorialTable", () => {
         onRowClick={vi.fn()}
       />,
     );
-    expect(screen.getByText("abcdef12")).toBeInTheDocument();
+    expect(screen.getByText("abcdef12345678")).toBeInTheDocument();
     expect(screen.queryByText("abcdef1234567890")).not.toBeInTheDocument();
   });
 

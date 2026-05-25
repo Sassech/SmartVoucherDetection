@@ -32,18 +32,18 @@ const mockListData = {
   items: [
     {
       id_comprobante: "abc-123",
-      folio: "folio00112345678",
       monto: 1000,
       banco: "BANAMEX",
       referencia: "REF-001",
       fecha_deposito: "2024-01-15",
-      estado: "procesado",
-      imagen_path: null,
+      estado_actual: "valido",
+      imagen_path: "",
       texto_extraido: null,
     },
   ],
   total: 1,
   page: 1,
+  page_size: 20,
   has_more: false,
 };
 
@@ -57,8 +57,8 @@ describe("Historial page", () => {
     render(<HistorialPage />);
 
     // Wait for data to load
-    expect(await screen.findByText("folio001")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /pendiente/i })).toBeInTheDocument();
+    expect(await screen.findByText("REF-001")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /válido/i })).toBeInTheDocument();
   });
 
   it("changing filter calls router.push with updated params", async () => {
@@ -66,17 +66,17 @@ describe("Historial page", () => {
     render(<HistorialPage />);
 
     // Wait for initial render
-    await screen.findByText("folio001");
+    await screen.findByText("REF-001");
 
-    await user.click(screen.getByRole("button", { name: /pendiente/i }));
+    await user.click(screen.getByRole("button", { name: /válido/i }));
 
-    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("status=pendiente"));
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("status=valido"));
   });
 
   it("page resets to 1 on filter change", async () => {
     const user = userEvent.setup();
     render(<HistorialPage />);
-    await screen.findByText("folio001");
+    await screen.findByText("REF-001");
 
     await user.click(screen.getByRole("button", { name: /duplicado/i }));
 

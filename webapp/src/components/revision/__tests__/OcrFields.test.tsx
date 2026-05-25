@@ -9,13 +9,13 @@ import type { WebComprobanteItem } from "@/lib/types";
 
 const baseItem: WebComprobanteItem = {
   id_comprobante: "id-001",
-  folio: "folio001xxxxxxxx",
   monto: 1500,
   banco: "BBVA",
   referencia: "REF-XYZ",
   fecha_deposito: "2024-06-15",
-  estado: "en_revision",
-  imagen_path: null,
+  estado_actual: "en_revision",
+  imagen_path: "",
+  fecha_registro: "2024-06-15T10:00:00Z",
   texto_extraido: null,
 };
 

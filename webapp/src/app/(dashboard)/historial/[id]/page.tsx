@@ -10,9 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import type { WebComprobanteItem } from "@/lib/types";
 import type { BadgeProps } from "@/components/ui/badge";
 
-function estadoToBadgeVariant(estado: WebComprobanteItem["estado"]): BadgeProps["variant"] {
+function estadoToBadgeVariant(estado: WebComprobanteItem["estado_actual"]): BadgeProps["variant"] {
   switch (estado) {
-    case "procesado": return "valido";
+    case "valido": return "valido";
     case "duplicado": return "duplicado";
     case "sospechoso": return "sospechoso";
     case "en_revision": return "en_revision";
@@ -21,21 +21,23 @@ function estadoToBadgeVariant(estado: WebComprobanteItem["estado"]): BadgeProps[
   }
 }
 
-function estadoLabel(estado: WebComprobanteItem["estado"]): string {
-  const map: Record<WebComprobanteItem["estado"], string> = {
-    pendiente: "Pendiente",
-    procesado: "Válido",
+function estadoLabel(estado: WebComprobanteItem["estado_actual"]): string {
+  const map: Partial<Record<WebComprobanteItem["estado_actual"], string>> = {
+    recibido: "Recibido",
+    procesando: "Procesando",
+    comparando: "Comparando",
+    valido: "Válido",
     duplicado: "Duplicado",
     error: "Error",
     sospechoso: "Sospechoso",
     en_revision: "En Revisión",
   };
-  return map[estado] ?? estado;
+  return map[estado] ?? estado ?? "Desconocido";
 }
 
-function estadoIcon(estado: WebComprobanteItem["estado"]): string {
+function estadoIcon(estado: WebComprobanteItem["estado_actual"]): string {
   switch (estado) {
-    case "procesado": return "check_circle";
+    case "valido": return "check_circle";
     case "duplicado": return "content_copy";
     case "sospechoso": return "warning";
     case "error": return "error";
@@ -43,9 +45,9 @@ function estadoIcon(estado: WebComprobanteItem["estado"]): string {
   }
 }
 
-function estadoIconColor(estado: WebComprobanteItem["estado"]): string {
+function estadoIconColor(estado: WebComprobanteItem["estado_actual"]): string {
   switch (estado) {
-    case "procesado": return "text-green-500";
+    case "valido": return "text-green-500";
     case "duplicado": return "text-red-500";
     case "sospechoso": return "text-orange-500";
     case "error": return "text-red-600";
@@ -99,14 +101,14 @@ export default async function HistorialDetailPage({ params }: Props) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("access_token")?.value;
-    const baseUrl = process.env.BACKEND_URL ?? "http://localhost:8000";
+    const baseUrl = process.env.API_BASE_URL ?? "http://api:8000";
 
     const headers: Record<string, string> = {};
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const res = await fetch(`${baseUrl}/api/web/comprobantes/${id}`, {
+    const res = await fetch(`${baseUrl}/web/comprobantes/${id}`, {
       headers,
       cache: "no-store",
     });
@@ -166,16 +168,16 @@ export default async function HistorialDetailPage({ params }: Props) {
               ESTADO DEL ANÁLISIS
             </span>
             <div className="mt-2">
-              <Badge variant={estadoToBadgeVariant(item.estado)}>
-                {estadoLabel(item.estado)}
+              <Badge variant={estadoToBadgeVariant(item.estado_actual)}>
+                {estadoLabel(item.estado_actual)}
               </Badge>
             </div>
             <p className="text-xs text-[var(--color-on-surface-variant)] pt-1 font-mono">
-              {item.folio}
+              {item.referencia ?? item.id_comprobante.slice(0, 12)}
             </p>
           </div>
-          <span className={`material-symbols-outlined text-3xl ${estadoIconColor(item.estado)}`}>
-            {estadoIcon(item.estado)}
+          <span className={`material-symbols-outlined text-3xl ${estadoIconColor(item.estado_actual)}`}>
+            {estadoIcon(item.estado_actual)}
           </span>
         </div>
 
@@ -236,7 +238,7 @@ export default async function HistorialDetailPage({ params }: Props) {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={item.imagen_path}
-                  alt={`Comprobante ${item.folio}`}
+                  alt={`Comprobante ${item.referencia ?? item.id_comprobante}`}
                   className="w-full h-full object-contain transition-transform group-hover:scale-105 duration-700"
                 />
                 <div className="absolute inset-0 bg-[var(--color-primary)]/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -304,8 +306,8 @@ export default async function HistorialDetailPage({ params }: Props) {
                 </span>
               </div>
               <div className="px-6 py-3 grid grid-cols-2 hover:bg-slate-50 transition-colors items-center">
-                <span className="text-sm text-[var(--color-secondary)] font-medium">Folio / ID</span>
-                <span className="text-xs font-mono text-blue-600">{item.folio}</span>
+                <span className="text-sm text-[var(--color-secondary)] font-medium">ID de Comprobante</span>
+                <span className="text-xs font-mono text-blue-600">{item.referencia ?? item.id_comprobante}</span>
               </div>
             </div>
 

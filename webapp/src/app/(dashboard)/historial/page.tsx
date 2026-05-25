@@ -32,7 +32,7 @@ function buildUrl(filter: FilterState, page: number): string {
 
 function buildApiUrl(filter: FilterState, page: number): string {
   const params = new URLSearchParams();
-  params.set("limit", "20");
+  params.set("page_size", "20");
   params.set("page", String(page));
   if (filter.status.length > 0) {
     params.set("status", filter.status.join(","));

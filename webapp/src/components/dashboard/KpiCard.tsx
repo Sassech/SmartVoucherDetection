@@ -4,7 +4,7 @@
 
 interface KpiCardProps {
   label: string;
-  value: number;
+  value: number | string;
   icon: string;
   iconBgClass?: string;
   iconColorClass?: string;
@@ -40,7 +40,7 @@ export function KpiCard({
           {label}
         </p>
         <p className={`text-2xl font-semibold tracking-[-0.02em] leading-8 mt-1 ${valueColorClass}`}>
-          {value.toLocaleString()}
+          {typeof value === "number" ? value.toLocaleString() : value}
         </p>
       </div>
     </div>

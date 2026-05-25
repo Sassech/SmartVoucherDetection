@@ -9,7 +9,7 @@ import type { FilterState } from "@/lib/types";
 
 const STATUS_OPTIONS = [
   { value: "todos", label: "Todos los Registros" },
-  { value: "procesado", label: "Válido" },
+  { value: "valido", label: "Válido" },
   { value: "duplicado", label: "Duplicado" },
   { value: "sospechoso", label: "Sospechoso" },
 ] as const;

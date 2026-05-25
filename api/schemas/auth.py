@@ -47,6 +47,7 @@ class UsuarioPublic(BaseModel):
     nombre: str
     rol: str
     id_organizacion: uuid.UUID
+    plan: str
 
 
 # ---------------------------------------------------------------------------

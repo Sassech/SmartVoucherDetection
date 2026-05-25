@@ -20,10 +20,10 @@ describe("FilterBar", () => {
     render(<FilterBar value={emptyFilter} onChange={onChange} />);
 
     // All status pills rendered
-    expect(screen.getByRole("button", { name: /pendiente/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /procesado/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /todos/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /válido/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /duplicado/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /error/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sospechoso/i })).toBeInTheDocument();
 
     // Date inputs empty
     expect(screen.getByLabelText(/fecha desde/i)).toHaveValue("");
@@ -35,20 +35,20 @@ describe("FilterBar", () => {
     const onChange = vi.fn();
     render(<FilterBar value={emptyFilter} onChange={onChange} />);
 
-    await user.click(screen.getByRole("button", { name: /pendiente/i }));
+    await user.click(screen.getByRole("button", { name: /válido/i }));
 
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ status: ["pendiente"] }),
+      expect.objectContaining({ status: ["valido"] }),
     );
   });
 
   it("clicking selected pill removes it", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    const selectedFilter: FilterState = { ...emptyFilter, status: ["pendiente"] };
+    const selectedFilter: FilterState = { ...emptyFilter, status: ["valido"] };
     render(<FilterBar value={selectedFilter} onChange={onChange} />);
 
-    await user.click(screen.getByRole("button", { name: /pendiente/i }));
+    await user.click(screen.getByRole("button", { name: /válido/i }));
 
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ status: [] }),
@@ -58,14 +58,14 @@ describe("FilterBar", () => {
   it("multiple pills can be selected (R-40)", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    // Simulate having "pendiente" already selected, now click "duplicado"
-    const selectedFilter: FilterState = { ...emptyFilter, status: ["pendiente"] };
+    // Simulate having "valido" already selected, now click "duplicado"
+    const selectedFilter: FilterState = { ...emptyFilter, status: ["valido"] };
     render(<FilterBar value={selectedFilter} onChange={onChange} />);
 
     await user.click(screen.getByRole("button", { name: /duplicado/i }));
 
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ status: ["pendiente", "duplicado"] }),
+      expect.objectContaining({ status: ["valido", "duplicado"] }),
     );
   });
 
@@ -123,9 +123,9 @@ describe("FilterBar", () => {
     const onChange = vi.fn();
     render(<FilterBar value={emptyFilter} onChange={onChange} />);
 
-    await user.click(screen.getByRole("button", { name: /procesado/i }));
+    await user.click(screen.getByRole("button", { name: /válido/i }));
     expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ status: ["procesado"] }),
+      expect.objectContaining({ status: ["valido"] }),
     );
   });
 
@@ -134,10 +134,10 @@ describe("FilterBar", () => {
     const onChange = vi.fn();
     render(<FilterBar value={emptyFilter} onChange={onChange} />);
 
-    await user.click(screen.getByRole("button", { name: /error/i }));
+    await user.click(screen.getByRole("button", { name: /duplicado/i }));
 
     expect(onChange).toHaveBeenCalledWith({
-      status: ["error"],
+      status: ["duplicado"],
       date_from: "",
       date_to: "",
     });
