@@ -97,15 +97,17 @@ def test_settings_has_cors_origins_field():
 
 
 def test_settings_cors_origins_default_is_localhost():
-    """El default de cors_origins incluye localhost:3000."""
+    """El default hardcoded del campo cors_origins incluye localhost:3000.
+
+    Inspeccionamos el default del campo directamente en vez de instanciar
+    Settings(), porque BaseSettings lee variables de entorno y el valor
+    real podría diferir entre ambientes (dev vs produccion).
+    """
     from config import Settings
 
-    s = Settings(
-        secret_key="a" * 32,
-        database_url="postgresql+asyncpg://u:p@localhost/db",
-        redis_url="redis://localhost",
-        llama_server_url="http://localhost:8080",
-    )
-    assert isinstance(s.cors_origins, list)
-    assert len(s.cors_origins) >= 1
-    assert "http://localhost:3000" in s.cors_origins
+    field = Settings.model_fields.get("cors_origins")
+    assert field is not None, "Settings debe tener campo cors_origins"
+    default_val = field.default
+    assert default_val is not None, "cors_origins debe tener un valor default"
+    assert isinstance(default_val, list)
+    assert "http://localhost:3000" in default_val

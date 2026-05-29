@@ -65,7 +65,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     try:
         try:
             conn = await test_engine.connect()
-        except OperationalError as exc:
+        except (OperationalError, OSError) as exc:
             pytest.skip(f"Postgres not reachable: {exc}")
 
         trans = await conn.begin()

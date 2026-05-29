@@ -19,5 +19,5 @@ async def test_select_one() -> None:
         async with SessionLocal() as session:
             result = await session.execute(text("SELECT 1"))
             assert result.scalar_one() == 1
-    except OperationalError as exc:
+    except (OperationalError, OSError) as exc:
         pytest.skip(f"Postgres not reachable: {exc}")

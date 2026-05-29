@@ -17,7 +17,7 @@ import pytest
 from fastapi import status
 from PIL import Image
 
-from dependencies.auth_api_key import require_api_key
+from dependencies.auth_any import require_user
 from main import app
 from models.seed import SYSTEM_USER_ID
 
@@ -32,13 +32,13 @@ def _make_png(size: tuple[int, int] = (50, 50)) -> bytes:
 
 @pytest.fixture
 def async_client():
-    """Async client with require_api_key overridden — no DB needed for Celery tests."""
+    """Async client with require_user overridden — no DB needed for Celery tests."""
     mock_usuario = MagicMock()
     mock_usuario.id_usuario = SYSTEM_USER_ID
-    app.dependency_overrides[require_api_key] = lambda: mock_usuario
+    app.dependency_overrides[require_user] = lambda: mock_usuario
     transport = httpx.ASGITransport(app=app)
     yield httpx.AsyncClient(transport=transport, base_url="http://test")
-    app.dependency_overrides.pop(require_api_key, None)
+    app.dependency_overrides.pop(require_user, None)
 
 
 # ---------------------------------------------------------------------------

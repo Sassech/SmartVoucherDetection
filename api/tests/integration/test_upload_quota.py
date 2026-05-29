@@ -3,7 +3,7 @@
 Estrategia:
 - Mismo patron que test_upload_endpoint.py: minimal app, mocks para
   extract_fields (llama-server), save_upload (filesystem).
-- Mock de require_api_key para controlar el usuario (plan, sin_cuota).
+- Mock de require_user para controlar el usuario (plan, sin_cuota).
 - Mock de quota_service.check_quota para verificar que se llama como step 0.
 
 Spec coverage (R-79):
@@ -25,7 +25,7 @@ from PIL import Image
 
 import routers.upload as upload_module
 from database import get_session
-from dependencies.auth_api_key import require_api_key
+from dependencies.auth_any import require_user
 from main import app
 
 # ---------------------------------------------------------------------------
@@ -80,7 +80,7 @@ def test_upload_returns_429_when_quota_exceeded(monkeypatch):
 
     # Usuario con cuota superada (plan=basic)
     usuario = _make_usuario(plan="basic")
-    app.dependency_overrides[require_api_key] = lambda: usuario
+    app.dependency_overrides[require_user] = lambda: usuario
 
     try:
         with TestClient(app) as client:
@@ -97,7 +97,7 @@ def test_upload_returns_429_when_quota_exceeded(monkeypatch):
         # OCR must NOT have been called
         assert ocr_called == [], "OCR was called despite quota exceeded — check_quota must be step 0"
     finally:
-        app.dependency_overrides.pop(require_api_key, None)
+        app.dependency_overrides.pop(require_user, None)
 
 
 def test_upload_passes_through_when_quota_available(monkeypatch):
@@ -144,7 +144,7 @@ def test_upload_passes_through_when_quota_available(monkeypatch):
     monkeypatch.setattr(upload_module, "set_hash", fake_set_hash)
 
     usuario = _make_usuario(plan="pro", sin_cuota=False)
-    app.dependency_overrides[require_api_key] = lambda: usuario
+    app.dependency_overrides[require_user] = lambda: usuario
 
     # Mock DB session to support the upload pipeline
     from collections.abc import AsyncGenerator
@@ -217,7 +217,7 @@ def test_upload_passes_through_when_quota_available(monkeypatch):
         # OCR must have been called — quota passed through
         assert ocr_called, "OCR was not called — quota check may have blocked unexpectedly"
     finally:
-        app.dependency_overrides.pop(require_api_key, None)
+        app.dependency_overrides.pop(require_user, None)
         app.dependency_overrides.pop(get_session, None)
 
 
@@ -237,7 +237,7 @@ def test_upload_quota_check_called_before_read(monkeypatch):
     monkeypatch.setattr(upload_module, "check_quota", fake_check_quota)
 
     usuario = _make_usuario(plan="pro")
-    app.dependency_overrides[require_api_key] = lambda: usuario
+    app.dependency_overrides[require_user] = lambda: usuario
 
     try:
         with TestClient(app) as client:
@@ -249,4 +249,4 @@ def test_upload_quota_check_called_before_read(monkeypatch):
 
         assert response.status_code == 429
     finally:
-        app.dependency_overrides.pop(require_api_key, None)
+        app.dependency_overrides.pop(require_user, None)

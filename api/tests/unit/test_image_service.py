@@ -20,7 +20,8 @@ from services.image_service import (
 )
 
 # Fixture compartida con el smoke test de OCR (Fase 0.5.2). No duplicamos.
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+# __file__ = tests/unit/test_image_service.py → .parent×4 = repo root
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 SAMPLE_PNG = REPO_ROOT / "infra" / "scripts" / "fixtures" / "sample_comprobante.png"
 
 

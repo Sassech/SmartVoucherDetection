@@ -75,6 +75,9 @@ def _session_allowing_register(
                     obj.id_usuario = uuid.uuid4()
                 inserted_user.append(obj)
 
+        async def flush(self):
+            pass
+
         async def commit(self):
             pass
 
@@ -124,7 +127,7 @@ def test_register_success_returns_201(register_client):
     body = response.json()
     assert body["correo"] == "nuevo@example.com"
     assert body["nombre"] == "Test User"
-    assert body["rol"] == "operador"
+    assert body["rol"] == "admin"  # first user of an org is always admin (R-75)
     assert body["plan"] == "basic"
     assert "id_usuario" in body
 

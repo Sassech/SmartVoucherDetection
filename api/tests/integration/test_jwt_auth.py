@@ -66,6 +66,7 @@ def _make_mock_usuario(
     mock.correo = correo
     mock.nombre = "Test User"
     mock.rol = "operador"
+    mock.plan = "basic"
     mock.deleted_at = None
     mock.contrasena_hash = bcrypt.hashpw(
         password.encode(), bcrypt.gensalt(rounds=4)
