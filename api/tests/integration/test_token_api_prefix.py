@@ -102,7 +102,7 @@ class TestTokenApiPrefixColumn:
         """S-11: Alembic migration file must exist with correct revision."""
         import pathlib
 
-        versions_dir = pathlib.Path(__file__).parent.parent / "alembic" / "versions"
+        versions_dir = pathlib.Path(__file__).parent.parent.parent / "alembic" / "versions"
         migration_files = list(versions_dir.glob("*add_token_api_prefix*.py"))
         assert len(migration_files) == 1, (
             f"Expected 1 migration file for token_api_prefix, found: {migration_files}"
@@ -113,7 +113,7 @@ class TestTokenApiPrefixColumn:
         import importlib.util
         import pathlib
 
-        versions_dir = pathlib.Path(__file__).parent.parent / "alembic" / "versions"
+        versions_dir = pathlib.Path(__file__).parent.parent.parent / "alembic" / "versions"
         migration_file = next(versions_dir.glob("*add_token_api_prefix*.py"))
         spec = importlib.util.spec_from_file_location("migration", migration_file)
         module = importlib.util.module_from_spec(spec)

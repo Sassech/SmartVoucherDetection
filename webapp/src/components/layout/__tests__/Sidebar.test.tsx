@@ -24,16 +24,16 @@ describe("Sidebar", () => {
   it("renders all three navigation links", () => {
     render(<Sidebar />);
 
-    expect(screen.getByRole("link", { name: /dashboard/i })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: /panel de control/i })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: /historial/i })).toHaveAttribute("href", "/historial");
-    expect(screen.getByRole("link", { name: /revisión/i })).toHaveAttribute("href", "/revision");
+    expect(screen.getByRole("link", { name: /cola de revisión/i })).toHaveAttribute("href", "/revision");
   });
 
-  it("marks Dashboard as active when pathname is /", () => {
+  it("marks Panel de Control as active when pathname is /", () => {
     vi.mocked(usePathname).mockReturnValue("/");
     render(<Sidebar />);
 
-    const dashLink = screen.getByRole("link", { name: /dashboard/i });
+    const dashLink = screen.getByRole("link", { name: /panel de control/i });
     expect(dashLink).toHaveAttribute("aria-current", "page");
   });
 
@@ -44,20 +44,20 @@ describe("Sidebar", () => {
     const histLink = screen.getByRole("link", { name: /historial/i });
     expect(histLink).toHaveAttribute("aria-current", "page");
 
-    const dashLink = screen.getByRole("link", { name: /dashboard/i });
+    const dashLink = screen.getByRole("link", { name: /panel de control/i });
     expect(dashLink).not.toHaveAttribute("aria-current");
   });
 
-  it("marks Revisión as active when pathname starts with /revision", () => {
+  it("marks Cola de Revisión as active when pathname starts with /revision", () => {
     vi.mocked(usePathname).mockReturnValue("/revision/abc-123");
     render(<Sidebar />);
 
-    const revLink = screen.getByRole("link", { name: /revisión/i });
+    const revLink = screen.getByRole("link", { name: /cola de revisión/i });
     expect(revLink).toHaveAttribute("aria-current", "page");
   });
 
   it("renders brand name", () => {
     render(<Sidebar />);
-    expect(screen.getByText("SmartVoucher")).toBeInTheDocument();
+    expect(screen.getByText("AutoDeposit")).toBeInTheDocument();
   });
 });

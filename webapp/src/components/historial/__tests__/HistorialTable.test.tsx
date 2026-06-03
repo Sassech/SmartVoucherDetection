@@ -47,8 +47,8 @@ describe("HistorialTable", () => {
         onRowClick={vi.fn()}
       />,
     );
-    expect(screen.getByText("aaaaaaaa12345")).toBeInTheDocument();
-    expect(screen.getByText("bbbbbbbb87654")).toBeInTheDocument();
+    expect(screen.getByText("aaaaaaaa123456")).toBeInTheDocument();
+    expect(screen.getByText("bbbbbbbb876543")).toBeInTheDocument();
   });
 
   it("row click calls onRowClick with correct id (S-31)", async () => {

@@ -18,6 +18,7 @@ vi.mock("@/lib/auth-context", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
+  useSearchParams: () => ({ get: () => null }),
 }));
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
