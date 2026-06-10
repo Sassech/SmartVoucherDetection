@@ -10,9 +10,10 @@
 # Required env vars (set before calling):
 #   COMPOSE_FILE  — path to docker-compose.prod.yml
 #                   (default: ~/SmartVoucherDetection/infra/docker-compose.prod.yml)
+#   SKIP_BUILD    — set to "1" to skip --build (use cached images)
 #
-# Idempotent: safe to run multiple times. Each run pulls latest images and
-# restarts only changed containers.
+# Idempotent: safe to run multiple times. Each run rebuilds local images
+# (using BuildKit cache) and restarts only changed containers.
 
 set -euo pipefail
 
@@ -20,7 +21,8 @@ set -euo pipefail
 # Config
 # ---------------------------------------------------------------------------
 ENVIRONMENT="${1:-staging}"
-COMPOSE_FILE="${COMPOSE_FILE:-${HOME}/SmartVoucherDetection/infra/docker-compose.prod.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-$(cd "$(dirname "$0")/../.." && pwd)/infra/docker-compose.prod.yml}"
+SKIP_BUILD="${SKIP_BUILD:-0}"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -52,19 +54,31 @@ fi
 # ---------------------------------------------------------------------------
 log "=== Deploy start | environment=${ENVIRONMENT} | compose=${COMPOSE_FILE} ==="
 
-log "[1/5] Pulling latest images..."
-docker compose -f "${COMPOSE_FILE}" pull
+# Pull only external/pre-built images (postgres, redis, nginx).
+# Local services (api, webapp, celery-worker) are built from source — pull
+# would be a no-op for them and can error when no registry is configured.
+log "[1/6] Pulling external images (postgres, redis, nginx)..."
+docker compose -f "${COMPOSE_FILE}" pull postgres redis nginx || true
 
-log "[2/5] Bringing services up..."
+if [[ "${SKIP_BUILD}" == "1" ]]; then
+    log "[2/6] Skipping build (SKIP_BUILD=1) — using cached images."
+else
+    log "[2/6] Building local images (BuildKit cache active)..."
+    DOCKER_BUILDKIT=1 docker compose -f "${COMPOSE_FILE}" build \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        api webapp celery-worker
+fi
+
+log "[3/6] Bringing services up..."
 docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
 
-log "[3/5] Waiting 10s for services to stabilize..."
+log "[4/6] Waiting 10s for services to stabilize..."
 sleep 10
 
-log "[4/5] Running services:"
+log "[5/6] Running services:"
 docker compose -f "${COMPOSE_FILE}" ps
 
-log "[5/5] Health check (api)..."
+log "[6/6] Health check (api)..."
 docker compose -f "${COMPOSE_FILE}" exec -T api python -c \
     "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
