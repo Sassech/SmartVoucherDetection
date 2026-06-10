@@ -183,19 +183,40 @@ export default async function HistorialDetailPage({ params }: Props) {
 
         {/* Similarity Gauge Card */}
         <div className="bg-white border border-[var(--color-outline-variant)] rounded-xl p-6 flex items-center gap-6 shadow-sm">
-          <SimilarityGauge value={similitud} />
-          <div className="flex-1">
-            <h4 className="text-base font-semibold text-[var(--color-on-surface)]">
-              Puntaje de Similitud
-            </h4>
-            <p className="text-xs text-[var(--color-secondary)] mt-1">
-              {similitud >= 90
-                ? "Alta probabilidad de duplicación."
-                : similitud >= 70
-                ? "Similitud moderada detectada."
-                : "Sin coincidencias significativas."}
-            </p>
-          </div>
+          {similitud === 0 ? (
+            <>
+              <div className="w-16 h-16 flex items-center justify-center rounded-full bg-[var(--color-surface-container-high)] shrink-0">
+                <span className="material-symbols-outlined text-2xl text-[var(--color-on-surface-variant)]">pending</span>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-base font-semibold text-[var(--color-on-surface)]">
+                  Puntaje de Similitud
+                </h4>
+                <p className="text-xs text-[var(--color-secondary)] mt-1">
+                  Sin datos de similitud aún
+                </p>
+                <p className="text-[10px] text-[var(--color-on-surface-variant)] mt-1 leading-relaxed">
+                  Disponible cuando el motor de deduplicación procese el documento.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <SimilarityGauge value={similitud} />
+              <div className="flex-1">
+                <h4 className="text-base font-semibold text-[var(--color-on-surface)]">
+                  Puntaje de Similitud
+                </h4>
+                <p className="text-xs text-[var(--color-secondary)] mt-1">
+                  {similitud >= 90
+                    ? "Alta probabilidad de duplicación."
+                    : similitud >= 70
+                    ? "Similitud moderada detectada."
+                    : "Sin coincidencias significativas."}
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Quick Actions Card */}
@@ -237,7 +258,7 @@ export default async function HistorialDetailPage({ params }: Props) {
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={item.imagen_path}
+                  src={`/api/web/comprobantes/${item.id_comprobante}/image`}
                   alt={`Comprobante ${item.referencia ?? item.id_comprobante}`}
                   className="w-full h-full object-contain transition-transform group-hover:scale-105 duration-700"
                 />
@@ -335,29 +356,6 @@ export default async function HistorialDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* History Context Bento */}
-      <div className="bg-white border border-[var(--color-outline-variant)] rounded-xl p-6 shadow-sm">
-        <h3 className="text-base font-semibold text-[var(--color-on-surface)] mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[var(--color-primary)]">history</span>
-          Contexto de Validación Reciente
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[
-            { label: "Volumen de Hoy", value: "142", color: "text-[var(--color-primary)]" },
-            { label: "Tasa de Éxito", value: "94.2%", color: "text-emerald-600" },
-            { label: "Revisiones Pendientes", value: "8", color: "text-orange-500" },
-            { label: "Tiempo Promedio IA", value: "1.2s", color: "text-[var(--color-on-surface)]" },
-          ].map(({ label, value, color }) => (
-            <div
-              key={label}
-              className="p-4 bg-[#F9FAFB] rounded-lg border border-slate-100 text-center"
-            >
-              <span className="text-xs text-[var(--color-secondary)] block mb-1">{label}</span>
-              <span className={`text-xl font-bold ${color}`}>{value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

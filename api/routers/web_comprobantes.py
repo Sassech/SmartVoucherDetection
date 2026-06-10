@@ -13,8 +13,10 @@ from __future__ import annotations
 import uuid
 import logging
 from datetime import date
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -167,6 +169,47 @@ async def get_comprobante(
     """Return full comprobante record. 403 if foreign org (S-39, S-40)."""
     comprobante = await _get_comprobante_for_org(id_comprobante, usuario, db)
     return WebComprobanteDetail.model_validate(comprobante)
+
+
+# ---------------------------------------------------------------------------
+# GET /web/comprobantes/{id}/image
+# ---------------------------------------------------------------------------
+
+_MIME_BY_SUFFIX: dict[str, str] = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".pdf": "application/pdf",
+}
+
+
+@router.get(
+    "/{id_comprobante}/image",
+    summary="Serve comprobante image file (org-scoped)",
+    dependencies=[Depends(require_jwt)],
+)
+async def get_comprobante_image(
+    id_comprobante: uuid.UUID,
+    usuario: Usuario = Depends(require_jwt),
+    db: AsyncSession = Depends(get_session),
+) -> FileResponse:
+    """Serve the image file for a comprobante.
+
+    - 200 + file bytes if file exists and belongs to the user's org.
+    - 403 if the comprobante belongs to a different org.
+    - 404 if the comprobante doesn't exist in DB or the file is missing on disk.
+    """
+    comprobante = await _get_comprobante_for_org(id_comprobante, usuario, db)
+
+    image_path = Path(comprobante.imagen_path)
+    if not image_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image file not found on disk",
+        )
+
+    media_type = _MIME_BY_SUFFIX.get(image_path.suffix.lower(), "application/octet-stream")
+    return FileResponse(path=str(image_path), media_type=media_type)
 
 
 # ---------------------------------------------------------------------------
