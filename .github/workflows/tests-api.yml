@@ -63,6 +63,8 @@ jobs:
         working-directory: api
         env:
           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test
+          REDIS_URL: redis://localhost:6379
+          LLAMA_SERVER_URL: http://localhost:8080
         run: uv run alembic upgrade head
 
       - name: Run tests
