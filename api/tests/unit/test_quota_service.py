@@ -28,8 +28,8 @@ from config import PLAN_LIMITS
 
 
 def test_plan_limits_basic():
-    """PLAN_LIMITS['basic'] == 100 (R-73)."""
-    assert PLAN_LIMITS["basic"] == 100
+    """PLAN_LIMITS['basic'] == 50 (R-73)."""
+    assert PLAN_LIMITS["basic"] == 50
 
 
 def test_plan_limits_pro():
@@ -96,11 +96,11 @@ async def test_check_quota_enterprise_plan_skips_check():
 
 @pytest.mark.asyncio
 async def test_check_quota_under_limit_returns_none():
-    """Usuario basic con 50 uploads este mes (< 100) → retorna None (R-74)."""
+    """Usuario basic con 25 uploads este mes (< 50) → retorna None (R-74)."""
     from services.quota_service import check_quota
 
     usuario = _make_usuario(plan="basic", sin_cuota=False)
-    session = _make_session(monthly_count=50)
+    session = _make_session(monthly_count=25)
 
     result = await check_quota(usuario, session)
 
@@ -109,19 +109,19 @@ async def test_check_quota_under_limit_returns_none():
 
 @pytest.mark.asyncio
 async def test_check_quota_at_limit_raises_429():
-    """Usuario basic con exactamente 100 uploads → levanta HTTP 429 (R-74)."""
+    """Usuario basic con exactamente 50 uploads → levanta HTTP 429 (R-74)."""
     from services.quota_service import check_quota
 
     usuario = _make_usuario(plan="basic", sin_cuota=False)
-    session = _make_session(monthly_count=100)
+    session = _make_session(monthly_count=50)
 
     with pytest.raises(HTTPException) as exc_info:
         await check_quota(usuario, session)
 
     assert exc_info.value.status_code == 429
     detail = exc_info.value.detail
-    assert detail["used"] == 100
-    assert detail["limit"] == 100
+    assert detail["used"] == 50
+    assert detail["limit"] == 50
     assert detail["plan"] == "basic"
     assert "reset_date" in detail
 
@@ -147,11 +147,11 @@ async def test_check_quota_over_limit_raises_429_with_correct_detail():
 
 @pytest.mark.asyncio
 async def test_check_quota_one_below_limit_passes():
-    """Usuario basic con 99 uploads (< 100) → retorna None, no levanta (R-74)."""
+    """Usuario basic con 49 uploads (< 50) → retorna None, no levanta (R-74)."""
     from services.quota_service import check_quota
 
     usuario = _make_usuario(plan="basic", sin_cuota=False)
-    session = _make_session(monthly_count=99)
+    session = _make_session(monthly_count=49)
 
     result = await check_quota(usuario, session)
 

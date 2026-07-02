@@ -55,6 +55,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-uv-
 
+      - name: Install system dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+
       - name: Install dependencies
         working-directory: api
         run: uv sync --frozen

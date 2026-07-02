@@ -48,7 +48,7 @@ from sqlalchemy.pool import NullPool
 
 from config import settings
 from database import get_redis, get_session
-from dependencies.auth_api_key import require_api_key
+from dependencies.auth_any import require_user
 from main import app
 from models.seed import SYSTEM_ORG_ID, SYSTEM_USER_ID
 
@@ -111,14 +111,14 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[httpx.AsyncClient, 
         return mock_usuario
 
     app.dependency_overrides[get_session] = _override_session
-    app.dependency_overrides[require_api_key] = _override_auth
+    app.dependency_overrides[require_user] = _override_auth
     transport = httpx.ASGITransport(app=app)
     try:
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
             yield c
     finally:
         app.dependency_overrides.pop(get_session, None)
-        app.dependency_overrides.pop(require_api_key, None)
+        app.dependency_overrides.pop(require_user, None)
 
 
 @pytest_asyncio.fixture
