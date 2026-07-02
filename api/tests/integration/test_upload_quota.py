@@ -60,11 +60,17 @@ def test_upload_returns_429_when_quota_exceeded(monkeypatch):
     Verifica que check_quota se llama ANTES que extract_fields.
     Si 429 llega antes que OCR es invocado, el test pasa.
     """
+
     # Mock quota_service.check_quota para levantar 429
     async def fake_check_quota(usuario, session):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={"used": 100, "limit": 100, "plan": "basic", "reset_date": "2026-06-01"},
+            detail={
+                "used": 100,
+                "limit": 100,
+                "plan": "basic",
+                "reset_date": "2026-06-01",
+            },
         )
 
     monkeypatch.setattr(upload_module, "check_quota", fake_check_quota)
@@ -95,7 +101,9 @@ def test_upload_returns_429_when_quota_exceeded(monkeypatch):
         assert detail["plan"] == "basic"
         assert detail["used"] == 100
         # OCR must NOT have been called
-        assert ocr_called == [], "OCR was called despite quota exceeded — check_quota must be step 0"
+        assert ocr_called == [], (
+            "OCR was called despite quota exceeded — check_quota must be step 0"
+        )
     finally:
         app.dependency_overrides.pop(require_user, None)
 
@@ -106,6 +114,7 @@ def test_upload_passes_through_when_quota_available(monkeypatch):
     check_quota retorna None → el pipeline continua. OCR tracker verifica
     que extract_fields SI se invoca (cuota no bloqueo el flujo).
     """
+
     # check_quota passes (None return)
     async def fake_check_quota_ok(usuario, session):
         return None
@@ -215,7 +224,9 @@ def test_upload_passes_through_when_quota_available(monkeypatch):
             f"Got 429 but quota should have passed. Body: {response.text}"
         )
         # OCR must have been called — quota passed through
-        assert ocr_called, "OCR was not called — quota check may have blocked unexpectedly"
+        assert ocr_called, (
+            "OCR was not called — quota check may have blocked unexpectedly"
+        )
     finally:
         app.dependency_overrides.pop(require_user, None)
         app.dependency_overrides.pop(get_session, None)
@@ -228,10 +239,16 @@ def test_upload_quota_check_called_before_read(monkeypatch):
     Usamos un archivo vacio que causaria 400 si se leyera — pero como
     check_quota falla primero, obtenemos 429.
     """
+
     async def fake_check_quota(usuario, session):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={"used": 500, "limit": 500, "plan": "pro", "reset_date": "2026-06-01"},
+            detail={
+                "used": 500,
+                "limit": 500,
+                "plan": "pro",
+                "reset_date": "2026-06-01",
+            },
         )
 
     monkeypatch.setattr(upload_module, "check_quota", fake_check_quota)

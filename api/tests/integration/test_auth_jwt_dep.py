@@ -83,5 +83,7 @@ class TestRequireJwt:
         app.dependency_overrides[get_session] = _mock_session
 
         with TestClient(app, raise_server_exceptions=False) as c:
-            response = c.get("/probe", headers={"Authorization": "Bearer invalid.token.here"})
+            response = c.get(
+                "/probe", headers={"Authorization": "Bearer invalid.token.here"}
+            )
         assert response.status_code == 401

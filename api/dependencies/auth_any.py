@@ -58,7 +58,7 @@ async def require_user(
     # ── 2. Try Bearer JWT ─────────────────────────────────────────────────────
     auth_header: str = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        token = auth_header[len("Bearer "):]
+        token = auth_header[len("Bearer ") :]
         try:
             payload = verify_token(token)
         except HTTPException:

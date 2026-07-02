@@ -40,9 +40,7 @@ _test_app.include_router(web_auth_router)
 # ---------------------------------------------------------------------------
 
 
-def _session_allowing_register(
-    *, existing_user: Usuario | None = None
-) -> type:
+def _session_allowing_register(*, existing_user: Usuario | None = None) -> type:
     """Mock de session: get_user_by_email devuelve existing_user (o None)."""
 
     class _FakeScalars:

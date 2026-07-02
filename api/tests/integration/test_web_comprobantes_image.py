@@ -29,6 +29,7 @@ from models.usuario import Usuario
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_comprobante_with_path(id_usuario: uuid.UUID, imagen_path: str) -> Comprobante:
     """Create a Comprobante with a specific imagen_path for image endpoint tests."""
     return Comprobante(
@@ -48,6 +49,7 @@ def _make_comprobante_with_path(id_usuario: uuid.UUID, imagen_path: str) -> Comp
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest_asyncio.fixture
 async def comprobante_with_file(
@@ -93,6 +95,7 @@ async def foreign_comprobante_with_file(
     await db_session.refresh(foreign_org)
 
     import bcrypt
+
     foreign_user = Usuario(
         id_organizacion=foreign_org.id_organizacion,
         nombre="Image Foreign User",
@@ -118,6 +121,7 @@ async def foreign_comprobante_with_file(
 # Image endpoint tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_image_endpoint_returns_file(
     client_jwt: AsyncClient,
@@ -127,9 +131,7 @@ async def test_image_endpoint_returns_file(
     comprobante, img_file = comprobante_with_file
     assert img_file.exists(), "Test setup: temp file must exist"
 
-    resp = await client_jwt.get(
-        f"/web/comprobantes/{comprobante.id_comprobante}/image"
-    )
+    resp = await client_jwt.get(f"/web/comprobantes/{comprobante.id_comprobante}/image")
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("image/png")
     # Verify actual file content is returned (not empty, not an error body)

@@ -37,7 +37,9 @@ _PLAIN_KEY = "test-valid-api-key-abc123"
 _VALID_HASH = bcrypt.hashpw(_PLAIN_KEY.encode(), bcrypt.gensalt(rounds=4)).decode()
 
 _OTHER_PLAIN_KEY = "other-valid-key-xyz789"
-_OTHER_HASH = bcrypt.hashpw(_OTHER_PLAIN_KEY.encode(), bcrypt.gensalt(rounds=4)).decode()
+_OTHER_HASH = bcrypt.hashpw(
+    _OTHER_PLAIN_KEY.encode(), bcrypt.gensalt(rounds=4)
+).decode()
 
 _WRONG_KEY = "this-is-not-the-right-key"
 
@@ -47,7 +49,9 @@ _WRONG_KEY = "this-is-not-the-right-key"
 # ---------------------------------------------------------------------------
 
 
-def _make_usuario(*, token_api_hash: str | None = _VALID_HASH, deleted_at=None) -> Usuario:
+def _make_usuario(
+    *, token_api_hash: str | None = _VALID_HASH, deleted_at=None
+) -> Usuario:
     """Return a minimal Usuario ORM instance for testing."""
     user = MagicMock(spec=Usuario)
     user.id_usuario = "mock-uuid-0001"
@@ -115,9 +119,7 @@ def auth_client():
 def test_missing_key_returns_401(auth_client):
     """No X-API-Key header → 401 with 'API key required' detail (R-15)."""
     # Provide users in DB so we know the 401 is from missing header, not empty DB.
-    _test_app.dependency_overrides[get_session] = _session_with_users(
-        [_make_usuario()]
-    )
+    _test_app.dependency_overrides[get_session] = _session_with_users([_make_usuario()])
 
     response = auth_client.get("/protected")
 
@@ -127,9 +129,7 @@ def test_missing_key_returns_401(auth_client):
 
 def test_empty_key_returns_401(auth_client):
     """X-API-Key: '' (empty string) → 401 'API key required' (R-15)."""
-    _test_app.dependency_overrides[get_session] = _session_with_users(
-        [_make_usuario()]
-    )
+    _test_app.dependency_overrides[get_session] = _session_with_users([_make_usuario()])
 
     response = auth_client.get("/protected", headers={"X-API-Key": ""})
 

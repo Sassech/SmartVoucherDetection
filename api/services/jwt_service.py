@@ -44,9 +44,7 @@ def create_access_token(
 
     TTL is taken from settings.access_token_expire_minutes (default 15).
     """
-    expire = datetime.now(UTC) + timedelta(
-        minutes=settings.access_token_expire_minutes
-    )
+    expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
     payload = {
         "sub": sub,
         "org": org,
@@ -54,7 +52,9 @@ def create_access_token(
         "jti": jti,
         "exp": expire,
     }
-    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    return jwt.encode(
+        payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    )
 
 
 # ---------------------------------------------------------------------------

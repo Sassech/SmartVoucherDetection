@@ -53,7 +53,7 @@ from services.quota_service import get_quota_usage
 router = APIRouter(prefix="/web/auth", tags=["web-auth"])
 
 # Cookie settings (Fase 4 — R-21/R-22)
-_ACCESS_COOKIE_MAX_AGE = 15 * 60   # 15 minutes in seconds
+_ACCESS_COOKIE_MAX_AGE = 15 * 60  # 15 minutes in seconds
 _REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
 
 # A pre-computed dummy bcrypt hash for timing-safe S-03.
@@ -283,7 +283,9 @@ async def me(usuario: Usuario = Depends(require_jwt)) -> UsuarioPublic:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/register", response_model=UsuarioWithPlan, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UsuarioWithPlan, status_code=status.HTTP_201_CREATED
+)
 async def register(
     body: RegisterRequest,
     db: AsyncSession = Depends(get_session),

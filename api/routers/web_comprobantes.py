@@ -57,18 +57,17 @@ async def _get_comprobante_for_org(
 
     Raises 404 if not found, 403 if foreign org.
     """
-    stmt = (
-        select(Comprobante)
-        .where(
-            Comprobante.id_comprobante == id_comprobante,
-            Comprobante.deleted_at.is_(None),
-        )
+    stmt = select(Comprobante).where(
+        Comprobante.id_comprobante == id_comprobante,
+        Comprobante.deleted_at.is_(None),
     )
     result = await db.execute(stmt)
     comprobante = result.scalar_one_or_none()
 
     if comprobante is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comprobante not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comprobante not found"
+        )
 
     # Verify org ownership — must join through usuario FK (S-40, S-38).
     owner_stmt = select(Usuario.id_organizacion).where(
@@ -79,7 +78,9 @@ async def _get_comprobante_for_org(
     owner_org = owner_result.scalar_one_or_none()
 
     if owner_org != usuario.id_organizacion:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+        )
 
     return comprobante
 
@@ -87,6 +88,7 @@ async def _get_comprobante_for_org(
 # ---------------------------------------------------------------------------
 # GET /web/comprobantes/
 # ---------------------------------------------------------------------------
+
 
 @router.get(
     "/",
@@ -155,6 +157,7 @@ async def list_comprobantes(
 # GET /web/comprobantes/{id}
 # ---------------------------------------------------------------------------
 
+
 @router.get(
     "/{id_comprobante}",
     response_model=WebComprobanteDetail,
@@ -208,13 +211,16 @@ async def get_comprobante_image(
             detail="Image file not found on disk",
         )
 
-    media_type = _MIME_BY_SUFFIX.get(image_path.suffix.lower(), "application/octet-stream")
+    media_type = _MIME_BY_SUFFIX.get(
+        image_path.suffix.lower(), "application/octet-stream"
+    )
     return FileResponse(path=str(image_path), media_type=media_type)
 
 
 # ---------------------------------------------------------------------------
 # POST /web/comprobantes/{id}/decision
 # ---------------------------------------------------------------------------
+
 
 @router.post(
     "/{id_comprobante}/decision",

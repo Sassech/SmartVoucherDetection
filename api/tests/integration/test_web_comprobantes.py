@@ -28,6 +28,7 @@ from models.usuario import Usuario
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_comprobante(
     id_usuario: uuid.UUID,
     estado: str = "procesando",
@@ -51,6 +52,7 @@ def _make_comprobante(
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest_asyncio.fixture
 async def comprobante_list(db_session: AsyncSession) -> list[Comprobante]:
@@ -93,6 +95,7 @@ async def foreign_comprobante(db_session: AsyncSession) -> Comprobante:
     await db_session.refresh(foreign_org)
 
     import bcrypt
+
     foreign_user = Usuario(
         id_organizacion=foreign_org.id_organizacion,
         nombre="Foreign User",
@@ -104,7 +107,9 @@ async def foreign_comprobante(db_session: AsyncSession) -> Comprobante:
     await db_session.flush()
     await db_session.refresh(foreign_user)
 
-    c = _make_comprobante(foreign_user.id_usuario, estado="en_revision", hash_suffix="foreign")
+    c = _make_comprobante(
+        foreign_user.id_usuario, estado="en_revision", hash_suffix="foreign"
+    )
     db_session.add(c)
     await db_session.flush()
     await db_session.refresh(c)
@@ -114,6 +119,7 @@ async def foreign_comprobante(db_session: AsyncSession) -> Comprobante:
 # ---------------------------------------------------------------------------
 # List endpoint tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_list_returns_paginated_results(
@@ -195,7 +201,9 @@ async def test_list_combined_status_and_date(
 
 
 @pytest.mark.asyncio
-async def test_list_empty_results(client_jwt: AsyncClient, db_session: AsyncSession) -> None:
+async def test_list_empty_results(
+    client_jwt: AsyncClient, db_session: AsyncSession
+) -> None:
     """S-30: Empty results return empty items list, not an error."""
     resp = await client_jwt.get("/web/comprobantes/?status=valido")
     assert resp.status_code == 200
@@ -209,12 +217,15 @@ async def test_list_empty_results(client_jwt: AsyncClient, db_session: AsyncSess
 # Detail endpoint tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_detail_returns_full_record(
     client_jwt: AsyncClient, single_comprobante: Comprobante
 ) -> None:
     """S-39: Detail endpoint returns full comprobante including texto_extraido."""
-    resp = await client_jwt.get(f"/web/comprobantes/{single_comprobante.id_comprobante}")
+    resp = await client_jwt.get(
+        f"/web/comprobantes/{single_comprobante.id_comprobante}"
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["id_comprobante"] == str(single_comprobante.id_comprobante)
@@ -231,7 +242,9 @@ async def test_detail_foreign_org_returns_403(
     client_jwt: AsyncClient, foreign_comprobante: Comprobante
 ) -> None:
     """S-40: Detail for comprobante belonging to different org returns 403."""
-    resp = await client_jwt.get(f"/web/comprobantes/{foreign_comprobante.id_comprobante}")
+    resp = await client_jwt.get(
+        f"/web/comprobantes/{foreign_comprobante.id_comprobante}"
+    )
     assert resp.status_code == 403
     assert resp.json()["detail"] == "Access denied"
 
@@ -246,6 +259,7 @@ async def test_detail_not_found_returns_404(client_jwt: AsyncClient) -> None:
 # ---------------------------------------------------------------------------
 # Decision endpoint tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_decision_aceptar_marks_valido(

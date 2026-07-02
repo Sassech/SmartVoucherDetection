@@ -391,7 +391,8 @@ class TestLogout:
         # Cookie must be cleared (Max-Age=0 or expires in the past)
         cookies = response.headers.get_list("set-cookie")
         assert any(
-            "refresh_token" in c and ("max-age=0" in c.lower() or "expires" in c.lower())
+            "refresh_token" in c
+            and ("max-age=0" in c.lower() or "expires" in c.lower())
             for c in cookies
         ), f"refresh_token clear cookie missing. set-cookie: {cookies}"
 

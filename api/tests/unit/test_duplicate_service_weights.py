@@ -115,8 +115,12 @@ async def test_compute_score_custom_weights_change_result():
     # Pesos que enfatizan el monto (no los defaults 0.35/0.30/0.20/0.15)
     heavy_monto = ScoringWeights(w_ref=0.10, w_text=0.10, w_monto=0.70, w_fecha=0.10)
 
-    nuevo = _make_comp(referencia="TRF-ABC", monto=Decimal("1000.00"), texto_extraido=None)
-    existente = _make_comp(referencia="TRF-XYZ", monto=Decimal("1000.00"), texto_extraido=None)
+    nuevo = _make_comp(
+        referencia="TRF-ABC", monto=Decimal("1000.00"), texto_extraido=None
+    )
+    existente = _make_comp(
+        referencia="TRF-XYZ", monto=Decimal("1000.00"), texto_extraido=None
+    )
 
     with patch(
         "services.duplicate_service.get_scoring_weights",

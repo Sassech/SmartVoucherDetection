@@ -81,8 +81,7 @@ class Settings(BaseSettings):
         """
         if len(self.secret_key) < 32:
             raise ValueError(
-                f"SECRET_KEY must be at least 32 characters, "
-                f"got {len(self.secret_key)}"
+                f"SECRET_KEY must be at least 32 characters, got {len(self.secret_key)}"
             )
         return self
 

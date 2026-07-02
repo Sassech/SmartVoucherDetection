@@ -27,6 +27,7 @@ from models.usuario import Usuario
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_comprobante(
     id_usuario: uuid.UUID,
     estado: str = "procesando",
@@ -46,6 +47,7 @@ def _make_comprobante(
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_stats_returns_valid_schema(
@@ -116,7 +118,9 @@ async def test_stats_org_isolation(
     await db_session.flush()
     await db_session.refresh(foreign_user)
 
-    c_foreign = _make_comprobante(foreign_user.id_usuario, estado="duplicado", hash_suffix="isol")
+    c_foreign = _make_comprobante(
+        foreign_user.id_usuario, estado="duplicado", hash_suffix="isol"
+    )
     db_session.add(c_foreign)
     await db_session.flush()
 

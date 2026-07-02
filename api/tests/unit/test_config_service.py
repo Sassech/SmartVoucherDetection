@@ -46,12 +46,14 @@ def _make_session_with_rows(rows: list[tuple[str, str]]) -> AsyncMock:
 async def test_get_scoring_weights_all_rows_builds_correct_dataclass():
     """Con las 4 filas correctas se construye ScoringWeights con los valores correctos."""
     invalidate_weights_cache()
-    session = _make_session_with_rows([
-        ("scoring.w_ref", "0.35"),
-        ("scoring.w_text", "0.30"),
-        ("scoring.w_monto", "0.20"),
-        ("scoring.w_fecha", "0.15"),
-    ])
+    session = _make_session_with_rows(
+        [
+            ("scoring.w_ref", "0.35"),
+            ("scoring.w_text", "0.30"),
+            ("scoring.w_monto", "0.20"),
+            ("scoring.w_fecha", "0.15"),
+        ]
+    )
 
     weights = await get_scoring_weights(session)
 
@@ -65,10 +67,12 @@ async def test_get_scoring_weights_all_rows_builds_correct_dataclass():
 async def test_get_scoring_weights_missing_keys_fall_back_to_defaults():
     """Con solo 2 filas, las keys ausentes usan los valores de DEFAULTS."""
     invalidate_weights_cache()
-    session = _make_session_with_rows([
-        ("scoring.w_ref", "0.50"),   # custom
-        ("scoring.w_text", "0.50"),  # custom — nota: no suman 1 en test, OK
-    ])
+    session = _make_session_with_rows(
+        [
+            ("scoring.w_ref", "0.50"),  # custom
+            ("scoring.w_text", "0.50"),  # custom — nota: no suman 1 en test, OK
+        ]
+    )
 
     weights = await get_scoring_weights(session)
 
@@ -84,12 +88,14 @@ async def test_get_scoring_weights_cache_hit_skips_db_call():
     """Segunda llamada con cache poblado NO ejecuta session.execute."""
     invalidate_weights_cache()
 
-    session1 = _make_session_with_rows([
-        ("scoring.w_ref", "0.35"),
-        ("scoring.w_text", "0.30"),
-        ("scoring.w_monto", "0.20"),
-        ("scoring.w_fecha", "0.15"),
-    ])
+    session1 = _make_session_with_rows(
+        [
+            ("scoring.w_ref", "0.35"),
+            ("scoring.w_text", "0.30"),
+            ("scoring.w_monto", "0.20"),
+            ("scoring.w_fecha", "0.15"),
+        ]
+    )
     session2 = AsyncMock(spec=AsyncSession)
     session2.execute = AsyncMock()
 
@@ -106,23 +112,27 @@ async def test_get_scoring_weights_cache_hit_skips_db_call():
 async def test_invalidate_weights_cache_forces_reload():
     """Despues de invalidate_weights_cache(), la siguiente llamada consulta la DB."""
     invalidate_weights_cache()
-    session1 = _make_session_with_rows([
-        ("scoring.w_ref", "0.35"),
-        ("scoring.w_text", "0.30"),
-        ("scoring.w_monto", "0.20"),
-        ("scoring.w_fecha", "0.15"),
-    ])
+    session1 = _make_session_with_rows(
+        [
+            ("scoring.w_ref", "0.35"),
+            ("scoring.w_text", "0.30"),
+            ("scoring.w_monto", "0.20"),
+            ("scoring.w_fecha", "0.15"),
+        ]
+    )
     await get_scoring_weights(session1)
 
     # Invalidar
     invalidate_weights_cache()
 
-    session2 = _make_session_with_rows([
-        ("scoring.w_ref", "0.40"),
-        ("scoring.w_text", "0.30"),
-        ("scoring.w_monto", "0.20"),
-        ("scoring.w_fecha", "0.10"),
-    ])
+    session2 = _make_session_with_rows(
+        [
+            ("scoring.w_ref", "0.40"),
+            ("scoring.w_text", "0.30"),
+            ("scoring.w_monto", "0.20"),
+            ("scoring.w_fecha", "0.10"),
+        ]
+    )
     weights_reloaded = await get_scoring_weights(session2)
 
     session2.execute.assert_called_once()

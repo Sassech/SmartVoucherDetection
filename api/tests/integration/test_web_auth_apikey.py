@@ -64,8 +64,10 @@ def _make_session_for_apikey() -> type:
 
 def _jwt_override(usuario):
     """Factory: override require_jwt para retornar usuario especifico."""
+
     def _override():
         return usuario
+
     return _override
 
 

@@ -110,11 +110,14 @@ async def test_primary_key_is_varchar(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_seeded_scoring_weights_exist(db_session: AsyncSession):
     """Los 4 pesos de scoring sembrados en la migracion existen en la DB."""
-    expected_keys = ["scoring.w_ref", "scoring.w_text", "scoring.w_monto", "scoring.w_fecha"]
+    expected_keys = [
+        "scoring.w_ref",
+        "scoring.w_text",
+        "scoring.w_monto",
+        "scoring.w_fecha",
+    ]
     result = await db_session.execute(
-        select(ConfiguracionSistema).where(
-            ConfiguracionSistema.key.in_(expected_keys)
-        )
+        select(ConfiguracionSistema).where(ConfiguracionSistema.key.in_(expected_keys))
     )
     rows = result.scalars().all()
     found_keys = {r.key for r in rows}
@@ -127,7 +130,12 @@ async def test_seeded_weights_values(db_session: AsyncSession):
     result = await db_session.execute(
         select(ConfiguracionSistema).where(
             ConfiguracionSistema.key.in_(
-                ["scoring.w_ref", "scoring.w_text", "scoring.w_monto", "scoring.w_fecha"]
+                [
+                    "scoring.w_ref",
+                    "scoring.w_text",
+                    "scoring.w_monto",
+                    "scoring.w_fecha",
+                ]
             )
         )
     )

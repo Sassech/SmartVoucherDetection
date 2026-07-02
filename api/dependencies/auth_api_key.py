@@ -51,12 +51,9 @@ async def require_api_key(
     # Fase 4: indexed prefix pre-filter — avoids O(n) full bcrypt scan.
     # NULL token_api_prefix rows are excluded naturally by equality WHERE.
     prefix = x_api_key[:8]
-    stmt = (
-        select(Usuario)
-        .where(
-            Usuario.token_api_prefix == prefix,
-            Usuario.deleted_at.is_(None),
-        )
+    stmt = select(Usuario).where(
+        Usuario.token_api_prefix == prefix,
+        Usuario.deleted_at.is_(None),
     )
     result = await db.execute(stmt)
     candidates = result.scalars().all()
