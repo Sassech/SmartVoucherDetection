@@ -1,9 +1,12 @@
 .agents/*
 skills-lock.json
 llama.cpp/
-cosas/*
 .atl/
+cosas/*
 plan_desarrollo.md
+RUNBOOK.md
+Guion_Defensa_Tesis.md
+.codegraph/
 .claude/
 .env
 __pycache__/
@@ -34,3 +37,5 @@ dataset/bancario-mx/duplicates/
 webapp/test-results/
 api/tests/e2e/
 webapp/playwright-report/
+
+.atl/skill-registry.md
