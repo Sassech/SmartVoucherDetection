@@ -37,3 +37,4 @@ dataset/bancario-mx/duplicates/
 webapp/test-results/
 api/tests/e2e/
 webapp/playwright-report/
+openspec/
