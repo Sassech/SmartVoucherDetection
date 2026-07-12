@@ -39,3 +39,5 @@ api/tests/e2e/
 webapp/playwright-report/
 openspec/
 PROGRESO.md
+.github/workflows/deploy-production.yml
+.github/workflows/deploy-staging.yml
