@@ -38,3 +38,4 @@ webapp/test-results/
 api/tests/e2e/
 webapp/playwright-report/
 openspec/
+PROGRESO.md
