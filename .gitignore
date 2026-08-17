@@ -9,6 +9,7 @@ Guion_Defensa_Tesis.md
 .codegraph/
 .claude/
 .env
+.env.sonar
 __pycache__/
 *.pyc
 .pytest_cache/
