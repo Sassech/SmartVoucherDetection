@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fetchApi, ApiError } from "../api";
-import { setAccessToken } from "../auth-context";
+import { setAccessToken, markAuthReady } from "../auth-context";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -23,6 +23,8 @@ describe("fetchApi", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     setAccessToken(null);
+    // Resolve the auth-ready gate so fetchApi doesn't hang waiting for it.
+    markAuthReady();
   });
 
   it("happy path: returns parsed JSON on 200", async () => {

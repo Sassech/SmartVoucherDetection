@@ -114,7 +114,7 @@ describe("DuplicatePanel", () => {
     await user.click(screen.getByRole("button", { name: /válido/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/error/i)).toBeInTheDocument();
+      expect(screen.getByText("Server error")).toBeInTheDocument();
     });
   });
 

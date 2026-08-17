@@ -55,6 +55,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-uv-
 
+      - name: Install system dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+
       - name: Install dependencies
         working-directory: api
         run: uv sync --frozen
@@ -63,6 +66,8 @@ jobs:
         working-directory: api
         env:
           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test
+          REDIS_URL: redis://localhost:6379
+          LLAMA_SERVER_URL: http://localhost:8080
         run: uv run alembic upgrade head
 
       - name: Run tests

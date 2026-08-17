@@ -64,13 +64,13 @@ class COCR_Shortcode {
 					style="display:none"
 				/>
 				<p>
-					<?php esc_html_e( 'Drag & drop your comprobantes here or', 'comprobantes-ocr' ); ?>
+					<?php esc_html_e( 'Drag & drop o selecciona archivos', 'comprobantes-ocr' ); ?>
 					<button type="button" id="cocr-browse">
 						<?php esc_html_e( 'Browse', 'comprobantes-ocr' ); ?>
 					</button>
 				</p>
 				<p class="cocr-hint">
-					<?php esc_html_e( 'Accepted: JPEG, PNG, PDF · Max 10 MB each · Multiple files supported', 'comprobantes-ocr' ); ?>
+					<?php esc_html_e( 'Acepta: JPEG, PNG, PDF · Max 10 MB each · Soporta múltiples archivos', 'comprobantes-ocr' ); ?>
 				</p>
 			</div>
 

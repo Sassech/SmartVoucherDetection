@@ -1,0 +1,37 @@
+# Node modules — se instalan dentro del builder stage
+node_modules/
+
+# Next.js build cache — se reconstruye en el builder stage
+.next/
+
+# Test artifacts
+e2e/
+test-results/
+playwright-report/
+coverage/
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docs
+*.md
+README*
+
+# Dev tooling
+.atl/
+.eslintrc.json
+
+# Logs
+*.log
+npm-debug.log*

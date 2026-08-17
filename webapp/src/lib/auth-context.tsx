@@ -29,6 +29,23 @@ export function setAccessToken(token: string | null): void {
   _accessToken = token;
 }
 
+// ── Auth ready promise ────────────────────────────────────────────────────────
+// Resolves once the silent refresh on mount completes (success or fail).
+// fetchApi awaits this before sending requests so pages that load immediately
+// on mount don't race against the refresh and get spurious 401s.
+let _resolveReady: () => void;
+const _authReady: Promise<void> = new Promise<void>((resolve) => {
+  _resolveReady = resolve;
+});
+
+export function waitForAuth(): Promise<void> {
+  return _authReady;
+}
+
+export function markAuthReady(): void {
+  _resolveReady();
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface AuthUser {
@@ -44,6 +61,8 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
+  /** true once the silent refresh attempt on mount has completed (success or fail) */
+  isReady: boolean;
   login: (correo: string, contrasena: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -65,6 +84,10 @@ export function useAuth(): AuthContextValue {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setTokenState] = useState<string | null>(null);
+  // isReady flips to true once the silent refresh attempt completes (success OR fail).
+  // Pages should wait for isReady before making authenticated requests to avoid
+  // race conditions where fetchApi runs before the access token is in memory.
+  const [isReady, setIsReady] = useState(false);
 
   // Sync module-level store with React state.
   const updateToken = useCallback((newToken: string | null) => {
@@ -96,6 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch {
         // Silent failure — user stays unauthenticated.
+      } finally {
+        // Always mark ready so pages can proceed (with or without a token).
+        setIsReady(true);
+        markAuthReady();
       }
     };
     void tryRefresh();
@@ -155,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [updateToken]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isReady, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

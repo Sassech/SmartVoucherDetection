@@ -23,7 +23,7 @@ from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from celery_app import celery_app
-from dependencies.auth_api_key import require_api_key
+from dependencies.auth_any import require_user
 from models.usuario import Usuario
 
 router = APIRouter(tags=["upload-async"])
@@ -39,7 +39,7 @@ MAX_SIZE = 10 * 1024 * 1024  # 10 MB
 )
 async def upload_slip_async(
     file: UploadFile = File(...),
-    usuario: Usuario = Depends(require_api_key),
+    usuario: Usuario = Depends(require_user),
 ) -> dict[str, str]:
     """Enqueue a comprobante upload for async processing via Celery.
 

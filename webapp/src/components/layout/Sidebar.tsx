@@ -79,22 +79,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Status widget */}
-      <div className="p-4">
-        <div className="bg-blue-600 rounded-xl p-4 text-white">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="material-symbols-outlined text-[18px] animate-pulse">
-              sync
-            </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">
-              Procesando Ahora
-            </span>
-          </div>
-          <p className="text-[11px] opacity-80 leading-snug">
-            4 cargas en cola. Reconocimiento activo.
-          </p>
-        </div>
-      </div>
     </aside>
   );
 }

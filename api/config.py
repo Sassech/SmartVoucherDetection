@@ -81,8 +81,7 @@ class Settings(BaseSettings):
         """
         if len(self.secret_key) < 32:
             raise ValueError(
-                f"SECRET_KEY must be at least 32 characters, "
-                f"got {len(self.secret_key)}"
+                f"SECRET_KEY must be at least 32 characters, got {len(self.secret_key)}"
             )
         return self
 
@@ -113,4 +112,4 @@ settings = Settings()  # type: ignore[call-arg]
 # ---------------------------------------------------------------------------
 # Monthly upload limits per plan. -1 means unlimited (enterprise).
 # Module-level constant — NOT a Settings field (never changes at runtime).
-PLAN_LIMITS: dict[str, int] = {"basic": 100, "pro": 500, "enterprise": -1}
+PLAN_LIMITS: dict[str, int] = {"basic": 50, "pro": 500, "enterprise": -1}

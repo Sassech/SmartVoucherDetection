@@ -1,11 +1,15 @@
 .agents/*
 skills-lock.json
 llama.cpp/
-cosas/*
 .atl/
+cosas/*
 plan_desarrollo.md
+RUNBOOK.md
+Guion_Defensa_Tesis.md
+.codegraph/
 .claude/
 .env
+.env.sonar
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -34,3 +38,7 @@ dataset/bancario-mx/duplicates/
 webapp/test-results/
 api/tests/e2e/
 webapp/playwright-report/
+openspec/
+PROGRESO.md
+.github/workflows/deploy-production.yml
+.github/workflows/deploy-staging.yml

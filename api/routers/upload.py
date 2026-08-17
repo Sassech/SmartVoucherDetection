@@ -65,7 +65,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_session
-from dependencies.auth_api_key import require_api_key
+from dependencies.auth_any import require_user
 from models.comprobante import Comprobante
 from models.usuario import Usuario
 from models.validacion import Validacion
@@ -150,7 +150,7 @@ async def _find_existing_by_hash(
 async def upload_slip(
     file: UploadFile = File(..., description="Imagen (PNG/JPEG) o PDF del comprobante"),
     session: AsyncSession = Depends(get_session),
-    usuario: Usuario = Depends(require_api_key),
+    usuario: Usuario = Depends(require_user),
 ) -> ComprobanteResponse:
     """Procesa un comprobante: OCR + normalizacion + deteccion de duplicados.
 

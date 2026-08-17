@@ -22,25 +22,25 @@ const baseItem: WebComprobanteItem = {
 describe("OcrFields", () => {
   it("renders monto field", () => {
     render(<OcrFields item={baseItem} />);
-    expect(screen.getByText("Monto")).toBeInTheDocument();
+    expect(screen.getByText("Monto de Transacción")).toBeInTheDocument();
     expect(screen.getByText("$1,500")).toBeInTheDocument();
   });
 
   it("renders banco field", () => {
     render(<OcrFields item={baseItem} />);
-    expect(screen.getByText("Banco")).toBeInTheDocument();
+    expect(screen.getByText("Banco Emisor")).toBeInTheDocument();
     expect(screen.getByText("BBVA")).toBeInTheDocument();
   });
 
   it("renders referencia field", () => {
     render(<OcrFields item={baseItem} />);
-    expect(screen.getByText("Referencia")).toBeInTheDocument();
+    expect(screen.getByText("Número de Referencia")).toBeInTheDocument();
     expect(screen.getByText("REF-XYZ")).toBeInTheDocument();
   });
 
   it("renders fecha_deposito field", () => {
     render(<OcrFields item={baseItem} />);
-    expect(screen.getByText("Fecha de depósito")).toBeInTheDocument();
+    expect(screen.getByText("Fecha de Depósito")).toBeInTheDocument();
     expect(screen.getByText("2024-06-15")).toBeInTheDocument();
   });
 

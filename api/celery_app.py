@@ -20,6 +20,7 @@ celery_app = Celery(
     "smartvoucher",
     broker=settings.redis_url,
     backend=settings.redis_url,
+    include=["tasks.process_slip"],
 )
 
 celery_app.conf.update(

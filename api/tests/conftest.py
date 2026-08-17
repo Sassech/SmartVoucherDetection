@@ -48,6 +48,7 @@ from sqlalchemy.pool import NullPool
 
 from config import settings
 from database import get_redis, get_session
+from dependencies.auth_any import require_user
 from dependencies.auth_api_key import require_api_key
 from main import app
 from models.seed import SYSTEM_ORG_ID, SYSTEM_USER_ID
@@ -65,7 +66,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     try:
         try:
             conn = await test_engine.connect()
-        except OperationalError as exc:
+        except (OperationalError, OSError) as exc:
             pytest.skip(f"Postgres not reachable: {exc}")
 
         trans = await conn.begin()
@@ -111,6 +112,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[httpx.AsyncClient, 
         return mock_usuario
 
     app.dependency_overrides[get_session] = _override_session
+    app.dependency_overrides[require_user] = _override_auth
     app.dependency_overrides[require_api_key] = _override_auth
     transport = httpx.ASGITransport(app=app)
     try:
@@ -118,6 +120,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[httpx.AsyncClient, 
             yield c
     finally:
         app.dependency_overrides.pop(get_session, None)
+        app.dependency_overrides.pop(require_user, None)
         app.dependency_overrides.pop(require_api_key, None)
 
 

@@ -77,7 +77,9 @@ async def get_stats(
 
     except Exception as exc:
         # S-26: graceful 500 — log internally, return structured error.
-        logger.exception("Stats query failed for org %s: %s", usuario.id_organizacion, exc)
+        logger.exception(
+            "Stats query failed for org %s: %s", usuario.id_organizacion, exc
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error retrieving stats",

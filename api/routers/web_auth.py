@@ -53,7 +53,7 @@ from services.quota_service import get_quota_usage
 router = APIRouter(prefix="/web/auth", tags=["web-auth"])
 
 # Cookie settings (Fase 4 — R-21/R-22)
-_ACCESS_COOKIE_MAX_AGE = 15 * 60   # 15 minutes in seconds
+_ACCESS_COOKIE_MAX_AGE = 15 * 60  # 15 minutes in seconds
 _REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
 
 # A pre-computed dummy bcrypt hash for timing-safe S-03.
@@ -283,7 +283,9 @@ async def me(usuario: Usuario = Depends(require_jwt)) -> UsuarioPublic:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/register", response_model=UsuarioWithPlan, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UsuarioWithPlan, status_code=status.HTTP_201_CREATED
+)
 async def register(
     body: RegisterRequest,
     db: AsyncSession = Depends(get_session),
@@ -304,18 +306,26 @@ async def register(
     # Hash password with bcrypt
     hashed = bcrypt.hashpw(body.contrasena.encode("utf-8"), bcrypt.gensalt()).decode()
 
-    # New users are assigned to the system org (SYSTEM_ORG_ID).
-    # Multi-tenant org selection is deferred to a future phase.
-    from models.seed import SYSTEM_ORG_ID  # noqa: PLC0415
+    # Each registration creates its own Organization — proper multi-tenant isolation.
+    # nombre_organizacion defaults to the user's name if not provided.
+    from models.organizacion import Organizacion  # noqa: PLC0415
+
+    org_nombre = (body.nombre_organizacion or body.nombre).strip()
+    nueva_org = Organizacion(
+        nombre=org_nombre,
+        plan_suscripcion="basico",
+    )
+    db.add(nueva_org)
+    await db.flush()  # populate nueva_org.id_organizacion before using it
 
     new_user = Usuario(
         nombre=body.nombre,
         correo=str(body.correo),
         contrasena_hash=hashed,
-        rol="operador",
+        rol="admin",
         plan="basic",
         sin_cuota=False,
-        id_organizacion=SYSTEM_ORG_ID,
+        id_organizacion=nueva_org.id_organizacion,
     )
     db.add(new_user)
     await db.commit()

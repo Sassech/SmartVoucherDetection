@@ -60,11 +60,13 @@ class RegisterRequest(BaseModel):
 
     contrasena requiere minimo 8 caracteres (validacion por Field min_length).
     correo es validado como EmailStr por Pydantic.
+    nombre_organizacion es opcional — si no se provee se usa el nombre del usuario.
     """
 
     correo: EmailStr
     nombre: str
     contrasena: str = Field(min_length=8)
+    nombre_organizacion: str | None = None
 
 
 class UsuarioWithPlan(BaseModel):

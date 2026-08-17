@@ -52,7 +52,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "-ra"
+addopts = "-ra --ignore=tests/e2e"
 
 # Coverage config (1.8.3).
 #

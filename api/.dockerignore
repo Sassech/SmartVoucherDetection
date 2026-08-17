@@ -1,0 +1,41 @@
+# Virtual environments — el culpable principal (732 MB en el COPY . .)
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test artifacts
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Linter / type checker cache
+.ruff_cache/
+.mypy_cache/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docs
+*.md
+README*
+
+# Dev tooling
+.atl/
+.python-version
+
+# Data local (nunca debería entrar en la imagen)
+data/
