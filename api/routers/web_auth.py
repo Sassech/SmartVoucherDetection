@@ -57,8 +57,13 @@ _ACCESS_COOKIE_MAX_AGE = 15 * 60  # 15 minutes in seconds
 _REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
 
 # A pre-computed dummy bcrypt hash for timing-safe S-03.
-# Using cost=4 so tests don't time out; production can raise this.
-_DUMMY_HASH = bcrypt.hashpw(b"dummy", bcrypt.gensalt(rounds=4)).decode()
+# rounds=12 matches production strength (S5344). If tests are slow, override
+# DUMMY_BCRYPT_ROUNDS=4 in the test environment only — never in production.
+import os as _os
+_DUMMY_HASH = bcrypt.hashpw(
+    b"dummy",
+    bcrypt.gensalt(rounds=int(_os.environ.get("DUMMY_BCRYPT_ROUNDS", "12"))),
+).decode()
 
 
 # ---------------------------------------------------------------------------

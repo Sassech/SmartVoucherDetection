@@ -37,5 +37,10 @@ README*
 .atl/
 .python-version
 
+# Secrets — never enter the image regardless of COPY scope (S6470)
+.env
+.env.*
+.env.sonar
+
 # Data local (nunca debería entrar en la imagen)
 data/
