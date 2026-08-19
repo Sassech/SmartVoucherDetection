@@ -25,6 +25,82 @@ from models.usuario import Usuario
 from services.jwt_service import verify_token
 
 
+async def _authenticate_api_key(x_api_key: str, db: AsyncSession) -> Usuario:
+    """Validate X-API-Key and return the matching Usuario.
+
+    Raises HTTP 401 if the key is invalid or no user matches.
+    """
+    prefix = x_api_key[:8]
+    stmt = select(Usuario).where(
+        Usuario.token_api_prefix == prefix,
+        Usuario.deleted_at.is_(None),
+    )
+    result = await db.execute(stmt)
+    candidates = result.scalars().all()
+
+    key_bytes = x_api_key.encode("utf-8")
+    for user in candidates:
+        stored_hash = user.token_api_hash
+        if stored_hash and bcrypt.checkpw(key_bytes, stored_hash.encode("utf-8")):
+            return user
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid API key",
+    )
+
+
+async def _authenticate_bearer(auth_header: str, db: AsyncSession) -> Usuario:
+    """Validate Bearer JWT and return the matching Usuario.
+
+    Raises HTTP 401 for any invalid token or missing/inactive user.
+    """
+    token = auth_header[len("Bearer "):]
+    try:
+        payload = verify_token(token)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user_id_str: str | None = payload.get("sub")
+    if not user_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        user_id = uuid.UUID(user_id_str)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token subject",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    stmt = select(Usuario).where(
+        Usuario.id_usuario == user_id,
+        Usuario.deleted_at.is_(None),
+    )
+    result = await db.execute(stmt)
+    usuario = result.scalar_one_or_none()
+
+    if usuario is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return usuario
+
+
 async def require_user(
     request: Request,
     x_api_key: str = Header(default="", alias="X-API-Key"),
@@ -36,72 +112,12 @@ async def require_user(
     """
     # ── 1. Try API key first ──────────────────────────────────────────────────
     if x_api_key:
-        prefix = x_api_key[:8]
-        stmt = select(Usuario).where(
-            Usuario.token_api_prefix == prefix,
-            Usuario.deleted_at.is_(None),
-        )
-        result = await db.execute(stmt)
-        candidates = result.scalars().all()
-
-        key_bytes = x_api_key.encode("utf-8")
-        for user in candidates:
-            stored_hash = user.token_api_hash
-            if stored_hash and bcrypt.checkpw(key_bytes, stored_hash.encode("utf-8")):
-                return user
-
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API key",
-        )
+        return await _authenticate_api_key(x_api_key, db)
 
     # ── 2. Try Bearer JWT ─────────────────────────────────────────────────────
     auth_header: str = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        token = auth_header[len("Bearer ") :]
-        try:
-            payload = verify_token(token)
-        except HTTPException:
-            raise
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        user_id_str: str | None = payload.get("sub")
-        if not user_id_str:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        try:
-            user_id = uuid.UUID(user_id_str)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token subject",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        stmt = select(Usuario).where(
-            Usuario.id_usuario == user_id,
-            Usuario.deleted_at.is_(None),
-        )
-        result = await db.execute(stmt)
-        usuario = result.scalar_one_or_none()
-
-        if usuario is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found or inactive",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        return usuario
+        return await _authenticate_bearer(auth_header, db)
 
     # ── 3. Nothing provided ───────────────────────────────────────────────────
     raise HTTPException(

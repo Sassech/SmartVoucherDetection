@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
+from typing import Annotated
 
 import bcrypt
 import redis.asyncio as aioredis
@@ -51,6 +52,13 @@ from services.jwt_service import (
 from services.quota_service import get_quota_usage
 
 router = APIRouter(prefix="/web/auth", tags=["web-auth"])
+
+# Error messages — extracted to avoid S1192 (string literal duplicated ≥3 times)
+_ERR_INVALID_REFRESH = "Invalid or expired refresh token"
+
+# Annotated dependency aliases — avoids S5717 (mutable default argument)
+_CurrentUser = Annotated[Usuario, Depends(require_jwt)]
+_DbSession = Annotated[AsyncSession, Depends(get_session)]
 
 # Cookie settings (Fase 4 — R-21/R-22)
 _ACCESS_COOKIE_MAX_AGE = 15 * 60  # 15 minutes in seconds
@@ -208,7 +216,7 @@ async def refresh(
     if not await is_jti_valid(redis, refresh_token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            detail=_ERR_INVALID_REFRESH,
         )
 
     # Look up user_id stored under old JTI
@@ -216,7 +224,7 @@ async def refresh(
     if not user_id_str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            detail=_ERR_INVALID_REFRESH,
         )
 
     try:
@@ -242,7 +250,7 @@ async def refresh(
         # Race condition: another request consumed the JTI first
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            detail=_ERR_INVALID_REFRESH,
         )
 
     # Issue new access token
@@ -345,8 +353,8 @@ async def register(
     status_code=status.HTTP_201_CREATED,
 )
 async def generate_api_key(
-    usuario: Usuario = Depends(require_jwt),
-    db: AsyncSession = Depends(get_session),
+    usuario: _CurrentUser,
+    db: _DbSession,
 ) -> ApiKeyResponse:
     """POST /web/auth/api-key — generar (o regenerar) API key para usuario JWT (R-76).
 
@@ -369,8 +377,8 @@ async def generate_api_key(
 
 @router.delete("/api-key", status_code=status.HTTP_200_OK)
 async def revoke_api_key(
-    usuario: Usuario = Depends(require_jwt),
-    db: AsyncSession = Depends(get_session),
+    usuario: _CurrentUser,
+    db: _DbSession,
 ) -> dict:
     """DELETE /web/auth/api-key — revocar API key del usuario autenticado (R-77).
 
