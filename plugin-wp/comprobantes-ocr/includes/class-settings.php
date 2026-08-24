@@ -23,6 +23,7 @@ class COCR_Settings {
     private const INPUT_CLASS      = 'regular-text';
     private const TEST_BTN_STYLE   = 'margin-left:8px';
     private const TEST_RESULT_STYLE = 'margin-left:8px';
+    private const VALUE_ATTR       = '" value="';
 
     /** @var string wp_options key for the API base URL */
     const OPTION_URL     = 'comprobantes_api_url';
@@ -139,7 +140,7 @@ class COCR_Settings {
 	 */
     public function field_api_url(): void {
         $val = esc_attr( get_option( self::OPTION_URL, '' ) );
-        echo '<input type="url" name="' . esc_attr( self::OPTION_URL ) . '" value="' . $val . '" class="' . esc_attr( self::INPUT_CLASS ) . '" placeholder="http://localhost:8000" />';
+        echo '<input type="url" name="' . esc_attr( self::OPTION_URL ) . self::VALUE_ATTR . $val . '" class="' . esc_attr( self::INPUT_CLASS ) . '" placeholder="http://localhost:8000" />';
         echo '<p class="description">' . esc_html__( 'Base URL of the FastAPI OCR service (e.g. https://api.example.com).', 'comprobantes-ocr' ) . '</p>';
     }
 
@@ -148,7 +149,7 @@ class COCR_Settings {
      */
     public function field_api_key(): void {
         $val = esc_attr( get_option( self::OPTION_KEY, '' ) );
-        echo '<input type="password" name="' . esc_attr( self::OPTION_KEY ) . '" value="' . $val . '" class="' . esc_attr( self::INPUT_CLASS ) . '" autocomplete="new-password" />';
+        echo '<input type="password" name="' . esc_attr( self::OPTION_KEY ) . self::VALUE_ATTR . $val . '" class="' . esc_attr( self::INPUT_CLASS ) . '" autocomplete="new-password" />';
         echo '<button type="button" id="cocr-test-connection" class="button button-secondary" style="' . esc_attr( self::TEST_BTN_STYLE ) . '">';
         echo esc_html__( 'Test Connection', 'comprobantes-ocr' );
         echo '</button>';
@@ -160,7 +161,7 @@ class COCR_Settings {
 	 */
 	public function field_timeout(): void {
 		$val = absint( get_option( self::OPTION_TIMEOUT, 30 ) );
-		echo '<input type="number" name="' . esc_attr( self::OPTION_TIMEOUT ) . '" value="' . esc_attr( $val ) . '" min="5" max="120" class="small-text" /> ';
+		echo '<input type="number" name="' . esc_attr( self::OPTION_TIMEOUT ) . self::VALUE_ATTR . esc_attr( $val ) . '" min="5" max="120" class="small-text" /> ';
 		echo esc_html__( 'seconds (5–120)', 'comprobantes-ocr' );
 	}
 

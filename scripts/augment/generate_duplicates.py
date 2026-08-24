@@ -403,6 +403,28 @@ def _order_candidates_by_date(
     return same_date + diff_date
 
 
+def _pair_already_selected(
+    pairs: list[DuplicatePair], a: SourceImage, b: SourceImage
+) -> bool:
+    """Retorna True si el par (a,b) ya existe en la lista."""
+    return any(p.id_a == a.gt_id and p.id_b == b.gt_id for p in pairs)
+
+
+def _fill_remaining_negative_pairs(
+    ordered_candidates: list[tuple[SourceImage, SourceImage, str]],
+    n_negativo: int,
+    pairs: list[DuplicatePair],
+) -> list[DuplicatePair]:
+    """Completa pares sin restricción de IDs únicos si faltan."""
+    for a, b, nota in ordered_candidates:
+        if len(pairs) >= n_negativo:
+            break
+        if _pair_already_selected(pairs, a, b):
+            continue
+        pairs.append(_make_negative_pair(a, b, nota))
+    return pairs
+
+
 def _select_negative_pairs(
     ordered_candidates: list[tuple[SourceImage, SourceImage, str]],
     n_negativo: int,
@@ -419,12 +441,7 @@ def _select_negative_pairs(
         used_ids.add(a.gt_id)
         used_ids.add(b.gt_id)
     if len(pairs) < n_negativo:
-        for a, b, nota in ordered_candidates:
-            if len(pairs) >= n_negativo:
-                break
-            if any(p.id_a == a.gt_id and p.id_b == b.gt_id for p in pairs):
-                continue
-            pairs.append(_make_negative_pair(a, b, nota))
+        pairs = _fill_remaining_negative_pairs(ordered_candidates, n_negativo, pairs)
     return pairs
 
 

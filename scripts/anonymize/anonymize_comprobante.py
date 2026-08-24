@@ -85,12 +85,12 @@ _RE_CLAVE_RASTREO = re.compile(r"(?:Clave de rastreo|CLABE rastreo|clave_rastreo
 # Comisión: cubre "Comisión:", "COMISION DEL BANCO:", "TOTAL COMISION:"
 # También tolera prefijos de moneda como "M.N. $" antes del número (OXXO).
 _RE_COMISION = re.compile(
-    r"(?:(?:TOTAL\s+)?COMISI[OÓ]N(?:\s+DEL\s+BANCO)?)[:\s]+(?:M\.?N\.?\s*)?\$?\s*([\d]+(?:,[\d]+)*(?:\.\d+)?)",
+    r"(?:TOTAL\s+)?COMISI[OÓ]N(?:\s+DEL\s+BANCO)?[:\s]+(?:M\.?N\.?\s*)?\$?\s*(\d[\d,]*\.?\d*)",
     re.IGNORECASE,
 )
 
 # IVA: número decimal precedido de "IVA:"
-_RE_IVA = re.compile(r"\bIVA[:\s]+\$?\s*([\d]+(?:,[\d]+)*(?:\.\d+)?)", re.IGNORECASE)
+_RE_IVA = re.compile(r"\bIVA[:\s]+\$?\s*(\d[\d,]*\.?\d*)", re.IGNORECASE)
 
 # Folio: número precedido de "Folio", "Folio de internet", "FOLIO NUMERO", etc.
 _RE_FOLIO = re.compile(r"(?:Folio(?:\s+de\s+internet)?|FOLIO(?:\s+NUMERO)?)[:\s#]+([A-Z0-9]{4,20})", re.IGNORECASE)
@@ -114,13 +114,13 @@ _RE_ESTATUS = re.compile(r"(?:Estatus|Estado|Status)[:\s]+(.+?)(?:\n|$)", re.IGN
 # Monto genérico desde PDF text: captura cualquier etiqueta de importe/monto
 # cuando el OCR devuelve null — fallback para layouts no estándar (BanCoppel, etc.)
 _RE_MONTO_PDF = re.compile(
-    r"(?:Monto|Importe|Amount)[:\s]+\$?\s*(\d[\d,\.]*)",
+    r"(?:Monto|Importe|Amount)[:\s]+\$?\s*(\d[\d,]*\.?\d*)",
     re.IGNORECASE,
 )
 
 # Importe transferido: etiqueta "Importe transferido" o "Importe giro" (BBVA, Banorte)
 _RE_IMPORTE_TRANSFERIDO = re.compile(
-    r"(?:Importe\s+transferido|Importe\s+giro)[:\s]+\$?\s*([\d]+(?:,[\d]+)*(?:\.\d+)?)",
+    r"(?:Importe\s+transferido|Importe\s+giro)[:\s]+\$?\s*(\d[\d,]*\.?\d*)",
     re.IGNORECASE,
 )
 
@@ -128,7 +128,7 @@ _RE_IMPORTE_TRANSFERIDO = re.compile(
 # Patrón específico: "MONTO" seguido de separadores y opcionalmente "M.N. $".
 # Se diferencia del monto principal porque en OXXO la etiqueta es exactamente "MONTO".
 _RE_MONTO_BASE_OXXO = re.compile(
-    r"^[\s\-]*MONTO\s*[:\s]+(?:M\.?N\.?\s*)?\$?\s*([\d]+(?:,[\d]+)*(?:\.\d+)?)",
+    r"^[\s\-]*MONTO\s*[:\s]+(?:M\.?N\.?\s*)?\$?\s*(\d[\d,]*\.?\d*)",
     re.IGNORECASE | re.MULTILINE,
 )
 
@@ -140,7 +140,7 @@ _RE_MONTO_BASE_OXXO = re.compile(
 # Usa negative lookahead para excluir "TOTAL COMISION" y "TOTAL COMISION DEL BANCO".
 _RE_IMPORTE_TOTAL = re.compile(
     r"(?:PAGO\s+TOTAL|Cantidad\s+Total|Importe\s+a\s+debitar)"
-    r"[.:\s]+(?:M\.?N\.?\s*)?\$?\s*([\d]+(?:,[\d]+)*(?:\.\d+)?)",
+    r"[.:\s]+(?:M\.?N\.?\s*)?\$?\s*(\d[\d,]*\.?\d*)",
     re.IGNORECASE,
 )
 
