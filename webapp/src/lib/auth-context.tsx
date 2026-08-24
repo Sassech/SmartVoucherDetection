@@ -84,7 +84,7 @@ export function useAuth(): AuthContextValue {
 
 export function AuthProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setTokenState] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   // isReady flips to true once the silent refresh attempt completes (success OR fail).
   // Pages should wait for isReady before making authenticated requests to avoid
   // race conditions where fetchApi runs before the access token is in memory.
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
   // Sync module-level store with React state.
   const updateToken = useCallback((newToken: string | null) => {
     setAccessToken(newToken);
-    setTokenState(newToken);
+    setToken(newToken);
   }, []);
 
   // On mount: attempt a silent refresh so users with a valid refresh_token

@@ -3,11 +3,9 @@ skills-lock.json
 llama.cpp/
 .atl/
 cosas/*
-plan_desarrollo.md
-RUNBOOK.md
-Guion_Defensa_Tesis.md
+.vscode/*
+.sonarlint/*
 .codegraph/
-.claude/
 .env
 .env.sonar
 .env.local
