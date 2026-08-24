@@ -37,10 +37,10 @@ interface KeyModalProps {
   onClose: () => void;
 }
 
-function KeyModal({ plainKey, onClose }: KeyModalProps) {
+function KeyModal({ plainKey, onClose }: Readonly<KeyModalProps>) {
   const [copied, setCopied] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   // Focus the close button on mount (accessible focus trap start)
   useEffect(() => {
@@ -73,11 +73,9 @@ function KeyModal({ plainKey, onClose }: KeyModalProps) {
           e.preventDefault();
           last?.focus();
         }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first?.focus();
-        }
+      } else if (document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
       }
     }
     dialog.addEventListener("keydown", handleTab);
@@ -104,7 +102,6 @@ function KeyModal({ plainKey, onClose }: KeyModalProps) {
   const content = (
     /* Backdrop */
     <div
-      role="presentation"
       style={{
         position: "fixed", inset: 0, zIndex: 9999,
         background: "rgba(0,0,0,0.45)", display: "flex",
@@ -117,15 +114,16 @@ function KeyModal({ plainKey, onClose }: KeyModalProps) {
       }}
     >
       {/* Dialog */}
-      <div
+      <dialog
         ref={dialogRef}
-        role="dialog"
+        open
         aria-modal="true"
         aria-labelledby="modal-title"
         style={{
           background: "white", borderRadius: 16, padding: "2rem",
           maxWidth: 480, width: "100%",
           boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+          border: "none",
         }}
       >
         {/* Header */}
@@ -202,7 +200,7 @@ function KeyModal({ plainKey, onClose }: KeyModalProps) {
         >
           Done
         </Button>
-      </div>
+      </dialog>
     </div>
   );
 
@@ -217,7 +215,7 @@ interface ConfirmDialogProps {
   loading?: boolean;
 }
 
-function ConfirmDialog({ onConfirm, onCancel, loading = false }: ConfirmDialogProps) {
+function ConfirmDialog({ onConfirm, onCancel, loading = false }: Readonly<ConfirmDialogProps>) {
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -234,21 +232,21 @@ function ConfirmDialog({ onConfirm, onCancel, loading = false }: ConfirmDialogPr
 
   return createPortal(
     <div
-      role="presentation"
       style={{
         position: "fixed", inset: 0, zIndex: 9999,
         background: "rgba(0,0,0,0.45)", display: "flex",
         alignItems: "center", justifyContent: "center", padding: "1rem",
       }}
     >
-      <div
-        role="dialog"
+      <dialog
+        open
         aria-modal="true"
         aria-labelledby="confirm-title"
         style={{
           background: "white", borderRadius: 16, padding: "2rem",
           maxWidth: 400, width: "100%",
           boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+          border: "none",
         }}
       >
         <h3
@@ -284,7 +282,7 @@ function ConfirmDialog({ onConfirm, onCancel, loading = false }: ConfirmDialogPr
             {loading ? "Revoking…" : "Revoke key"}
           </Button>
         </div>
-      </div>
+      </dialog>
     </div>,
     document.body,
   );
@@ -292,7 +290,7 @@ function ConfirmDialog({ onConfirm, onCancel, loading = false }: ConfirmDialogPr
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function ApiKeyCard({ hasKey, prefix, onGenerate, onRevoke }: ApiKeyCardProps) {
+export function ApiKeyCard({ hasKey, prefix, onGenerate, onRevoke }: Readonly<ApiKeyCardProps>) {
   const [generating, setGenerating] = useState(false);
   const [revoking, setRevoking] = useState(false);
   const [modalKey, setModalKey] = useState<string | null>(null);

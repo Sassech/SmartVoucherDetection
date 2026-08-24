@@ -148,7 +148,7 @@ def _clear_auth_cookies(response: Response) -> None:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 async def login(
     body: LoginRequest,
     response: Response,
@@ -194,7 +194,7 @@ async def login(
     return TokenResponse(access_token=access_token)
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh")
 async def refresh(
     response: Response,
     refresh_token: str | None = Cookie(default=None),
@@ -285,7 +285,7 @@ async def logout(
     return {"detail": "Logged out"}
 
 
-@router.get("/me", response_model=UsuarioPublic)
+@router.get("/me")
 async def me(usuario: Usuario = Depends(require_jwt)) -> UsuarioPublic:
     """GET /web/auth/me — return public user info for authenticated user."""
     return UsuarioPublic.model_validate(usuario)
@@ -297,7 +297,7 @@ async def me(usuario: Usuario = Depends(require_jwt)) -> UsuarioPublic:
 
 
 @router.post(
-    "/register", response_model=UsuarioWithPlan, status_code=status.HTTP_201_CREATED
+    "/register", status_code=status.HTTP_201_CREATED
 )
 async def register(
     body: RegisterRequest,
@@ -349,7 +349,6 @@ async def register(
 
 @router.post(
     "/api-key",
-    response_model=ApiKeyResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def generate_api_key(
@@ -391,7 +390,7 @@ async def revoke_api_key(
     return {"message": "API key revoked."}
 
 
-@router.get("/api-key/status", response_model=ApiKeyStatus)
+@router.get("/api-key/status")
 async def api_key_status(
     usuario: Usuario = Depends(require_jwt),
 ) -> ApiKeyStatus:

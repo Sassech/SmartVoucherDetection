@@ -4,12 +4,11 @@
  * HistorialTable — paginated comprobantes table — R-39, R-42, S-29, S-30, S-31, 4.D.5
  */
 
-import Link from "next/link";
 import type { WebComprobanteItem } from "@/lib/types";
 
 type ItemWithSimilitud = WebComprobanteItem & { similitud?: number };
 
-function StatusBadge({ estado }: { estado: WebComprobanteItem["estado_actual"] }) {
+function StatusBadge({ estado }: Readonly<{ estado: WebComprobanteItem["estado_actual"] }>) {
   switch (estado) {
     case "valido":
       return (
@@ -83,7 +82,7 @@ export function HistorialTable({
   currentPage = 1,
   total,
   pageSize = 20,
-}: HistorialTableProps) {
+}: Readonly<HistorialTableProps>) {
   if (items.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
@@ -194,7 +193,7 @@ export function HistorialTable({
               onClick={onNextPage}
               className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-[var(--color-primary)] hover:bg-slate-50 transition-colors"
             >
-              Siguiente página
+              Siguiente página{" "}
               <span className="material-symbols-outlined text-[18px]">chevron_right</span>
             </button>
           </div>

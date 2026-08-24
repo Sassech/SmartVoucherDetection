@@ -42,9 +42,9 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Status filter */}
       <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-        <label className="block text-[10px] font-bold text-[var(--color-secondary)] uppercase tracking-wider mb-3">
+        <span className="block text-[10px] font-bold text-[var(--color-secondary)] uppercase tracking-wider mb-3">
           Filtrar por Estado
-        </label>
+        </span>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado">
           {STATUS_OPTIONS.map(({ value: optVal, label }) => {
             const isSelected =
@@ -74,7 +74,7 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
 
       {/* Date range */}
       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-        <label className="block text-[10px] font-bold text-[var(--color-secondary)] uppercase tracking-wider mb-3">
+        <label htmlFor="filter-date-from" className="block text-[10px] font-bold text-[var(--color-secondary)] uppercase tracking-wider mb-3">
           Rango de Fechas
         </label>
         <div className="space-y-2">

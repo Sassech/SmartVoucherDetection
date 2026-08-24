@@ -88,16 +88,14 @@ function SimilarityGauge({ value }: { value: number }) {
 }
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Readonly<Promise<{ id: string }>>;
 }
 
-export default async function HistorialDetailPage({ params }: Props) {
-  const { id } = await params;
-
-  let item: WebComprobanteItem | null = null;
-  let error: string | null = null;
-  let status403 = false;
-
+async function fetchComprobante(id: string): Promise<{
+  item: WebComprobanteItem | null;
+  error: string | null;
+  status403: boolean;
+}> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("access_token")?.value;
@@ -114,15 +112,21 @@ export default async function HistorialDetailPage({ params }: Props) {
     });
 
     if (res.status === 403) {
-      status403 = true;
-    } else if (!res.ok) {
-      error = `HTTP ${res.status}: ${res.statusText}`;
-    } else {
-      item = (await res.json()) as WebComprobanteItem;
+      return { item: null, error: null, status403: true };
     }
+    if (!res.ok) {
+      return { item: null, error: `HTTP ${res.status}: ${res.statusText}`, status403: false };
+    }
+    const item = (await res.json()) as WebComprobanteItem;
+    return { item, error: null, status403: false };
   } catch (err) {
-    error = err instanceof Error ? err.message : "Error desconocido";
+    return { item: null, error: err instanceof Error ? err.message : "Error desconocido", status403: false };
   }
+}
+
+export default async function HistorialDetailPage({ params }: Readonly<Props>) {
+  const { id } = await params;
+  const { item, error, status403 } = await fetchComprobante(id);
 
   if (status403) {
     return (
@@ -154,6 +158,14 @@ export default async function HistorialDetailPage({ params }: Props) {
 
   // Mock similarity — no viene del backend aún, usamos 0 como fallback
   const similitud = 0;
+  let similitudMessage: string;
+  if (similitud >= 90) {
+    similitudMessage = "Alta probabilidad de duplicación.";
+  } else if (similitud >= 70) {
+    similitudMessage = "Similitud moderada detectada.";
+  } else {
+    similitudMessage = "Sin coincidencias significativas.";
+  }
 
   return (
     <div className="space-y-6">
@@ -208,11 +220,7 @@ export default async function HistorialDetailPage({ params }: Props) {
                   Puntaje de Similitud
                 </h4>
                 <p className="text-xs text-[var(--color-secondary)] mt-1">
-                  {similitud >= 90
-                    ? "Alta probabilidad de duplicación."
-                    : similitud >= 70
-                    ? "Similitud moderada detectada."
-                    : "Sin coincidencias significativas."}
+                  {similitudMessage}
                 </p>
               </div>
             </>
@@ -221,7 +229,7 @@ export default async function HistorialDetailPage({ params }: Props) {
 
         {/* Quick Actions Card */}
         <div className="bg-white border border-[var(--color-outline-variant)] rounded-xl p-6 flex items-center gap-4 shadow-sm">
-          <button className="flex-1 bg-[var(--color-primary)] text-white text-xs font-medium py-2 rounded-xl hover:opacity-90 transition-all active:scale-[0.98] shadow-sm">
+          <button type="button" className="flex-1 bg-[var(--color-primary)] text-white text-xs font-medium py-2 rounded-xl hover:opacity-90 transition-all active:scale-[0.98] shadow-sm">
             Aceptar como Válido
           </button>
           <Link
@@ -240,14 +248,14 @@ export default async function HistorialDetailPage({ params }: Props) {
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-base font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
-              <span className="material-symbols-outlined text-[var(--color-primary)]">image</span>
+              <span className="material-symbols-outlined text-[var(--color-primary)]">image</span>{" "}
               Vista Previa del Documento Original
             </h3>
             <div className="flex gap-2">
-              <button className="p-1 hover:bg-[var(--color-surface-container)] rounded-lg transition-colors">
+              <button type="button" className="p-1 hover:bg-[var(--color-surface-container)] rounded-lg transition-colors">
                 <span className="material-symbols-outlined text-[var(--color-secondary)] text-[20px]">zoom_in</span>
               </button>
-              <button className="p-1 hover:bg-[var(--color-surface-container)] rounded-lg transition-colors">
+              <button type="button" className="p-1 hover:bg-[var(--color-surface-container)] rounded-lg transition-colors">
                 <span className="material-symbols-outlined text-[var(--color-secondary)] text-[20px]">download</span>
               </button>
             </div>
@@ -284,7 +292,7 @@ export default async function HistorialDetailPage({ params }: Props) {
         <div className="space-y-3">
           <div className="flex items-center px-1">
             <h3 className="text-base font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
-              <span className="material-symbols-outlined text-[var(--color-primary)]">data_object</span>
+              <span className="material-symbols-outlined text-[var(--color-primary)]">data_object</span>{" "}
               Información Extraída
             </h3>
           </div>
@@ -345,8 +353,8 @@ export default async function HistorialDetailPage({ params }: Props) {
 
           {/* Fraud action */}
           <div className="flex flex-col gap-2">
-            <button className="w-full bg-[var(--color-error-container)] text-[var(--color-on-error-container)] text-xs font-medium py-4 rounded-xl hover:opacity-80 transition-all border border-[var(--color-error)]/20 flex items-center justify-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">report</span>
+            <button type="button" className="w-full bg-[var(--color-error-container)] text-[var(--color-on-error-container)] text-xs font-medium py-4 rounded-xl hover:opacity-80 transition-all border border-[var(--color-error)]/20 flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">report</span>{" "}
               Marcar para Investigación de Fraude
             </button>
             <p className="text-[10px] text-center text-[var(--color-outline)] uppercase tracking-widest font-bold">

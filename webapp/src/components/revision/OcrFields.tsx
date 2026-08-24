@@ -57,25 +57,25 @@ export function OcrFields({ item }: OcrFieldsProps) {
 
       {/* Field rows */}
       <div className="divide-y divide-slate-100">
-        {fields.map(({ label, value, highlight, mono }) => (
-          <div
-            key={label}
-            className="px-5 py-3 grid grid-cols-2 hover:bg-slate-50 transition-colors"
-          >
-            <span className="text-sm text-[var(--color-secondary)]">{label}</span>
-            <span
-              className={
-                highlight
-                  ? "text-lg font-bold text-[var(--color-primary)]"
-                  : mono
-                    ? "text-sm font-mono bg-[var(--color-surface-container)] px-2 py-0.5 rounded text-[var(--color-on-surface)] w-fit"
-                    : "text-sm font-semibold text-[var(--color-on-surface)]"
-              }
+        {fields.map(({ label, value, highlight, mono }) => {
+          let fieldClass: string;
+          if (highlight) {
+            fieldClass = "text-lg font-bold text-[var(--color-primary)]";
+          } else if (mono) {
+            fieldClass = "text-sm font-mono bg-[var(--color-surface-container)] px-2 py-0.5 rounded text-[var(--color-on-surface)] w-fit";
+          } else {
+            fieldClass = "text-sm font-semibold text-[var(--color-on-surface)]";
+          }
+          return (
+            <div
+              key={label}
+              className="px-5 py-3 grid grid-cols-2 hover:bg-slate-50 transition-colors"
             >
-              {value}
-            </span>
-          </div>
-        ))}
+              <span className="text-sm text-[var(--color-secondary)]">{label}</span>
+              <span className={fieldClass}>{value}</span>
+            </div>
+          );
+        })}
       </div>
 
       {/* Footer info */}

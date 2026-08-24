@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchApi } from "@/lib/api";
 import type { WebListResponse, WebComprobanteItem } from "@/lib/types";
+import type { ReactNode } from "react";
 
 function getStatusBadge(estado: string) {
   const colors: Record<string, { bg: string; text: string; border: string }> = {
@@ -59,41 +60,43 @@ export default function RevisionPage() {
     router.push(`/revision/${id}`);
   }
 
-  return (
-    <div className="flex flex-col gap-5">
-      <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-on-surface)]">
-        Cola de Revisión
-      </h1>
-
-      {loading ? (
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-outline-variant)] bg-[var(--color-surface)] p-10 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--color-primary)] border-t-transparent" />
-            <p className="text-sm text-[var(--color-on-surface-variant)]">Cargando…</p>
+  let content: ReactNode;
+  if (loading) {
+    content = (
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-outline-variant)] bg-[var(--color-surface)] p-10 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--color-primary)] border-t-transparent" />
+          <p className="text-sm text-[var(--color-on-surface-variant)]">Cargando…</p>
+        </div>
+      </div>
+    );
+  } else if (error) {
+    content = (
+      <div className="rounded-[var(--radius-lg)] border border-red-200 bg-red-50 p-6">
+        <div className="flex items-start gap-3">
+          <span className="material-symbols-outlined text-red-600">error</span>
+          <div>
+            <h3 className="text-sm font-semibold text-red-900">Error</h3>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
           </div>
         </div>
-      ) : error ? (
-        <div className="rounded-[var(--radius-lg)] border border-red-200 bg-red-50 p-6">
-          <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-red-600">error</span>
-            <div>
-              <h3 className="text-sm font-semibold text-red-900">Error</h3>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
-            </div>
-          </div>
+      </div>
+    );
+  } else if (!data || data.items.length === 0) {
+    content = (
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-outline-variant)] bg-[var(--color-surface)] p-10 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <span className="material-symbols-outlined text-5xl text-[var(--color-on-surface-variant)]">
+            fact_check
+          </span>
+          <p className="text-sm text-[var(--color-on-surface-variant)]">
+            No hay comprobantes en revisión
+          </p>
         </div>
-      ) : !data || data.items.length === 0 ? (
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-outline-variant)] bg-[var(--color-surface)] p-10 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <span className="material-symbols-outlined text-5xl text-[var(--color-on-surface-variant)]">
-              fact_check
-            </span>
-            <p className="text-sm text-[var(--color-on-surface-variant)]">
-              No hay comprobantes en revisión
-            </p>
-          </div>
-        </div>
-      ) : (
+      </div>
+    );
+  } else {
+    content = (
         <div className="rounded-[var(--radius-lg)] border border-[var(--color-outline-variant)] bg-[var(--color-surface)] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
@@ -153,7 +156,15 @@ export default function RevisionPage() {
             </table>
           </div>
         </div>
-      )}
+      );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-on-surface)]">
+        Cola de Revisión
+      </h1>
+      {content}
     </div>
   );
 }

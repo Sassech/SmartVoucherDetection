@@ -72,7 +72,7 @@ export function Topbar() {
           className="ml-2 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
           aria-label="Cerrar sesión"
         >
-          <span className="material-symbols-outlined text-[16px]">logout</span>
+          <span className="material-symbols-outlined text-[16px]">logout</span>{" "}
           Salir
         </button>
       </div>

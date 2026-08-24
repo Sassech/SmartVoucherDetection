@@ -21,28 +21,15 @@ const makeItem = (overrides: Partial<WebComprobanteItem>): WebComprobanteItem =>
 });
 
 describe("RecentActivity", () => {
-  it("renders valido badge with correct text (S-25)", () => {
-    const items = [makeItem({ estado_actual: "valido" })];
+  it.each([
+    ["valido", "Válido"],
+    ["duplicado", "Duplicado"],
+    ["sospechoso", "Sospechoso"],
+    ["en_revision", "En revisión"],
+  ] as const)("renders %s badge", (estado, text) => {
+    const items = [makeItem({ estado_actual: estado as WebComprobanteItem["estado_actual"] })];
     render(<RecentActivity items={items} />);
-    expect(screen.getByText("Válido")).toBeInTheDocument();
-  });
-
-  it("renders duplicado badge", () => {
-    const items = [makeItem({ estado_actual: "duplicado" })];
-    render(<RecentActivity items={items} />);
-    expect(screen.getByText("Duplicado")).toBeInTheDocument();
-  });
-
-  it("renders sospechoso badge", () => {
-    const items = [makeItem({ estado_actual: "sospechoso" })];
-    render(<RecentActivity items={items} />);
-    expect(screen.getByText("Sospechoso")).toBeInTheDocument();
-  });
-
-  it("renders en_revision badge", () => {
-    const items = [makeItem({ estado_actual: "en_revision" })];
-    render(<RecentActivity items={items} />);
-    expect(screen.getByText("En revisión")).toBeInTheDocument();
+    expect(screen.getByText(text)).toBeInTheDocument();
   });
 
   it("truncates referencia to 12 chars", () => {

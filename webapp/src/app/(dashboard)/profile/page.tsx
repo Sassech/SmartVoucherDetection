@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { fetchApi, ApiError } from "@/lib/api";
 import { QuotaCard } from "./_components/QuotaCard";
 import { ApiKeyCard } from "./_components/ApiKeyCard";
+import type { ReactNode } from "react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,53 @@ export default function ProfilePage() {
     void fetchKeyStatus();
   }, [fetchKeyStatus]);
 
+  let apiKeyContent: ReactNode;
+  if (loadingStatus) {
+    apiKeyContent = (
+      <div
+        className="bg-white border border-[var(--color-outline-variant)] rounded-xl p-8 flex items-center justify-center"
+        aria-label="Loading API key status"
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--color-on-surface-variant)" }}>
+          <svg
+            style={{ animation: "spin 1s linear infinite" }}
+            width="20" height="20" viewBox="0 0 20 20" fill="none"
+            aria-hidden="true"
+          >
+            <circle cx="10" cy="10" r="8" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2.5" />
+            <path d="M18 10A8 8 0 0 0 10 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
+          <span className="text-sm">Loading…</span>
+        </div>
+      </div>
+    );
+  } else if (statusError) {
+    apiKeyContent = (
+      <div
+        role="alert"
+        className="bg-white border border-[var(--color-outline-variant)] rounded-xl p-6"
+      >
+        <p className="text-sm font-medium text-red-700">{statusError}</p>
+        <button
+          type="button"
+          onClick={() => void fetchKeyStatus()}
+          className="mt-2 text-xs text-[var(--color-primary)] hover:underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  } else {
+    apiKeyContent = (
+      <ApiKeyCard
+        hasKey={keyStatus?.has_key ?? false}
+        prefix={keyStatus?.prefix ?? null}
+        onGenerate={handleKeyGenerated}
+        onRevoke={handleKeyRevoked}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
 
@@ -147,45 +195,7 @@ export default function ProfilePage() {
         />
 
         {/* API Key card */}
-        {loadingStatus ? (
-          <div
-            className="bg-white border border-[var(--color-outline-variant)] rounded-xl p-8 flex items-center justify-center"
-            aria-label="Loading API key status"
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--color-on-surface-variant)" }}>
-              <svg
-                style={{ animation: "spin 1s linear infinite" }}
-                width="20" height="20" viewBox="0 0 20 20" fill="none"
-                aria-hidden="true"
-              >
-                <circle cx="10" cy="10" r="8" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2.5" />
-                <path d="M18 10A8 8 0 0 0 10 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-              <span className="text-sm">Loading…</span>
-            </div>
-          </div>
-        ) : statusError ? (
-          <div
-            role="alert"
-            className="bg-white border border-[var(--color-outline-variant)] rounded-xl p-6"
-          >
-            <p className="text-sm font-medium text-red-700">{statusError}</p>
-            <button
-              type="button"
-              onClick={() => void fetchKeyStatus()}
-              className="mt-2 text-xs text-[var(--color-primary)] hover:underline"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <ApiKeyCard
-            hasKey={keyStatus?.has_key ?? false}
-            prefix={keyStatus?.prefix ?? null}
-            onGenerate={handleKeyGenerated}
-            onRevoke={handleKeyRevoked}
-          />
-        )}
+        {apiKeyContent}
       </div>
     </div>
   );

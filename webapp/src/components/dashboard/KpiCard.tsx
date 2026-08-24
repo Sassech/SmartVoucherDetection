@@ -22,7 +22,7 @@ export function KpiCard({
   valueColorClass = "text-[var(--color-on-surface)]",
   badge,
   badgeColorClass = "text-[var(--color-secondary)]",
-}: KpiCardProps) {
+}: Readonly<KpiCardProps>) {
   return (
     <div className="flex flex-col justify-between gap-4 rounded-xl border border-[var(--color-outline-variant)] bg-white p-4">
       <div className="flex items-start justify-between">

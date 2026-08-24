@@ -155,6 +155,15 @@ export default function SubirPage() {
       })
     : "Sin fecha de reinicio";
 
+  let fileLabel: string;
+  if (files.length === 0) {
+    fileLabel = "Ningún archivo seleccionado";
+  } else if (files.length === 1) {
+    fileLabel = files[0].name;
+  } else {
+    fileLabel = `${files.length} archivos seleccionados`;
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -168,7 +177,7 @@ export default function SubirPage() {
           </p>
         </div>
         <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--color-surface-container-high)] border border-[var(--color-outline-variant)] text-xs font-medium text-[var(--color-on-surface)]">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />{" "}
           Sistema Listo
         </span>
       </div>
@@ -179,10 +188,19 @@ export default function SubirPage() {
         <div className="col-span-12 lg:col-span-8 space-y-4">
           {/* Drop zone */}
           <div
+            role="button"
+            tabIndex={0}
+            aria-label="Zona para subir archivos, haga clic o arrastre archivos aquí"
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={handleDropZoneClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleDropZoneClick();
+              }
+            }}
             className={`bg-white border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center min-h-[400px] transition-all group cursor-pointer ${
               dragging
                 ? "border-blue-400 bg-blue-50"
@@ -231,13 +249,10 @@ export default function SubirPage() {
           {/* Action bar */}
           <div className="flex items-center justify-between p-4 bg-white border border-[var(--color-outline-variant)] rounded-xl shadow-sm">
             <span className="text-sm text-[var(--color-on-surface-variant)] italic">
-              {files.length === 0
-                ? "Ningún archivo seleccionado"
-                : files.length === 1
-                  ? files[0].name
-                  : `${files.length} archivos seleccionados`}
+              {fileLabel}
             </span>
             <button
+              type="button"
               disabled={files.length === 0 || uploading}
               onClick={handleProcesar}
               className={`px-6 py-2 rounded-lg text-base font-semibold flex items-center gap-2 ${
@@ -253,7 +268,7 @@ export default function SubirPage() {
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                  <span className="material-symbols-outlined text-[18px]">play_arrow</span>{" "}
                   Procesar
                 </>
               )}
@@ -289,7 +304,7 @@ export default function SubirPage() {
               <h3 className="text-base font-semibold flex items-center gap-2 text-[var(--color-on-surface)]">
                 <span className="material-symbols-outlined text-[var(--color-primary)]">
                   tips_and_updates
-                </span>
+                </span>{" "}
                 Pautas para el Reconocimiento
               </h3>
             </div>

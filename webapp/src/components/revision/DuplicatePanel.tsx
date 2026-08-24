@@ -58,7 +58,7 @@ export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
         <h2 className="text-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
           <span className="material-symbols-outlined text-[20px] text-[var(--color-primary)]">
             gavel
-          </span>
+          </span>{" "}
           Decisión Final
         </h2>
         <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)]">
@@ -109,7 +109,7 @@ export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
             disabled={pending}
             className="w-full flex items-center justify-center gap-2 bg-[var(--color-error)] text-white py-3 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50 shadow-sm"
           >
-            <span className="material-symbols-outlined text-[18px]">block</span>
+            <span className="material-symbols-outlined text-[18px]">block</span>{" "}
             Confirmar como Duplicado
           </button>
           <button
@@ -118,7 +118,7 @@ export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
             disabled={pending}
             className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white py-3 rounded-lg text-sm font-bold hover:bg-emerald-600 transition-colors disabled:opacity-50 shadow-sm"
           >
-            <span className="material-symbols-outlined text-[18px]">verified</span>
+            <span className="material-symbols-outlined text-[18px]">verified</span>{" "}
             Anular — Marcar como Válido
           </button>
           <p className="text-center text-[10px] text-[var(--color-secondary)] px-4 uppercase tracking-wide">

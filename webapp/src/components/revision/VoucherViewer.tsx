@@ -20,7 +20,7 @@ export function VoucherViewer({ src, alt = "comprobante" }: VoucherViewerProps) 
       <div className="bg-white border border-[var(--color-outline-variant)] rounded-xl overflow-hidden flex flex-col">
         <div className="px-6 py-4 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)]">
           <h3 className="text-base font-semibold flex items-center gap-2 text-[var(--color-on-surface)]">
-            <span className="material-symbols-outlined text-[var(--color-primary)]">image</span>
+            <span className="material-symbols-outlined text-[var(--color-primary)]">image</span>{" "}
             Carga Original
           </h3>
         </div>
@@ -36,7 +36,7 @@ export function VoucherViewer({ src, alt = "comprobante" }: VoucherViewerProps) 
       {/* Card header */}
       <div className="px-6 py-4 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] flex justify-between items-center">
         <h3 className="text-base font-semibold flex items-center gap-2 text-[var(--color-on-surface)]">
-          <span className="material-symbols-outlined text-[var(--color-primary)]">image</span>
+          <span className="material-symbols-outlined text-[var(--color-primary)]">image</span>{" "}
           Carga Original
         </h3>
         <div className="flex gap-2">
@@ -71,7 +71,7 @@ export function VoucherViewer({ src, alt = "comprobante" }: VoucherViewerProps) 
           alt={alt}
           onLoad={() => setLoaded(true)}
           className="max-w-full shadow-2xl border-4 border-white rounded-sm"
-          style={{ display: loaded ? "block" : "block" }}
+          style={{ display: "block" }}
         />
       </div>
     </div>
