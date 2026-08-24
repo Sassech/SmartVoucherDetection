@@ -10,6 +10,7 @@ Guion_Defensa_Tesis.md
 .claude/
 .env
 .env.sonar
+.env.local
 __pycache__/
 *.pyc
 .pytest_cache/

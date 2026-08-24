@@ -157,7 +157,8 @@ async def test_upload_happy_path_returns_201_and_persists_row(
     assert body["campos_extraidos"]["banco"] == "BBVA"
     assert body["campos_extraidos"]["referencia"] == "REF-TEST-001"
     # save_upload mock recibio la llamada
-    assert len(patched_save) == 1 and expected_hash in patched_save[0]
+    assert len(patched_save) == 1
+    assert expected_hash in patched_save[0]
 
     # Fila persistida en la transaccion del test
     row = (

@@ -45,7 +45,7 @@ export function FilterBar({ value, onChange }: Readonly<FilterBarProps>) {
         <span className="block text-[10px] font-bold text-[var(--color-secondary)] uppercase tracking-wider mb-3">
           Filtrar por Estado
         </span>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado">
+        <fieldset className="flex flex-wrap gap-2 border-0 p-0 m-0 min-w-0" aria-label="Filtrar por estado">
           {STATUS_OPTIONS.map(({ value: optVal, label }) => {
             const isSelected =
               optVal === "todos"
@@ -69,7 +69,7 @@ export function FilterBar({ value, onChange }: Readonly<FilterBarProps>) {
               </button>
             );
           })}
-        </div>
+        </fieldset>
       </div>
 
       {/* Date range */}

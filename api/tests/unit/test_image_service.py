@@ -9,6 +9,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pytest
+from pdf2image.exceptions import PDFPageCountError
 from PIL import Image
 
 from services.image_service import (
@@ -112,7 +113,8 @@ def test_pdf_to_image_returns_decodable_png() -> None:
 
 
 def test_pdf_to_image_rejects_garbage() -> None:
-    with pytest.raises(Exception):  # pdf2image lanza varias subclases
+    # Poppler rechaza bytes no-PDF con PDFPageCountError.
+    with pytest.raises(PDFPageCountError):
         pdf_to_image(b"not a pdf at all")
 
 

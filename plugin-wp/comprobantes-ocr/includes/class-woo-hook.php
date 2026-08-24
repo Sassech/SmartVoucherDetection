@@ -58,15 +58,13 @@ class COCR_Woo_Hook {
 
         // Retrieve comprobante file path from order meta.
         $file_path = $this->get_comprobante_path( $order );
-        if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
-            return; // No attachment — nothing to upload.
-        }
 
         $api_url = get_option( COCR_Settings::OPTION_URL, '' );
         $api_key = get_option( COCR_Settings::OPTION_KEY, '' );
 
-        if ( empty( $api_url ) ) {
-            return; // Plugin not configured — skip silently.
+        // No attachment or plugin not configured — skip silently.
+        if ( empty( $file_path ) || ! file_exists( $file_path ) || empty( $api_url ) ) {
+            return;
         }
 
         $client = new COCR_API_Client();

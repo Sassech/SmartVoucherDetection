@@ -10,7 +10,7 @@
 ( function () {
 	'use strict';
 
-	const ALLOWED_TYPES = [ 'image/jpeg', 'image/png', 'application/pdf' ];
+	const ALLOWED_TYPES = new Set( [ 'image/jpeg', 'image/png', 'application/pdf' ] );
 
 	/** Maps API status to badge CSS modifier and display label. */
 	const STATUS_META = {
@@ -94,7 +94,7 @@
 			let skipped = 0;
 
 			files.forEach( function ( file ) {
-				if ( ! ALLOWED_TYPES.includes( file.type ) ) {
+				if ( ! ALLOWED_TYPES.has( file.type ) ) {
 					skipped++;
 					return;
 				}
@@ -157,7 +157,7 @@
 					if ( json.success ) {
 						updateRow( rowId, json.data );
 					} else {
-						const msg = ( json.data && json.data.message )
+						const msg = json.data?.message
 							? json.data.message
 							: cocrPublic.i18n.server_error;
 						updateRowError( rowId, msg );
@@ -222,7 +222,12 @@
 			cells[ 2 ].textContent = campos.monto       ? '$' + campos.monto       : '—';
 			cells[ 3 ].textContent = campos.banco        ? campos.banco             : '—';
 			cells[ 4 ].textContent = campos.fecha        ? campos.fecha             : '—';
-			cells[ 5 ].textContent = campos.referencia   ? campos.referencia        : ( campos.numero_operacion ? campos.numero_operacion : '—' );
+			// API may return either `referencia` or `numero_operacion`.
+			let referencia = campos.referencia;
+			if ( ! referencia ) {
+				referencia = campos.numero_operacion || '—';
+			}
+			cells[ 5 ].textContent = referencia;
 
 			if ( 'duplicado' === status || 'sospechoso' === status ) {
 				tr.classList.add( 'cocr-row--duplicate' );

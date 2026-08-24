@@ -26,7 +26,7 @@ jQuery( function ( $ ) {
 			if ( response.success ) {
 				$result.css( 'color', 'green' ).text( cocrAdmin.i18n.ok );
 			} else {
-				const detail = ( response.data && response.data.message ) ? ' — ' + response.data.message : '';
+				const detail = response.data?.message ? ' — ' + response.data.message : '';
 				$result.css( 'color', 'red' ).text( cocrAdmin.i18n.fail + detail );
 			}
 		} )

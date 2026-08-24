@@ -42,10 +42,9 @@ class COCR_Shortcode {
      *
      * Returns an empty string for users who do not have `upload_files`.
      *
-     * @param array $atts Shortcode attributes (unused in Fase 3).
      * @return string HTML output.
      */
-    public function render( array $atts = [] ): string {
+    public function render(): string {
         if ( ! current_user_can( 'upload_files' ) ) {
             return '';
         }
