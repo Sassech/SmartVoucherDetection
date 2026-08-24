@@ -8,7 +8,7 @@ interface OcrFieldsProps {
   item: WebComprobanteItem;
 }
 
-export function OcrFields({ item }: OcrFieldsProps) {
+export function OcrFields({ item }: Readonly<OcrFieldsProps>) {
   const fields = [
     {
       label: "Monto de Transacción",

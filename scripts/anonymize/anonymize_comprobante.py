@@ -74,7 +74,7 @@ _RE_REFERENCIA_NUM = re.compile(
 _RE_HORA = re.compile(r"\b(\d{1,2}:\d{2})(?::\d{2})?\b")
 
 # Motivo / concepto: línea que sigue a "Motivo:" o "Concepto:"
-_RE_MOTIVO = re.compile(r"(?:Motivo|Concepto)[:\s]+(.+?)(?:\n|$)", re.IGNORECASE)
+_RE_MOTIVO = re.compile(r"(?:Motivo|Concepto)[:\s]+([^\n]+)", re.IGNORECASE)
 
 # CLABE enmascarada por MercadoPago: **** o ****NNNN
 _RE_CLABE_MASK = re.compile(r"\*{4,7}(\d{4})")
@@ -103,13 +103,13 @@ _RE_NUM_TRANSACCION = re.compile(
 )
 
 # Tipo de operación: línea que sigue a "Tipo de operación:" o "Operación:"
-_RE_TIPO_OP = re.compile(r"(?:Tipo de operaci[oó]n|Operaci[oó]n)[:\s]+(.+?)(?:\n|$)", re.IGNORECASE)
+_RE_TIPO_OP = re.compile(r"(?:Tipo de operaci[oó]n|Operaci[oó]n)[:\s]+([^\n]+)", re.IGNORECASE)
 
 # Concepto de pago
-_RE_CONCEPTO = re.compile(r"(?:Concepto(?:\s+de\s+pago)?|Descripci[oó]n)[:\s]+(.+?)(?:\n|$)", re.IGNORECASE)
+_RE_CONCEPTO = re.compile(r"(?:Concepto(?:\s+de\s+pago)?|Descripci[oó]n)[:\s]+([^\n]+)", re.IGNORECASE)
 
 # Estatus de operación
-_RE_ESTATUS = re.compile(r"(?:Estatus|Estado|Status)[:\s]+(.+?)(?:\n|$)", re.IGNORECASE)
+_RE_ESTATUS = re.compile(r"(?:Estatus|Estado|Status)[:\s]+([^\n]+)", re.IGNORECASE)
 
 # Monto genérico desde PDF text: captura cualquier etiqueta de importe/monto
 # cuando el OCR devuelve null — fallback para layouts no estándar (BanCoppel, etc.)

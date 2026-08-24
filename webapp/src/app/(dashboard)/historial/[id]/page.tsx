@@ -56,7 +56,7 @@ function estadoIconColor(estado: WebComprobanteItem["estado_actual"]): string {
 }
 
 /** SVG gauge: circumference = 2π×28 ≈ 175.9 */
-function SimilarityGauge({ value }: { value: number }) {
+function SimilarityGauge({ value }: Readonly<{ value: number }>) {
   const circumference = 175.9;
   const offset = circumference * (1 - value / 100);
   return (

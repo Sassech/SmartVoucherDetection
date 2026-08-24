@@ -24,7 +24,7 @@ interface DuplicatePanelProps {
   onDecision?: (decision: "aceptar" | "rechazar") => void;
 }
 
-export function DuplicatePanel({ item, onDecision }: DuplicatePanelProps) {
+export function DuplicatePanel({ item, onDecision }: Readonly<DuplicatePanelProps>) {
   const [estado, setEstado] = useState<WebComprobanteItem["estado_actual"]>(item.estado_actual);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);

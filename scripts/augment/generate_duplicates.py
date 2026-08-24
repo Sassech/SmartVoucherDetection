@@ -687,7 +687,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
     # Inicializar RNG determinista
     rng = random.Random(seed)
 
-    print(f"\nGenerando pares de duplicados...")
+    print("\nGenerando pares de duplicados...")
 
     # Generar pares exactos
     print(f"  [exacto] generando {n_exacto} pares...")

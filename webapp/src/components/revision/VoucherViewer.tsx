@@ -12,7 +12,7 @@ interface VoucherViewerProps {
   alt?: string;
 }
 
-export function VoucherViewer({ src, alt = "comprobante" }: VoucherViewerProps) {
+export function VoucherViewer({ src, alt = "comprobante" }: Readonly<VoucherViewerProps>) {
   const [loaded, setLoaded] = useState(false);
 
   if (!src) {

@@ -19,7 +19,7 @@ interface FilterBarProps {
   onChange: (v: FilterState) => void;
 }
 
-export function FilterBar({ value, onChange }: FilterBarProps) {
+export function FilterBar({ value, onChange }: Readonly<FilterBarProps>) {
   const isAll = value.status.length === 0;
 
   function handleStatusClick(status: string) {
