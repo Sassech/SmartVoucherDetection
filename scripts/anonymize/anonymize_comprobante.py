@@ -84,8 +84,8 @@ _RE_CLAVE_RASTREO = re.compile(r"(?:Clave de rastreo|CLABE rastreo|clave_rastreo
 
 # Comisión: cubre "Comisión:", "COMISION DEL BANCO:", "TOTAL COMISION:"
 # También tolera prefijos de moneda como "M.N. $" antes del número (OXXO).
-_RE_COMISION = re.compile(  # NOSONAR - S8786/S5843: dataset tooling, OCR input <500 chars, ReDoS not exploitable
-    r"(?:TOTAL\s+)?COMISI[OÓ]N(?:\s+DEL\s+BANCO)?[:\s]+(?:M\.?N\.?\s*)?\$?\s*(\d[\d,]*\.?\d*)",
+_RE_COMISION = re.compile(
+    r"(?:TOTAL\s+)?COMISI[OÓ]N(?:\s+DEL\s+BANCO)?[:\s]+(?:M\.?N\.?\s*)?\$?\s*(\d[\d,]*\.?\d*)",  # NOSONAR - S8786/S5843: dataset tooling, bounded input
     re.IGNORECASE,
 )
 
@@ -113,22 +113,22 @@ _RE_ESTATUS = re.compile(r"(?:Estatus|Estado|Status)[:\s]+(.+?)(?:\n|$)", re.IGN
 
 # Monto genérico desde PDF text: captura cualquier etiqueta de importe/monto
 # cuando el OCR devuelve null — fallback para layouts no estándar (BanCoppel, etc.)
-_RE_MONTO_PDF = re.compile(  # NOSONAR - S8786: dataset tooling, bounded input
-    r"(?:Monto|Importe|Amount)[:\s]+\$?\s*(\d[\d,]*\.?\d*)",
+_RE_MONTO_PDF = re.compile(
+    r"(?:Monto|Importe|Amount)[:\s]+\$?\s*(\d[\d,]*\.?\d*)",  # NOSONAR - S8786: dataset tooling, bounded input
     re.IGNORECASE,
 )
 
 # Importe transferido: etiqueta "Importe transferido" o "Importe giro" (BBVA, Banorte)
-_RE_IMPORTE_TRANSFERIDO = re.compile(  # NOSONAR - S8786: dataset tooling, bounded input
-    r"(?:Importe\s+transferido|Importe\s+giro)[:\s]+\$?\s*(\d[\d,]*\.?\d*)",
+_RE_IMPORTE_TRANSFERIDO = re.compile(
+    r"(?:Importe\s+transferido|Importe\s+giro)[:\s]+\$?\s*(\d[\d,]*\.?\d*)",  # NOSONAR - S8786: dataset tooling, bounded input
     re.IGNORECASE,
 )
 
 # Monto base OXXO: línea "MONTO : M.N. $ 600.00" — aparece ANTES de comisión.
 # Patrón específico: "MONTO" seguido de separadores y opcionalmente "M.N. $".
 # Se diferencia del monto principal porque en OXXO la etiqueta es exactamente "MONTO".
-_RE_MONTO_BASE_OXXO = re.compile(  # NOSONAR - S8786/S5843: dataset tooling, bounded input
-    r"^[\s\-]*MONTO\s*[:\s]+(?:M\.?N\.?\s*)?\$?\s*(\d[\d,]*\.?\d*)",
+_RE_MONTO_BASE_OXXO = re.compile(
+    r"^[\s\-]*MONTO\s*[:\s]+(?:M\.?N\.?\s*)?\$?\s*(\d[\d,]*\.?\d*)",  # NOSONAR - S8786/S5843: dataset tooling, bounded input
     re.IGNORECASE | re.MULTILINE,
 )
 
