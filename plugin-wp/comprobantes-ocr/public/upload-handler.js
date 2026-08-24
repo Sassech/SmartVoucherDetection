@@ -20,6 +20,21 @@
 		error      : { mod: 'red',    label: '✕ Error' },
 	};
 
+	function escHtml( str ) {
+		return String( str )
+			.replaceAll( '&', '&amp;' )
+			.replaceAll( '<', '&lt;' )
+			.replaceAll( '>', '&gt;' );
+	}
+
+	function escAttr( str ) {
+		return escHtml( str ).replaceAll( '"', '&quot;' );
+	}
+
+	function truncate( str, max ) {
+		return str.length > max ? str.slice( 0, max - 1 ) + '…' : str;
+	}
+
 	document.addEventListener( 'DOMContentLoaded', function () {
 		const wrap      = document.querySelector( '.cocr-upload-wrap' );
 		if ( ! wrap ) {
@@ -240,21 +255,6 @@
 		function setMsg( text, isError ) {
 			msgEl.textContent  = text;
 			msgEl.style.color  = isError ? '#cc1818' : '#1e7e34';
-		}
-
-		function escHtml( str ) {
-			return String( str )
-				.replace( /&/g, '&amp;' )
-				.replace( /</g, '&lt;' )
-				.replace( />/g, '&gt;' );
-		}
-
-		function escAttr( str ) {
-			return escHtml( str ).replace( /"/g, '&quot;' );
-		}
-
-		function truncate( str, max ) {
-			return str.length > max ? str.slice( 0, max - 1 ) + '…' : str;
 		}
 	} );
 } )();

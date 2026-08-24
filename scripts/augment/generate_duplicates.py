@@ -88,10 +88,12 @@ class DuplicatePair(NamedTuple):
 # Mapa de normalización de banco (reutilizado de generate_augmented.py)
 # ---------------------------------------------------------------------------
 
+_MERCADO_PAGO = "Mercado Pago"
+
 BANCO_NORM: dict[str, str] = {
-    "Mercado Pago WALLET": "Mercado Pago",
-    "WALLET": "Mercado Pago",
-    "Mercado Pago": "Mercado Pago",
+    "Mercado Pago WALLET": _MERCADO_PAGO,
+    "WALLET": _MERCADO_PAGO,
+    "Mercado Pago": _MERCADO_PAGO,
     "BBVA Bancomer": "BBVA",
     "BBVA BANCOMER": "BBVA",
     "BANCOMER": "BBVA",
@@ -154,6 +156,46 @@ def _is_synthetic_input(images: list[Path], gt_data: dict[str, dict]) -> bool:
     return matches / len(images) >= 0.5
 
 
+def _extract_source(img_path: Path, data: dict, gt_id: str) -> SourceImage | None:
+    banco_raw = data.get("banco_emisor", "")
+    banco = BANCO_NORM.get(banco_raw, banco_raw)
+    if not banco:
+        print(f"  WARN: {img_path.name} sin banco_emisor en GT, omitida.", file=sys.stderr)
+        return None
+    monto = float(data.get("monto", 0.0) or 0.0)
+    fecha = data.get("fecha", "") or ""
+    return SourceImage(path=img_path, gt_id=gt_id, banco=banco, monto=monto, fecha=fecha)
+
+
+def _match_synthetic(images: list[Path], gt_data: dict[str, dict]) -> list[SourceImage]:
+    print("  Modo detectado: SINTÉTICO (matching por nombre)")
+    sources: list[SourceImage] = []
+    for img_path in images:
+        stem = img_path.stem
+        if stem not in gt_data:
+            print(f"  WARN: {img_path.name} sin GT correspondiente, omitida.", file=sys.stderr)
+            continue
+        src = _extract_source(img_path, gt_data[stem], stem)
+        if src:
+            sources.append(src)
+    return sources
+
+
+def _match_positional(images: list[Path], gt_data: dict[str, dict]) -> list[SourceImage]:
+    print("  Modo detectado: ANONIMIZADO (matching posicional)")
+    sources: list[SourceImage] = []
+    sorted_gt_ids = sorted(gt_data.keys())
+    for idx, img_path in enumerate(images):
+        if idx >= len(sorted_gt_ids):
+            print(f"  WARN: {img_path.name} sin GT posicional, omitida.", file=sys.stderr)
+            continue
+        gt_id = sorted_gt_ids[idx]
+        src = _extract_source(img_path, gt_data[gt_id], gt_id)
+        if src:
+            sources.append(src)
+    return sources
+
+
 def _match_sources(
     images: list[Path],
     gt_data: dict[str, dict],
@@ -164,56 +206,9 @@ def _match_sources(
     Modo anonimizado: matching posicional (imagen N ↔ GT mx-{N:03d}).
     """
     synthetic = _is_synthetic_input(images, gt_data)
-    sources: list[SourceImage] = []
-
-    def _extract(img_path: Path, data: dict, gt_id: str) -> SourceImage | None:
-        banco_raw = data.get("banco_emisor", "")
-        banco = BANCO_NORM.get(banco_raw, banco_raw)
-        if not banco:
-            print(
-                f"  WARN: {img_path.name} sin banco_emisor en GT, omitida.",
-                file=sys.stderr,
-            )
-            return None
-        monto = float(data.get("monto", 0.0) or 0.0)
-        fecha = data.get("fecha", "") or ""
-        return SourceImage(
-            path=img_path,
-            gt_id=gt_id,
-            banco=banco,
-            monto=monto,
-            fecha=fecha,
-        )
-
     if synthetic:
-        print("  Modo detectado: SINTÉTICO (matching por nombre)")
-        for img_path in images:
-            stem = img_path.stem
-            if stem not in gt_data:
-                print(
-                    f"  WARN: {img_path.name} sin GT correspondiente, omitida.",
-                    file=sys.stderr,
-                )
-                continue
-            src = _extract(img_path, gt_data[stem], stem)
-            if src:
-                sources.append(src)
-    else:
-        print("  Modo detectado: ANONIMIZADO (matching posicional)")
-        sorted_gt_ids = sorted(gt_data.keys())
-        for idx, img_path in enumerate(images):
-            if idx >= len(sorted_gt_ids):
-                print(
-                    f"  WARN: {img_path.name} sin GT posicional, omitida.",
-                    file=sys.stderr,
-                )
-                continue
-            gt_id = sorted_gt_ids[idx]
-            src = _extract(img_path, gt_data[gt_id], gt_id)
-            if src:
-                sources.append(src)
-
-    return sources
+        return _match_synthetic(images, gt_data)
+    return _match_positional(images, gt_data)
 
 
 # ---------------------------------------------------------------------------
@@ -351,6 +346,88 @@ def _generate_partial_pairs(
     return pairs
 
 
+def _make_negative_pair(a: SourceImage, b: SourceImage, nota: str) -> DuplicatePair:
+    return DuplicatePair(
+        id_a=a.gt_id,
+        id_b=b.gt_id,
+        tipo_duplicado="negativo",
+        capa_esperada="ninguna",
+        clasificacion_esperada="no_duplicado",
+        notas=nota,
+    )
+
+
+def _candidates_for_banco(banco: str, banco_sources: list[SourceImage]) -> list[tuple[SourceImage, SourceImage, str]]:
+    """Genera todos los pares monto-distinto dentro de un banco ordenado por fecha."""
+    sorted_sources = sorted(banco_sources, key=lambda s: s.fecha)
+    candidates: list[tuple[SourceImage, SourceImage, str]] = []
+    for i in range(len(sorted_sources)):
+        for j in range(i + 1, len(sorted_sources)):
+            a = sorted_sources[i]
+            b = sorted_sources[j]
+            if a.monto == b.monto:
+                continue
+            nota = (
+                f"mismo banco {banco} + fecha exacta + monto distinto"
+                if a.fecha == b.fecha
+                else f"mismo banco {banco} + fecha cercana + monto distinto"
+            )
+            candidates.append((a, b, nota))
+    return candidates
+
+
+def _collect_negative_candidates(sources: list[SourceImage]) -> list[tuple[SourceImage, SourceImage, str]]:
+    """Agrupa por banco y construye pool de candidatos monto-distinto."""
+    from collections import defaultdict
+
+    by_banco: dict[str, list[SourceImage]] = defaultdict(list)
+    for src in sources:
+        by_banco[src.banco].append(src)
+    pool: list[tuple[SourceImage, SourceImage, str]] = []
+    for banco, banco_sources in sorted(by_banco.items()):
+        if len(banco_sources) < 2:
+            continue
+        pool.extend(_candidates_for_banco(banco, banco_sources))
+    return pool
+
+
+def _order_candidates_by_date(
+    candidate_pool: list[tuple[SourceImage, SourceImage, str]],
+    rng: random.Random,
+) -> list[tuple[SourceImage, SourceImage, str]]:
+    """Prioriza pares con misma fecha, mezclando ambos grupos."""
+    same_date = [(a, b, n) for a, b, n in candidate_pool if a.fecha == b.fecha]
+    diff_date = [(a, b, n) for a, b, n in candidate_pool if a.fecha != b.fecha]
+    rng.shuffle(same_date)
+    rng.shuffle(diff_date)
+    return same_date + diff_date
+
+
+def _select_negative_pairs(
+    ordered_candidates: list[tuple[SourceImage, SourceImage, str]],
+    n_negativo: int,
+) -> list[DuplicatePair]:
+    """Selecciona pares priorizando IDs únicos; relaja si no alcanza."""
+    pairs: list[DuplicatePair] = []
+    used_ids: set[str] = set()
+    for a, b, nota in ordered_candidates:
+        if len(pairs) >= n_negativo:
+            break
+        if a.gt_id in used_ids or b.gt_id in used_ids:
+            continue
+        pairs.append(_make_negative_pair(a, b, nota))
+        used_ids.add(a.gt_id)
+        used_ids.add(b.gt_id)
+    if len(pairs) < n_negativo:
+        for a, b, nota in ordered_candidates:
+            if len(pairs) >= n_negativo:
+                break
+            if any(p.id_a == a.gt_id and p.id_b == b.gt_id for p in pairs):
+                continue
+            pairs.append(_make_negative_pair(a, b, nota))
+    return pairs
+
+
 def _generate_negative_pairs(
     sources: list[SourceImage],
     n_negativo: int,
@@ -364,102 +441,11 @@ def _generate_negative_pairs(
     3. Seleccionar pares donde monto_a != monto_b (obligatorio).
     4. Preferir mismo fecha exacta; si no, fecha más cercana disponible.
     """
-    from collections import defaultdict
-
-    # Agrupar por banco
-    by_banco: dict[str, list[SourceImage]] = defaultdict(list)
-    for src in sources:
-        by_banco[src.banco].append(src)
-
-    # Construir pool de candidatos: pares (a, b) mismo banco, monto distinto
-    candidate_pool: list[tuple[SourceImage, SourceImage, str]] = []  # (a, b, nota)
-
-    for banco, banco_sources in sorted(by_banco.items()):
-        if len(banco_sources) < 2:
-            continue
-
-        # Ordenar por fecha para facilitar búsqueda de pares próximos
-        sorted_sources = sorted(banco_sources, key=lambda s: s.fecha)
-
-        # Generar todos los pares posibles dentro del banco
-        for i in range(len(sorted_sources)):
-            for j in range(i + 1, len(sorted_sources)):
-                a = sorted_sources[i]
-                b = sorted_sources[j]
-
-                # Monto DEBE ser distinto (criterio obligatorio)
-                if a.monto == b.monto:
-                    continue
-
-                # Construir nota descriptiva
-                if a.fecha == b.fecha:
-                    nota = f"mismo banco {banco} + fecha exacta + monto distinto"
-                else:
-                    nota = f"mismo banco {banco} + fecha cercana + monto distinto"
-
-                candidate_pool.append((a, b, nota))
-
+    candidate_pool = _collect_negative_candidates(sources)
     if not candidate_pool:
         return []
-
-    # Priorizar pares con misma fecha (más desafiantes como falsos positivos)
-    same_date = [(a, b, n) for a, b, n in candidate_pool if a.fecha == b.fecha]
-    diff_date = [(a, b, n) for a, b, n in candidate_pool if a.fecha != b.fecha]
-
-    # Shuffle ambos grupos
-    rng.shuffle(same_date)
-    rng.shuffle(diff_date)
-
-    # Priorizar same_date primero
-    ordered_candidates = same_date + diff_date
-
-    pairs: list[DuplicatePair] = []
-    used_ids: set[str] = set()
-
-    for a, b, nota in ordered_candidates:
-        if len(pairs) >= n_negativo:
-            break
-
-        # Evitar duplicar el mismo id_a o id_b en múltiples pares negativos
-        # (aunque no es estrictamente requerido, evita confusión en evaluación)
-        if a.gt_id in used_ids or b.gt_id in used_ids:
-            continue
-
-        pairs.append(
-            DuplicatePair(
-                id_a=a.gt_id,
-                id_b=b.gt_id,
-                tipo_duplicado="negativo",
-                capa_esperada="ninguna",
-                clasificacion_esperada="no_duplicado",
-                notas=nota,
-            )
-        )
-        used_ids.add(a.gt_id)
-        used_ids.add(b.gt_id)
-
-    # Si no se alcanzó n_negativo con IDs únicos, relajar la restricción
-    if len(pairs) < n_negativo:
-        for a, b, nota in ordered_candidates:
-            if len(pairs) >= n_negativo:
-                break
-            # Verificar que este par exacto no esté ya incluido
-            already = any(
-                p.id_a == a.gt_id and p.id_b == b.gt_id for p in pairs
-            )
-            if not already:
-                pairs.append(
-                    DuplicatePair(
-                        id_a=a.gt_id,
-                        id_b=b.gt_id,
-                        tipo_duplicado="negativo",
-                        capa_esperada="ninguna",
-                        clasificacion_esperada="no_duplicado",
-                        notas=nota,
-                    )
-                )
-
-    return pairs
+    ordered = _order_candidates_by_date(candidate_pool, rng)
+    return _select_negative_pairs(ordered, n_negativo)
 
 
 # ---------------------------------------------------------------------------

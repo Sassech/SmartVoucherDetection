@@ -13,94 +13,94 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 ?>
 <div class="wrap">
-	<h1><?php esc_html_e( 'Comprobantes — Last 20', 'comprobantes-ocr' ); ?></h1>
+    <h1><?php esc_html_e( 'Comprobantes — Last 20', 'comprobantes-ocr' ); ?></h1>
 
-	<?php if ( is_wp_error( $history ) ) : ?>
+    <?php if ( is_wp_error( $history ) ) : ?>
 
-		<div class="notice notice-error inline">
-			<p><?php echo esc_html( $history->get_error_message() ); ?></p>
-		</div>
+        <div class="notice notice-error inline">
+            <p><?php echo esc_html( $history->get_error_message() ); ?></p>
+        </div>
 
-	<?php else : ?>
+    <?php else : ?>
 
-		<?php
-		$items = ( is_array( $history ) && isset( $history['items'] ) )
-			? $history['items']
-			: [];
+        <?php
+        $items = ( is_array( $history ) && isset( $history['items'] ) )
+            ? $history['items']
+            : [];
 
-		/**
-		 * Map API estado_actual values to WP admin badge CSS classes.
-		 *
-		 * cocr-badge-success → green  (valido)
-		 * cocr-badge-warning → yellow (sospechoso, en_revision)
-		 * cocr-badge-error   → red    (duplicado, error)
-		 * cocr-badge-info    → blue   (recibido, procesando, comparando)
-		 */
-		$badge_map = [
-			'valido'      => 'cocr-badge-success',
-			'sospechoso'  => 'cocr-badge-warning',
-			'duplicado'   => 'cocr-badge-error',
-			'error'       => 'cocr-badge-error',
-			'recibido'    => 'cocr-badge-info',
-			'procesando'  => 'cocr-badge-info',
-			'comparando'  => 'cocr-badge-info',
-			'en_revision' => 'cocr-badge-warning',
-		];
-		?>
+        /**
+         * Map API estado_actual values to WP admin badge CSS classes.
+         *
+         * cocr-badge-success → green  (valido)
+         * cocr-badge-warning → yellow (sospechoso, en_revision)
+         * cocr-badge-error   → red    (duplicado, error)
+         * cocr-badge-info    → blue   (recibido, procesando, comparando)
+         */
+        $badge_map = [
+            'valido'      => 'cocr-badge-success',
+            'sospechoso'  => 'cocr-badge-warning',
+            'duplicado'   => 'cocr-badge-error',
+            'error'       => 'cocr-badge-error',
+            'recibido'    => 'cocr-badge-info',
+            'procesando'  => 'cocr-badge-info',
+            'comparando'  => 'cocr-badge-info',
+            'en_revision' => 'cocr-badge-warning',
+        ];
+        ?>
 
-		<table class="wp-list-table widefat fixed striped">
-			<thead>
-				<tr>
-					<th scope="col"><?php esc_html_e( 'Date', 'comprobantes-ocr' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Bank', 'comprobantes-ocr' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Amount', 'comprobantes-ocr' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Status', 'comprobantes-ocr' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Hash', 'comprobantes-ocr' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-				<?php if ( empty( $items ) ) : ?>
-					<tr>
-						<td colspan="5"><?php esc_html_e( 'No comprobantes found.', 'comprobantes-ocr' ); ?></td>
-					</tr>
-				<?php else : ?>
-					<?php foreach ( $items as $item ) : ?>
-						<?php
-					$status    = sanitize_text_field( $item['estado_actual'] ?? '' );
-					$badge_cls = esc_attr( $badge_map[ $status ] ?? 'cocr-badge-info' );
-						?>
-						<tr>
-							<td><?php echo esc_html( $item['fecha_registro'] ?? '—' ); ?></td>
-							<td><?php echo esc_html( $item['campos_extraidos']['banco'] ?? '—' ); ?></td>
-							<td><?php echo esc_html( $item['campos_extraidos']['monto'] ?? '—' ); ?></td>
-							<td>
-								<span class="cocr-badge <?php echo $badge_cls; ?>">
-									<?php echo esc_html( $status ); ?>
-								</span>
-							</td>
-							<td>
-								<code><?php echo esc_html( substr( $item['hash_documento'] ?? '', 0, 8 ) . '…' ); ?></code>
-							</td>
-						</tr>
-					<?php endforeach; ?>
-				<?php endif; ?>
-			</tbody>
-		</table>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th scope="col"><?php esc_html_e( 'Date', 'comprobantes-ocr' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Bank', 'comprobantes-ocr' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Amount', 'comprobantes-ocr' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Status', 'comprobantes-ocr' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Hash', 'comprobantes-ocr' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ( empty( $items ) ) : ?>
+                    <tr>
+                        <td colspan="5"><?php esc_html_e( 'No comprobantes found.', 'comprobantes-ocr' ); ?></td>
+                    </tr>
+                <?php else : ?>
+                    <?php foreach ( $items as $item ) : ?>
+                        <?php
+                    $status    = sanitize_text_field( $item['estado_actual'] ?? '' );
+                    $badge_cls = esc_attr( $badge_map[ $status ] ?? 'cocr-badge-info' );
+                        ?>
+                        <tr>
+                            <td><?php echo esc_html( $item['fecha_registro'] ?? '—' ); ?></td>
+                            <td><?php echo esc_html( $item['campos_extraidos']['banco'] ?? '—' ); ?></td>
+                            <td><?php echo esc_html( $item['campos_extraidos']['monto'] ?? '—' ); ?></td>
+                            <td>
+                                <span class="cocr-badge <?php echo $badge_cls; ?>">
+                                    <?php echo esc_html( $status ); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <code><?php echo esc_html( substr( $item['hash_documento'] ?? '', 0, 8 ) . '…' ); ?></code>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
 
-	<?php endif; ?>
+    <?php endif; ?>
 </div>
 
 <style>
 .cocr-badge {
-	display: inline-block;
-	padding: 2px 8px;
-	border-radius: 4px;
-	font-size: .85em;
-	font-weight: 600;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: .85em;
+    font-weight: 600;
 }
 .cocr-badge-success { background: #d4edda; color: #155724; }
 .cocr-badge-warning { background: #fff3cd; color: #856404; }

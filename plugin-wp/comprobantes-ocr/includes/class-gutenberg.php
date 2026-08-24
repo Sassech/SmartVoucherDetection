@@ -41,7 +41,7 @@ class COCR_Gutenberg {
 			return;
 		}
 
-		$asset = include $asset_file;
+        $asset = include_once $asset_file;
 
 		wp_register_script(
 			'cocr-block-editor',

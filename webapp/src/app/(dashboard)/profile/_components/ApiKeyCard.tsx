@@ -104,15 +104,20 @@ function KeyModal({ plainKey, onClose }: Readonly<KeyModalProps>) {
     <div
       style={{
         position: "fixed", inset: 0, zIndex: 9999,
-        background: "rgba(0,0,0,0.45)", display: "flex",
-        alignItems: "center", justifyContent: "center",
+        display: "flex", alignItems: "center", justifyContent: "center",
         padding: "1rem",
       }}
-      onClick={(e) => {
-        // Close when clicking the backdrop (not the dialog)
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
+      <button
+        type="button"
+        aria-label="Close dialog"
+        onClick={onClose}
+        style={{
+          position: "absolute", inset: 0,
+          background: "rgba(0,0,0,0.45)", border: "none",
+          appearance: "none" as const, padding: 0, cursor: "default",
+        }}
+      />
       {/* Dialog */}
       <dialog
         ref={dialogRef}
@@ -120,6 +125,7 @@ function KeyModal({ plainKey, onClose }: Readonly<KeyModalProps>) {
         aria-modal="true"
         aria-labelledby="modal-title"
         style={{
+          position: "relative",
           background: "white", borderRadius: 16, padding: "2rem",
           maxWidth: 480, width: "100%",
           boxShadow: "0 20px 60px rgba(0,0,0,0.25)",

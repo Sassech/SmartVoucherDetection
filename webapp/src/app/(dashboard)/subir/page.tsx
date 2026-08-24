@@ -81,7 +81,7 @@ export default function SubirPage() {
     }
   }
 
-  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+  function handleDragOver(e: React.DragEvent<HTMLButtonElement>) {
     e.preventDefault();
     setDragging(true);
   }
@@ -90,7 +90,7 @@ export default function SubirPage() {
     setDragging(false);
   }
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+  function handleDrop(e: React.DragEvent<HTMLButtonElement>) {
     e.preventDefault();
     setDragging(false);
     setFiles(Array.from(e.dataTransfer.files));
@@ -187,21 +187,14 @@ export default function SubirPage() {
         {/* Upload Zone — col-span-8 */}
         <div className="col-span-12 lg:col-span-8 space-y-4">
           {/* Drop zone */}
-          <div
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             aria-label="Zona para subir archivos, haga clic o arrastre archivos aquí"
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={handleDropZoneClick}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleDropZoneClick();
-              }
-            }}
-            className={`bg-white border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center min-h-[400px] transition-all group cursor-pointer ${
+            className={`w-full appearance-none bg-white border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center min-h-[400px] transition-all group cursor-pointer text-left ${
               dragging
                 ? "border-blue-400 bg-blue-50"
                 : "border-[var(--color-outline-variant)] hover:border-[var(--color-primary-container)] hover:bg-[var(--color-surface-container-low)]"
@@ -244,7 +237,7 @@ export default function SubirPage() {
               multiple
               onChange={handleFileChange}
             />
-          </div>
+          </button>
 
           {/* Action bar */}
           <div className="flex items-center justify-between p-4 bg-white border border-[var(--color-outline-variant)] rounded-xl shadow-sm">

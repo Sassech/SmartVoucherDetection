@@ -62,6 +62,6 @@ class COCR_History_Widget {
 		$client  = new COCR_API_Client();
 		$history = $client->get_history( $api_url, $api_key, 20 );
 
-		include COCR_PLUGIN_DIR . 'admin/history-widget.php';
+        include_once COCR_PLUGIN_DIR . 'admin/history-widget.php';
 	}
 }

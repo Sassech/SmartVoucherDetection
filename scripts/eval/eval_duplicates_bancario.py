@@ -143,10 +143,12 @@ def _s_texto(a: str | None, b: str | None) -> float:
 
 def _s_monto(a: Decimal | None, b: Decimal | None) -> float:
     """Monto similarity: 1 - abs(a-b)/max(a,b). Mirrors duplicate_service."""
+    import math as _math
+
     if a is None or b is None:
         return 0.0
     mx = max(abs(float(a)), abs(float(b)))
-    if mx == 0:
+    if _math.isclose(mx, 0.0):
         return 1.0
     return 1.0 - abs(float(a) - float(b)) / mx
 
@@ -457,7 +459,114 @@ def _scores_stats(scores: list[float]) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def _evaluate_pairs(  # noqa: C901
+def _check_layer2_ref_match(gt_a: dict | None, gt_b: dict | None) -> bool:
+    ref_a = (gt_a or {}).get("numero_referencia") or (gt_a or {}).get("numero_comprobante") or None
+    ref_b = (gt_b or {}).get("numero_referencia") or (gt_b or {}).get("numero_comprobante") or None
+    monto_a_raw = (gt_a or {}).get("monto")
+    monto_b_raw = (gt_b or {}).get("monto")
+    fecha_a_raw = (gt_a or {}).get("fecha")
+    fecha_b_raw = (gt_b or {}).get("fecha")
+    if not (ref_a and ref_b and ref_a == ref_b):
+        return False
+    monto_a = _parse_monto(monto_a_raw)
+    monto_b = _parse_monto(monto_b_raw)
+    fecha_a = _parse_fecha(fecha_a_raw)
+    fecha_b = _parse_fecha(fecha_b_raw)
+    return (
+        monto_a is not None
+        and monto_b is not None
+        and fecha_a is not None
+        and fecha_b is not None
+        and monto_a == monto_b
+        and fecha_a == fecha_b
+    )
+
+
+def _check_layer2_fallback(gt_a: dict | None, gt_b: dict | None) -> bool:
+    if gt_a is None or gt_b is None:
+        return False
+    ref_a = (gt_a or {}).get("numero_referencia") or (gt_a or {}).get("numero_comprobante") or None
+    ref_b = (gt_b or {}).get("numero_referencia") or (gt_b or {}).get("numero_comprobante") or None
+    monto_a = _parse_monto((gt_a or {}).get("monto"))
+    monto_b = _parse_monto((gt_b or {}).get("monto"))
+    fecha_a = _parse_fecha((gt_a or {}).get("fecha"))
+    fecha_b = _parse_fecha((gt_b or {}).get("fecha"))
+    return (
+        monto_a is not None
+        and monto_b is not None
+        and fecha_a is not None
+        and fecha_b is not None
+        and monto_a == monto_b
+        and fecha_a == fecha_b
+        and (ref_a or "") == (ref_b or "")
+    )
+
+
+def _evaluate_layer2(gt_a: dict | None, gt_b: dict | None) -> bool:
+    if _check_layer2_ref_match(gt_a, gt_b):
+        return True
+    return _check_layer2_fallback(gt_a, gt_b)
+
+
+def _evaluate_single_pair(
+    pair: dict[str, str],
+    gt_index: dict[str, dict],
+    images_dir: Path,
+    degraded_dir: Path,
+) -> dict[str, Any]:
+    id_a = pair["id_a"]
+    id_b = pair["id_b"]
+    result: dict[str, Any] = {
+        "id_a": id_a,
+        "id_b": id_b,
+        "tipo_duplicado": pair["tipo_duplicado"],
+        "clasificacion_esperada": pair["clasificacion_esperada"],
+        "layer1_detected": False,
+        "layer2_detected": False,
+        "score": 0.0,
+        "prediction": "valido",
+        "calidad_a": None,
+        "calidad_b": None,
+        "error": None,
+    }
+    path_a = _resolve_image_path(id_a, images_dir, degraded_dir)
+    path_b = _resolve_image_path(id_b, images_dir, degraded_dir)
+    if path_a is None:
+        result["error"] = f"image not found for id_a={id_a!r}"
+        return result
+    if path_b is None:
+        result["error"] = f"image not found for id_b={id_b!r}"
+        return result
+    try:
+        bytes_a = path_a.read_bytes()
+        bytes_b = path_b.read_bytes()
+    except OSError as exc:
+        result["error"] = f"I/O error reading images: {exc}"
+        return result
+    gt_a = _resolve_gt(id_a, id_a, gt_index)
+    gt_b = _resolve_gt(id_b, id_a, gt_index)
+    result["calidad_a"] = (gt_a or {}).get("calidad", "unknown")
+    result["calidad_b"] = (gt_b or {}).get("calidad", "unknown")
+    try:
+        result["layer1_detected"] = _compute_hash(bytes_a) == _compute_hash(bytes_b)
+    except Exception as exc:  # noqa: BLE001
+        result["error"] = f"Layer 1 error: {exc}"
+        return result
+    result["layer2_detected"] = _evaluate_layer2(gt_a, gt_b)
+    fake_a = _gt_to_fake(gt_a)
+    fake_b = _gt_to_fake(gt_b)
+    try:
+        score = _compute_score(fake_a, fake_b)
+        result["score"] = round(score, 6)
+        result["prediction"] = _classify(score)
+    except Exception as exc:  # noqa: BLE001
+        result["error"] = f"Layer 3 error: {exc}"
+        result["score"] = 0.0
+        result["prediction"] = "valido"
+    return result
+
+
+def _evaluate_pairs(
     pairs: list[dict[str, str]],
     images_dir: Path,
     gt_dir: Path,
@@ -475,134 +584,7 @@ def _evaluate_pairs(  # noqa: C901
       - error (str | None)
     """
     gt_index = _load_gt_index(gt_dir)
-    results: list[dict[str, Any]] = []
-
-    for pair in pairs:
-        id_a = pair["id_a"]
-        id_b = pair["id_b"]
-        tipo = pair["tipo_duplicado"]
-        clf_expected = pair["clasificacion_esperada"]
-
-        result: dict[str, Any] = {
-            "id_a": id_a,
-            "id_b": id_b,
-            "tipo_duplicado": tipo,
-            "clasificacion_esperada": clf_expected,
-            "layer1_detected": False,
-            "layer2_detected": False,
-            "score": 0.0,
-            "prediction": "valido",
-            "calidad_a": None,
-            "calidad_b": None,
-            "error": None,
-        }
-
-        # --- Resolve image paths ---
-        path_a = _resolve_image_path(id_a, images_dir, degraded_dir)
-        path_b = _resolve_image_path(id_b, images_dir, degraded_dir)
-
-        if path_a is None:
-            result["error"] = f"image not found for id_a={id_a!r}"
-            results.append(result)
-            continue
-        if path_b is None:
-            result["error"] = f"image not found for id_b={id_b!r}"
-            results.append(result)
-            continue
-
-        # --- Load image bytes ---
-        try:
-            bytes_a = path_a.read_bytes()
-            bytes_b = path_b.read_bytes()
-        except OSError as exc:
-            result["error"] = f"I/O error reading images: {exc}"
-            results.append(result)
-            continue
-
-        # --- Resolve GTs ---
-        # For degraded images (dup-exact-*, dup-partial-*), the GT is id_a's GT.
-        gt_a = _resolve_gt(id_a, id_a, gt_index)  # id_a is always source
-        gt_b = _resolve_gt(id_b, id_a, gt_index)  # id_b may be degraded → use id_a's GT
-
-        # Capture calidad for by_quality breakdown
-        result["calidad_a"] = (gt_a or {}).get("calidad", "unknown")
-        result["calidad_b"] = (gt_b or {}).get("calidad", "unknown")
-
-        # --- Layer 1: Hash comparison ---
-        try:
-            hash_a = _compute_hash(bytes_a)
-            hash_b = _compute_hash(bytes_b)
-            result["layer1_detected"] = hash_a == hash_b
-        except Exception as exc:  # noqa: BLE001
-            result["error"] = f"Layer 1 error: {exc}"
-            results.append(result)
-            continue
-
-        # --- Layer 2: Field comparison (referencia, monto, fecha) ---
-        ref_a = (gt_a or {}).get("numero_referencia") or (gt_a or {}).get("numero_comprobante") or None
-        ref_b = (gt_b or {}).get("numero_referencia") or (gt_b or {}).get("numero_comprobante") or None
-        monto_a_raw = (gt_a or {}).get("monto")
-        monto_b_raw = (gt_b or {}).get("monto")
-        fecha_a_raw = (gt_a or {}).get("fecha")
-        fecha_b_raw = (gt_b or {}).get("fecha")
-
-        # Exact field match — all 3 must match (and be non-None)
-        if ref_a and ref_b and ref_a == ref_b:
-            monto_a = _parse_monto(monto_a_raw)
-            monto_b = _parse_monto(monto_b_raw)
-            fecha_a = _parse_fecha(fecha_a_raw)
-            fecha_b = _parse_fecha(fecha_b_raw)
-
-            if (
-                monto_a is not None
-                and monto_b is not None
-                and fecha_a is not None
-                and fecha_b is not None
-                and monto_a == monto_b
-                and fecha_a == fecha_b
-            ):
-                result["layer2_detected"] = True
-            else:
-                # referencia matches but monto or fecha don't — not a full match
-                result["layer2_detected"] = False
-        else:
-            # Fall back: if referencia is missing, compare monto+fecha only
-            # (this mirrors the parcial_visual case where GT is the same)
-            if gt_a is not None and gt_b is not None:
-                monto_a = _parse_monto(monto_a_raw)
-                monto_b = _parse_monto(monto_b_raw)
-                fecha_a = _parse_fecha(fecha_a_raw)
-                fecha_b = _parse_fecha(fecha_b_raw)
-
-                # When both share the same GT (dup-* pairs), all fields match
-                if (
-                    monto_a is not None
-                    and monto_b is not None
-                    and fecha_a is not None
-                    and fecha_b is not None
-                    and monto_a == monto_b
-                    and fecha_a == fecha_b
-                    and (ref_a or "") == (ref_b or "")  # both empty
-                ):
-                    result["layer2_detected"] = True
-
-        # --- Layer 3: Weighted scoring ---
-        fake_a = _gt_to_fake(gt_a)
-        fake_b = _gt_to_fake(gt_b)
-
-        try:
-            score = _compute_score(fake_a, fake_b)
-            prediction = _classify(score)
-            result["score"] = round(score, 6)
-            result["prediction"] = prediction
-        except Exception as exc:  # noqa: BLE001
-            result["error"] = f"Layer 3 error: {exc}"
-            result["score"] = 0.0
-            result["prediction"] = "valido"
-
-        results.append(result)
-
-    return results
+    return [_evaluate_single_pair(p, gt_index, images_dir, degraded_dir) for p in pairs]
 
 
 # ---------------------------------------------------------------------------
@@ -617,6 +599,69 @@ _PRED_LABELS = ["duplicado", "sospechoso", "valido"]
 _EXP_LABELS = ["duplicado_exacto", "duplicado_parcial", "no_duplicado"]
 
 
+def _build_distribution(results: list[dict[str, Any]]) -> dict[str, int]:
+    distribution: dict[str, int] = {}
+    for r in results:
+        t = r["tipo_duplicado"]
+        distribution[t] = distribution.get(t, 0) + 1
+    return distribution
+
+
+def _build_scores_summary(results: list[dict[str, Any]]) -> dict[str, dict]:
+    scores_by_type: dict[str, list[float]] = {}
+    for r in results:
+        t = r["tipo_duplicado"]
+        scores_by_type.setdefault(t, []).append(r["score"])
+    return {t: _scores_stats(scores) for t, scores in scores_by_type.items()}
+
+
+def _build_confusion_matrix(results: list[dict[str, Any]]) -> list[list[int]]:
+    exp_idx = {label: i for i, label in enumerate(_EXP_LABELS)}
+    pred_idx = {label: i for i, label in enumerate(_PRED_LABELS)}
+    matrix: list[list[int]] = [[0] * len(_PRED_LABELS) for _ in _EXP_LABELS]
+    for r in results:
+        clf_exp = r["clasificacion_esperada"]
+        pred = r["prediction"]
+        if clf_exp in exp_idx and pred in pred_idx:
+            matrix[exp_idx[clf_exp]][pred_idx[pred]] += 1
+    return matrix
+
+
+def _collect_by_quality(results: list[dict[str, Any]], gt_dir: Path) -> dict[str, dict]:
+    gt_index = _load_gt_index(gt_dir)
+    by_quality: dict[str, dict] = {}
+    for r in results:
+        gt_a = gt_index.get(r["id_a"])
+        quality = (gt_a or {}).get("calidad", "unknown")
+        if quality not in by_quality:
+            by_quality[quality] = {"pairs": 0, "capa_1_tp": 0, "capa_1_fp": 0, "capa_1_fn": 0, "scores": []}
+        entry = by_quality[quality]
+        entry["pairs"] += 1
+        entry["scores"].append(r["score"])
+        is_positive = r["clasificacion_esperada"] in _POSITIVE_CLASSIFICATIONS
+        detected_c1 = r["layer1_detected"]
+        if detected_c1 and is_positive:
+            entry["capa_1_tp"] += 1
+        elif detected_c1 and not is_positive:
+            entry["capa_1_fp"] += 1
+        elif not detected_c1 and is_positive:
+            entry["capa_1_fn"] += 1
+    return by_quality
+
+
+def _format_by_quality(by_quality: dict[str, dict]) -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    for quality, entry in by_quality.items():
+        precision = _safe_div(entry["capa_1_tp"], entry["capa_1_tp"] + entry["capa_1_fp"])
+        scores = entry["scores"]
+        out[quality] = {
+            "pairs": entry["pairs"],
+            "capa_1_precision": round(precision, 6),
+            "scoring_mean": round(statistics.mean(scores), 6) if scores else 0.0,
+        }
+    return out
+
+
 def _build_output(
     pairs: list[dict[str, str]],
     results: list[dict[str, Any]],
@@ -625,86 +670,13 @@ def _build_output(
     """Constructs the full bancario_metrics.json output dict."""
     import datetime
 
-    # --- Distribution ---
-    tipos = [r["tipo_duplicado"] for r in results]
-    distribution: dict[str, int] = {}
-    for t in tipos:
-        distribution[t] = distribution.get(t, 0) + 1
-
-    # --- Capa 1 metrics ---
+    distribution = _build_distribution(results)
     c1 = _compute_binary_metrics(results, "layer1_detected", _POSITIVE_CLASSIFICATIONS)
-
-    # --- Capa 2 metrics ---
     c2 = _compute_binary_metrics(results, "layer2_detected", _POSITIVE_CLASSIFICATIONS)
-
-    # --- Scoring stats by tipo ---
-    scores_by_type: dict[str, list[float]] = {}
-    for r in results:
-        t = r["tipo_duplicado"]
-        scores_by_type.setdefault(t, []).append(r["score"])
-
-    scores_summary: dict[str, dict] = {
-        t: _scores_stats(scores) for t, scores in scores_by_type.items()
-    }
-
-    # --- Confusion matrix 3×3 ---
-    # Rows = expected label; Cols = predicted label
-    exp_idx = {label: i for i, label in enumerate(_EXP_LABELS)}
-    pred_idx = {label: i for i, label in enumerate(_PRED_LABELS)}
-
-    matrix: list[list[int]] = [[0] * len(_PRED_LABELS) for _ in _EXP_LABELS]
-
-    for r in results:
-        clf_exp = r["clasificacion_esperada"]
-        pred = r["prediction"]
-        if clf_exp in exp_idx and pred in pred_idx:
-            matrix[exp_idx[clf_exp]][pred_idx[pred]] += 1
-
-    # --- by_quality breakdown ---
-    # Collect quality values from id_a GT (source)
-    gt_index = _load_gt_index(Path(args.gt_dir))
-    by_quality: dict[str, dict] = {}
-
-    for r in results:
-        # Determine quality from id_a GT
-        gt_a = gt_index.get(r["id_a"])
-        quality = (gt_a or {}).get("calidad", "unknown")
-
-        if quality not in by_quality:
-            by_quality[quality] = {
-                "pairs": 0,
-                "capa_1_tp": 0,
-                "capa_1_fp": 0,
-                "capa_1_fn": 0,
-                "scores": [],
-            }
-
-        entry = by_quality[quality]
-        entry["pairs"] += 1
-        entry["scores"].append(r["score"])
-
-        is_positive = r["clasificacion_esperada"] in _POSITIVE_CLASSIFICATIONS
-        detected_c1 = r["layer1_detected"]
-
-        if detected_c1 and is_positive:
-            entry["capa_1_tp"] += 1
-        elif detected_c1 and not is_positive:
-            entry["capa_1_fp"] += 1
-        elif not detected_c1 and is_positive:
-            entry["capa_1_fn"] += 1
-
-    # Format by_quality for output
-    by_quality_out: dict[str, dict] = {}
-    for quality, entry in by_quality.items():
-        tp = entry["capa_1_tp"]
-        fp = entry["capa_1_fp"]
-        precision = _safe_div(tp, tp + fp)
-        scores = entry["scores"]
-        by_quality_out[quality] = {
-            "pairs": entry["pairs"],
-            "capa_1_precision": round(precision, 6),
-            "scoring_mean": round(statistics.mean(scores), 6) if scores else 0.0,
-        }
+    scores_summary = _build_scores_summary(results)
+    matrix = _build_confusion_matrix(results)
+    by_quality = _collect_by_quality(results, Path(args.gt_dir))
+    by_quality_out = _format_by_quality(by_quality)
 
     # --- Seed extraction (from CSV filename convention or pairs length) ---
     # We don't have direct access to the seed used in generate_duplicates.py;
@@ -906,8 +878,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     # Exit criterion: capa_1.precision == 1.0
+    import math as _math2
+
     precision_c1 = c1["precision"]
-    if precision_c1 == 1.0:
+    if _math2.isclose(precision_c1, 1.0):
         print(f"\nCRITERION PASSED: capa_1.precision={precision_c1:.4f} == 1.0")
         return 0
     else:

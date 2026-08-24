@@ -20,8 +20,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class COCR_Settings {
 
-	/** @var string wp_options key for the API base URL */
-	const OPTION_URL     = 'comprobantes_api_url';
+    private const INPUT_CLASS      = 'regular-text';
+    private const TEST_BTN_STYLE   = 'margin-left:8px';
+    private const TEST_RESULT_STYLE = 'margin-left:8px';
+
+    /** @var string wp_options key for the API base URL */
+    const OPTION_URL     = 'comprobantes_api_url';
 
 	/** @var string wp_options key for the API key */
 	const OPTION_KEY     = 'comprobantes_api_key';
@@ -133,23 +137,23 @@ class COCR_Settings {
 	/**
 	 * Render the API URL input field.
 	 */
-	public function field_api_url(): void {
-		$val = esc_attr( get_option( self::OPTION_URL, '' ) );
-		echo '<input type="url" name="' . esc_attr( self::OPTION_URL ) . '" value="' . $val . '" class="regular-text" placeholder="http://localhost:8000" />';
-		echo '<p class="description">' . esc_html__( 'Base URL of the FastAPI OCR service (e.g. https://api.example.com).', 'comprobantes-ocr' ) . '</p>';
-	}
+    public function field_api_url(): void {
+        $val = esc_attr( get_option( self::OPTION_URL, '' ) );
+        echo '<input type="url" name="' . esc_attr( self::OPTION_URL ) . '" value="' . $val . '" class="' . esc_attr( self::INPUT_CLASS ) . '" placeholder="http://localhost:8000" />';
+        echo '<p class="description">' . esc_html__( 'Base URL of the FastAPI OCR service (e.g. https://api.example.com).', 'comprobantes-ocr' ) . '</p>';
+    }
 
-	/**
-	 * Render the API Key password field with the "Test Connection" button.
-	 */
-	public function field_api_key(): void {
-		$val = esc_attr( get_option( self::OPTION_KEY, '' ) );
-		echo '<input type="password" name="' . esc_attr( self::OPTION_KEY ) . '" value="' . $val . '" class="regular-text" autocomplete="new-password" />';
-		echo '<button type="button" id="cocr-test-connection" class="button button-secondary" style="margin-left:8px">';
-		echo esc_html__( 'Test Connection', 'comprobantes-ocr' );
-		echo '</button>';
-		echo '<span id="cocr-test-result" style="margin-left:8px"></span>';
-	}
+    /**
+     * Render the API Key password field with the "Test Connection" button.
+     */
+    public function field_api_key(): void {
+        $val = esc_attr( get_option( self::OPTION_KEY, '' ) );
+        echo '<input type="password" name="' . esc_attr( self::OPTION_KEY ) . '" value="' . $val . '" class="' . esc_attr( self::INPUT_CLASS ) . '" autocomplete="new-password" />';
+        echo '<button type="button" id="cocr-test-connection" class="button button-secondary" style="' . esc_attr( self::TEST_BTN_STYLE ) . '">';
+        echo esc_html__( 'Test Connection', 'comprobantes-ocr' );
+        echo '</button>';
+        echo '<span id="cocr-test-result" style="' . esc_attr( self::TEST_RESULT_STYLE ) . '"></span>';
+    }
 
 	/**
 	 * Render the timeout number field.
