@@ -22,13 +22,15 @@ import uuid
 from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 # Las funciones puras se importan directamente para unit tests sin instancias
 import services.config_service as _config_mod
-from services.config_service import ScoringWeights, invalidate_weights_cache
+from models.comprobante import Comprobante
+from services.config_service import ScoringWeights
 from services.duplicate_service import (
     THRESHOLD_DUPLICADO,
     THRESHOLD_SOSPECHOSO,
@@ -59,13 +61,14 @@ def _make_comp(
     texto_extraido: str | None = "Comprobante de deposito banco",
     estado_actual: str = "procesando",
     deleted_at=None,
-) -> SimpleNamespace:
+) -> Comprobante:
     """Factory de Comprobante-like object en memoria (sin DB/ORM overhead).
 
     Usa SimpleNamespace para evitar el overhead del ORM de SQLAlchemy —
     duplicate_service solo accede a atributos planos, no a relaciones.
+    cast(Comprobante, ...) satisface al type checker sin instanciar el ORM.
     """
-    return SimpleNamespace(
+    return cast(Comprobante, SimpleNamespace(
         id_comprobante=id_comprobante or uuid.uuid4(),
         id_usuario=id_usuario or uuid.uuid4(),
         referencia=referencia,
@@ -78,7 +81,7 @@ def _make_comp(
         hash_documento="aabbccdd" * 8,
         numero_operacion=None,
         banco=None,
-    )
+    ))
 
 
 # ---------------------------------------------------------------------------
@@ -427,7 +430,7 @@ async def test_run_capa2_skips_when_fecha_is_none():
 
 
 @pytest.mark.asyncio
-async def test_run_capa3_no_candidates_returns_valido():
+async def test_run_capa3_no_candidates_returns_valido(monkeypatch):
     """Sin candidatos → (None, 0.0, 'valido').
 
     Pre-popula el cache de weights para que el mock de session no sea
@@ -435,113 +438,104 @@ async def test_run_capa3_no_candidates_returns_valido():
     configuracion_sistema, no la sesion mock de comprobantes).
     """
     # Pre-popular cache con DEFAULTS para evitar colision con mock session
-    _config_mod._weights_cache = ScoringWeights()
-    try:
-        nuevo = _make_comp(fecha_deposito=date(2026, 5, 1))
+    monkeypatch.setattr(_config_mod, "_weights_cache", ScoringWeights())
+    nuevo = _make_comp(fecha_deposito=date(2026, 5, 1))
 
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = []
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
 
-        session = AsyncMock()
-        session.execute = AsyncMock(return_value=mock_result)
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=mock_result)
 
-        best, score, clasif = await run_capa3(session, nuevo)
+    best, score, clasif = await run_capa3(session, nuevo)
 
-        assert best is None
-        assert score == 0.0
-        assert clasif == "valido"
-    finally:
-        invalidate_weights_cache()
+    assert best is None
+    assert score == 0.0
+    assert clasif == "valido"
 
 
 @pytest.mark.asyncio
-async def test_run_capa3_sospechoso_when_score_in_range():
+async def test_run_capa3_sospechoso_when_score_in_range(monkeypatch):
     """Score entre 0.75 y 0.90 → clasificacion 'sospechoso'.
 
     Pre-popula el cache de weights con DEFAULTS para aislar el mock de session.
     """
-    _config_mod._weights_cache = ScoringWeights()
-    try:
-        user_id = uuid.uuid4()
-        nuevo = _make_comp(
-            id_usuario=user_id,
-            referencia="TRF-123",
-            monto=Decimal("1500.00"),
-            fecha_deposito=date(2026, 5, 1),
-            texto_extraido="comprobante deposito ref 123",
-        )
-        # Candidato similar pero no identico (monto ligeramente diferente)
-        candidato = _make_comp(
-            id_comprobante=uuid.uuid4(),
-            id_usuario=user_id,
-            referencia="TRF-123",
-            monto=Decimal("1480.00"),  # diferencia pequenia
-            fecha_deposito=date(2026, 5, 1),
-            texto_extraido="comprobante deposito ref 123",
-        )
+    monkeypatch.setattr(_config_mod, "_weights_cache", ScoringWeights())
+    user_id = uuid.uuid4()
+    nuevo = _make_comp(
+        id_usuario=user_id,
+        referencia="TRF-123",
+        monto=Decimal("1500.00"),
+        fecha_deposito=date(2026, 5, 1),
+        texto_extraido="comprobante deposito ref 123",
+    )
+    # Candidato similar pero no identico (monto ligeramente diferente)
+    candidato = _make_comp(
+        id_comprobante=uuid.uuid4(),
+        id_usuario=user_id,
+        referencia="TRF-123",
+        monto=Decimal("1480.00"),  # diferencia pequenia
+        fecha_deposito=date(2026, 5, 1),
+        texto_extraido="comprobante deposito ref 123",
+    )
 
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [candidato]
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = [candidato]
 
-        session = AsyncMock()
-        session.execute = AsyncMock(return_value=mock_result)
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=mock_result)
 
-        best, score, clasif = await run_capa3(session, nuevo)
+    best, score, clasif = await run_capa3(session, nuevo)
 
-        assert best is candidato
-        assert 0.0 < score <= 1.0
-        assert clasif in (
-            "sospechoso",
-            "duplicado",
-            "valido",
-        )  # resultado depende del score real
-    finally:
-        invalidate_weights_cache()
+    assert best is candidato
+    assert 0.0 < score <= 1.0
+    assert clasif in (
+        "sospechoso",
+        "duplicado",
+        "valido",
+    )  # resultado depende del score real
 
 
 @pytest.mark.asyncio
-async def test_run_capa3_returns_best_candidate_when_multiple():
+async def test_run_capa3_returns_best_candidate_when_multiple(monkeypatch):
     """Con multiples candidatos, retorna el de mayor score.
 
     Pre-popula el cache de weights con DEFAULTS para aislar el mock de session.
     """
-    _config_mod._weights_cache = ScoringWeights()
-    try:
-        user_id = uuid.uuid4()
-        nuevo = _make_comp(
-            id_usuario=user_id,
-            referencia="TRF-001",
-            monto=Decimal("1500.00"),
-            fecha_deposito=date(2026, 5, 1),
-            texto_extraido="mismo texto exacto para forzar score alto",
-        )
-        cand_alto = _make_comp(
-            id_comprobante=uuid.uuid4(),
-            id_usuario=user_id,
-            referencia="TRF-001",
-            monto=Decimal("1500.00"),
-            fecha_deposito=date(2026, 5, 1),
-            texto_extraido="mismo texto exacto para forzar score alto",
-        )
-        cand_bajo = _make_comp(
-            id_comprobante=uuid.uuid4(),
-            id_usuario=user_id,
-            referencia="XYZ-999",
-            monto=Decimal("1.00"),
-            fecha_deposito=date(2026, 1, 1),
-            texto_extraido="texto completamente diferente banco otro",
-        )
+    monkeypatch.setattr(_config_mod, "_weights_cache", ScoringWeights())
+    user_id = uuid.uuid4()
+    nuevo = _make_comp(
+        id_usuario=user_id,
+        referencia="TRF-001",
+        monto=Decimal("1500.00"),
+        fecha_deposito=date(2026, 5, 1),
+        texto_extraido="mismo texto exacto para forzar score alto",
+    )
+    cand_alto = _make_comp(
+        id_comprobante=uuid.uuid4(),
+        id_usuario=user_id,
+        referencia="TRF-001",
+        monto=Decimal("1500.00"),
+        fecha_deposito=date(2026, 5, 1),
+        texto_extraido="mismo texto exacto para forzar score alto",
+    )
+    cand_bajo = _make_comp(
+        id_comprobante=uuid.uuid4(),
+        id_usuario=user_id,
+        referencia="XYZ-999",
+        monto=Decimal("1.00"),
+        fecha_deposito=date(2026, 1, 1),
+        texto_extraido="texto completamente diferente banco otro",
+    )
 
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [cand_bajo, cand_alto]
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = [cand_bajo, cand_alto]
 
-        session = AsyncMock()
-        session.execute = AsyncMock(return_value=mock_result)
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=mock_result)
 
-        best, score, _ = await run_capa3(session, nuevo)
+    best, score, _ = await run_capa3(session, nuevo)
 
-        # El mejor candidato debe ser cand_alto (mayor similitud)
-        assert best is cand_alto
-        assert score > 0.5  # Score alto por similitud real
-    finally:
-        invalidate_weights_cache()
+    # El mejor candidato debe ser cand_alto (mayor similitud)
+    assert best is cand_alto
+    assert score > 0.5  # Score alto por similitud real

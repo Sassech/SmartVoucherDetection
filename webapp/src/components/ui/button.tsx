@@ -31,12 +31,13 @@ const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { className, variant = "primary", size = "md", disabled, style, children, ...props },
+    { className, variant = "primary", size = "md", disabled, style, children, type = "button", ...props },
     ref,
   ) => {
     return (
       <button
         ref={ref}
+        type={type}
         disabled={disabled}
         style={{
           borderRadius: "var(--radius-DEFAULT, 0.25rem)",

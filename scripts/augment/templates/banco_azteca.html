@@ -98,9 +98,9 @@
     border-collapse: collapse;
     font-size: 12px;
   }
-  .data-table tr:nth-child(even) td { background: #f5f5f5; }
+  .data-table tr:nth-child(even) td, .data-table tr:nth-child(even) th { background: #f5f5f5; }
   .data-table tr:nth-child(odd) td { background: #ffffff; }
-  .data-table td {
+  .data-table td, .data-table th {
     padding: 8px 20px;
     border-bottom: 1px solid #e8e8e8;
     vertical-align: top;
@@ -198,31 +198,31 @@
   <!-- Datos de la operación -->
   <div class="section-title-row">Datos de la Operación</div>
   <table class="data-table">
-    <tr><td class="lbl">Clave de rastreo</td><td class="val">{{ clave_rastreo }}</td></tr>
-    <tr><td class="lbl">Concepto</td><td class="val">{{ concepto }}</td></tr>
-    <tr><td class="lbl">Referencia</td><td class="val">{{ numero_referencia }}</td></tr>
-    <tr><td class="lbl">Tipo de operación</td><td class="val">{{ tipo_operacion }}</td></tr>
-    <tr><td class="lbl">Fecha</td><td class="val">{{ fecha_display }}</td></tr>
-    <tr><td class="lbl">Hora</td><td class="val">{{ hora }}</td></tr>
-    <tr><td class="lbl">Estatus</td><td class="val">{{ estatus }}</td></tr>
+    <tr><th scope="row" class="lbl">Clave de rastreo</th><td class="val">{{ clave_rastreo }}</td></tr>
+    <tr><th scope="row" class="lbl">Concepto</th><td class="val">{{ concepto }}</td></tr>
+    <tr><th scope="row" class="lbl">Referencia</th><td class="val">{{ numero_referencia }}</td></tr>
+    <tr><th scope="row" class="lbl">Tipo de operación</th><td class="val">{{ tipo_operacion }}</td></tr>
+    <tr><th scope="row" class="lbl">Fecha</th><td class="val">{{ fecha_display }}</td></tr>
+    <tr><th scope="row" class="lbl">Hora</th><td class="val">{{ hora }}</td></tr>
+    <tr><th scope="row" class="lbl">Estatus</th><td class="val">{{ estatus }}</td></tr>
   </table>
 
   <!-- Datos del ordenante -->
   <div class="section-title-row" style="margin-top:2px;">Datos del Ordenante</div>
   <table class="data-table">
-    <tr><td class="lbl">Nombre</td><td class="val">{{ nombre_ordenante }}</td></tr>
-    <tr><td class="lbl">RFC</td><td class="val">{{ rfc_ordenante }}</td></tr>
-    <tr><td class="lbl">Banco</td><td class="val">{{ banco_emisor }}</td></tr>
-    <tr><td class="lbl">CLABE</td><td class="val">{{ clabe_emisor_mascara }}</td></tr>
+    <tr><th scope="row" class="lbl">Nombre</th><td class="val">{{ nombre_ordenante }}</td></tr>
+    <tr><th scope="row" class="lbl">RFC</th><td class="val">{{ rfc_ordenante }}</td></tr>
+    <tr><th scope="row" class="lbl">Banco</th><td class="val">{{ banco_emisor }}</td></tr>
+    <tr><th scope="row" class="lbl">CLABE</th><td class="val">{{ clabe_emisor_mascara }}</td></tr>
   </table>
 
   <!-- Datos del beneficiario -->
   <div class="section-title-row" style="margin-top:2px;">Datos del Beneficiario</div>
   <table class="data-table">
-    <tr><td class="lbl">Nombre</td><td class="val">{{ nombre_beneficiario }}</td></tr>
-    <tr><td class="lbl">Banco</td><td class="val">{{ banco_receptor }}</td></tr>
-    <tr><td class="lbl">CLABE</td><td class="val">{{ clabe_receptor_mascara }}</td></tr>
-    <tr><td class="lbl">Referencia</td><td class="val">{{ numero_referencia }}</td></tr>
+    <tr><th scope="row" class="lbl">Nombre</th><td class="val">{{ nombre_beneficiario }}</td></tr>
+    <tr><th scope="row" class="lbl">Banco</th><td class="val">{{ banco_receptor }}</td></tr>
+    <tr><th scope="row" class="lbl">CLABE</th><td class="val">{{ clabe_receptor_mascara }}</td></tr>
+    <tr><th scope="row" class="lbl">Referencia</th><td class="val">{{ numero_referencia }}</td></tr>
   </table>
 
   <!-- Disclaimer legal -->

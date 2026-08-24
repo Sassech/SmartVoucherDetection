@@ -136,7 +136,6 @@ async def _find_existing_by_hash(
 
 @router.post(
     "/upload-slip",
-    response_model=ComprobanteResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
         200: {"description": "Comprobante duplicado detectado (Capa 2 o Capa 3)"},

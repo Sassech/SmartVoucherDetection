@@ -25,6 +25,8 @@ import asyncio
 import time
 
 import httpx
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -98,9 +100,9 @@ async def _check_redis() -> ServiceCheck:
     return ServiceCheck(ok=ok, detail=detail)
 
 
-@router.get("/health", response_model=HealthResponse)
+@router.get("/health")
 async def health(
-    session: AsyncSession = Depends(get_session),
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> HealthResponse:
     """Health check consolidado: llama-server, postgres y redis en paralelo.
 

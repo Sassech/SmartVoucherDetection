@@ -17,7 +17,7 @@ field to distinguish outcomes.
 from __future__ import annotations
 
 import base64
-from typing import Any
+from typing import Annotated, Any
 
 from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -38,8 +38,8 @@ MAX_SIZE = 10 * 1024 * 1024  # 10 MB
     response_description="Task enqueued. Poll /status/{task_id} for result.",
 )
 async def upload_slip_async(
-    file: UploadFile = File(...),
-    usuario: Usuario = Depends(require_user),
+    file: Annotated[UploadFile, File(...)],
+    usuario: Annotated[Usuario, Depends(require_user)],
 ) -> dict[str, str]:
     """Enqueue a comprobante upload for async processing via Celery.
 

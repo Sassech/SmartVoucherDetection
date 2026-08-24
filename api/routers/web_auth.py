@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
+from typing import Annotated
 
 import bcrypt
 import redis.asyncio as aioredis
@@ -52,13 +53,25 @@ from services.quota_service import get_quota_usage
 
 router = APIRouter(prefix="/web/auth", tags=["web-auth"])
 
+# Error messages — extracted to avoid S1192 (string literal duplicated ≥3 times)
+_ERR_INVALID_REFRESH = "Invalid or expired refresh token"
+
+# Annotated dependency aliases — avoids S5717 (mutable default argument)
+_CurrentUser = Annotated[Usuario, Depends(require_jwt)]
+_DbSession = Annotated[AsyncSession, Depends(get_session)]
+
 # Cookie settings (Fase 4 — R-21/R-22)
 _ACCESS_COOKIE_MAX_AGE = 15 * 60  # 15 minutes in seconds
 _REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
 
 # A pre-computed dummy bcrypt hash for timing-safe S-03.
-# Using cost=4 so tests don't time out; production can raise this.
-_DUMMY_HASH = bcrypt.hashpw(b"dummy", bcrypt.gensalt(rounds=4)).decode()
+# rounds=12 matches production strength (S5344). If tests are slow, override
+# DUMMY_BCRYPT_ROUNDS=4 in the test environment only — never in production.
+import os as _os
+_DUMMY_HASH = bcrypt.hashpw(
+    b"dummy",
+    bcrypt.gensalt(rounds=int(_os.environ.get("DUMMY_BCRYPT_ROUNDS", "12"))),
+).decode()
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +148,7 @@ def _clear_auth_cookies(response: Response) -> None:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 async def login(
     body: LoginRequest,
     response: Response,
@@ -181,7 +194,7 @@ async def login(
     return TokenResponse(access_token=access_token)
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh")
 async def refresh(
     response: Response,
     refresh_token: str | None = Cookie(default=None),
@@ -203,7 +216,7 @@ async def refresh(
     if not await is_jti_valid(redis, refresh_token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            detail=_ERR_INVALID_REFRESH,
         )
 
     # Look up user_id stored under old JTI
@@ -211,7 +224,7 @@ async def refresh(
     if not user_id_str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            detail=_ERR_INVALID_REFRESH,
         )
 
     try:
@@ -237,7 +250,7 @@ async def refresh(
         # Race condition: another request consumed the JTI first
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            detail=_ERR_INVALID_REFRESH,
         )
 
     # Issue new access token
@@ -272,7 +285,7 @@ async def logout(
     return {"detail": "Logged out"}
 
 
-@router.get("/me", response_model=UsuarioPublic)
+@router.get("/me")
 async def me(usuario: Usuario = Depends(require_jwt)) -> UsuarioPublic:
     """GET /web/auth/me — return public user info for authenticated user."""
     return UsuarioPublic.model_validate(usuario)
@@ -284,7 +297,7 @@ async def me(usuario: Usuario = Depends(require_jwt)) -> UsuarioPublic:
 
 
 @router.post(
-    "/register", response_model=UsuarioWithPlan, status_code=status.HTTP_201_CREATED
+    "/register", status_code=status.HTTP_201_CREATED
 )
 async def register(
     body: RegisterRequest,
@@ -336,12 +349,11 @@ async def register(
 
 @router.post(
     "/api-key",
-    response_model=ApiKeyResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def generate_api_key(
-    usuario: Usuario = Depends(require_jwt),
-    db: AsyncSession = Depends(get_session),
+    usuario: _CurrentUser,
+    db: _DbSession,
 ) -> ApiKeyResponse:
     """POST /web/auth/api-key — generar (o regenerar) API key para usuario JWT (R-76).
 
@@ -364,8 +376,8 @@ async def generate_api_key(
 
 @router.delete("/api-key", status_code=status.HTTP_200_OK)
 async def revoke_api_key(
-    usuario: Usuario = Depends(require_jwt),
-    db: AsyncSession = Depends(get_session),
+    usuario: _CurrentUser,
+    db: _DbSession,
 ) -> dict:
     """DELETE /web/auth/api-key — revocar API key del usuario autenticado (R-77).
 
@@ -378,7 +390,7 @@ async def revoke_api_key(
     return {"message": "API key revoked."}
 
 
-@router.get("/api-key/status", response_model=ApiKeyStatus)
+@router.get("/api-key/status")
 async def api_key_status(
     usuario: Usuario = Depends(require_jwt),
 ) -> ApiKeyStatus:

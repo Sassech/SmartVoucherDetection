@@ -10,7 +10,7 @@
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-	exit;
+    exit;
 }
 
 delete_option( 'comprobantes_api_url' );

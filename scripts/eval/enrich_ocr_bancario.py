@@ -291,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
     pending = [(img, gt) for img, gt in pairs if _needs_enrichment(gt)]
     already_done = len(pairs) - len(pending)
 
-    print(f"SmartVoucherDetection — OCR Enrichment (bancario-mx sintéticos)")
+    print("SmartVoucherDetection — OCR Enrichment (bancario-mx sintéticos)")
     print(f"  Imágenes encontradas : {len(all_images)}")
     print(f"  Con GT válido        : {len(pairs)}")
     print(f"  Ya enriquecidos      : {already_done} (checkpoint)")

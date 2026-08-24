@@ -18,7 +18,7 @@
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 // Plugin constants.
@@ -36,18 +36,18 @@ define( 'COCR_PLUGIN_FILE', __FILE__ );
  * @param string $class_name Fully-qualified class name.
  */
 function cocr_autoloader( string $class_name ): void {
-	if ( strpos( $class_name, 'COCR_' ) !== 0 ) {
-		return;
-	}
+    if ( strpos( $class_name, 'COCR_' ) !== 0 ) {
+        return;
+    }
 
-	// Convert COCR_Foo_Bar → class-foo-bar.php.
-	$suffix    = substr( $class_name, strlen( 'COCR_' ) );
-	$file_name = 'class-' . strtolower( str_replace( '_', '-', $suffix ) ) . '.php';
-	$file_path = COCR_PLUGIN_DIR . 'includes/' . $file_name;
+    // Convert COCR_Foo_Bar → class-foo-bar.php.
+    $suffix    = substr( $class_name, strlen( 'COCR_' ) );
+    $file_name = 'class-' . strtolower( str_replace( '_', '-', $suffix ) ) . '.php';
+    $file_path = COCR_PLUGIN_DIR . 'includes/' . $file_name;
 
-	if ( file_exists( $file_path ) ) {
-		require_once $file_path;
-	}
+    if ( file_exists( $file_path ) ) {
+        require_once $file_path;
+    }
 }
 
 spl_autoload_register( 'cocr_autoloader' );
@@ -59,8 +59,8 @@ spl_autoload_register( 'cocr_autoloader' );
  * credentials are entered manually via the settings page after activation.
  */
 function cocr_activate(): void {
-	// Flush rewrite rules so shortcode pages resolve correctly.
-	flush_rewrite_rules();
+    // Flush rewrite rules so shortcode pages resolve correctly.
+    flush_rewrite_rules();
 }
 
 register_activation_hook( COCR_PLUGIN_FILE, 'cocr_activate' );
@@ -72,7 +72,7 @@ register_activation_hook( COCR_PLUGIN_FILE, 'cocr_activate' );
  * (api_url, api_key, timeout). Those are only removed on full uninstall.
  */
 function cocr_deactivate(): void {
-	flush_rewrite_rules();
+    flush_rewrite_rules();
 }
 
 register_deactivation_hook( COCR_PLUGIN_FILE, 'cocr_deactivate' );
@@ -84,34 +84,34 @@ register_deactivation_hook( COCR_PLUGIN_FILE, 'cocr_deactivate' );
  * rather than a fatal. COCR_Woo_Hook is gated on WooCommerce presence.
  */
 function cocr_init(): void {
-	// Load i18n strings.
-	load_plugin_textdomain(
-		'comprobantes-ocr',
-		false,
-		dirname( plugin_basename( COCR_PLUGIN_FILE ) ) . '/languages/'
-	);
+    // Load i18n strings.
+    load_plugin_textdomain(
+        'comprobantes-ocr',
+        false,
+        dirname( plugin_basename( COCR_PLUGIN_FILE ) ) . '/languages/'
+    );
 
-	// Core classes (always loaded).
-	if ( class_exists( 'COCR_Settings' ) ) {
-		new COCR_Settings();
-	}
+    // Core classes (always loaded).
+    if ( class_exists( 'COCR_Settings' ) ) {
+        new COCR_Settings();
+    }
 
-	if ( class_exists( 'COCR_Shortcode' ) ) {
-		new COCR_Shortcode();
-	}
+    if ( class_exists( 'COCR_Shortcode' ) ) {
+        new COCR_Shortcode();
+    }
 
-	if ( class_exists( 'COCR_History_Widget' ) ) {
-		new COCR_History_Widget();
-	}
+    if ( class_exists( 'COCR_History_Widget' ) ) {
+        new COCR_History_Widget();
+    }
 
-	if ( class_exists( 'COCR_Gutenberg' ) ) {
-		new COCR_Gutenberg();
-	}
+    if ( class_exists( 'COCR_Gutenberg' ) ) {
+        new COCR_Gutenberg();
+    }
 
-	// Optional: WooCommerce integration — only when WooCommerce is active.
-	if ( class_exists( 'WooCommerce' ) && class_exists( 'COCR_Woo_Hook' ) ) {
-		new COCR_Woo_Hook();
-	}
+    // Optional: WooCommerce integration — only when WooCommerce is active.
+    if ( class_exists( 'WooCommerce' ) && class_exists( 'COCR_Woo_Hook' ) ) {
+        new COCR_Woo_Hook();
+    }
 }
 
 add_action( 'plugins_loaded', 'cocr_init' );

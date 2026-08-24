@@ -7,9 +7,8 @@
  * R-80: shows success banner when ?registered=1 is present.
  */
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,7 +89,7 @@ const ShieldIcon = ({ size = 36, dark = false }: { size?: number; dark?: boolean
       d="M18 7L8 11v8c0 5.25 4.5 10 10 11.5C23.5 29 28 24.25 28 19v-8L18 7Z"
       fill="white" fillOpacity="0.9"
     />
-    <path d="M14 18.5l2.5 2.5 5.5-6" stroke={dark ? "#003d9b" : "#003d9b"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M14 18.5l2.5 2.5 5.5-6" stroke="#003d9b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -105,7 +104,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -213,8 +212,7 @@ function LoginForm() {
 
             {/* Success banner — shown after successful registration (R-80) */}
             {registered && (
-              <div
-                role="status"
+              <output
                 style={{
                   display: "flex", alignItems: "flex-start", gap: 10,
                   padding: "12px 16px", borderRadius: 12, marginBottom: "1.25rem",
@@ -225,7 +223,7 @@ function LoginForm() {
                 <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "#166534" }}>
                   Account created successfully. Please log in.
                 </p>
-              </div>
+              </output>
             )}
 
             {/* Formulario */}

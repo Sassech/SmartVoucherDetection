@@ -286,10 +286,10 @@ async def _run(
 
     sem = asyncio.Semaphore(concurrency)
 
-    # Abrir CSV en append mode
+    # Abrir CSV en append mode (async-friendly via thread)
     is_new_file = not output_csv.exists()
     try:
-        csv_fh = output_csv.open("a", newline="", encoding="utf-8")
+        csv_fh = await asyncio.to_thread(output_csv.open, "a", newline="", encoding="utf-8")
     except OSError as exc:
         print(f"ERROR: no se pudo abrir CSV para escritura — {exc}", file=sys.stderr)
         await client.aclose()
@@ -324,7 +324,7 @@ async def _run(
             print(f"  [{result['image_id']}] {' | '.join(status_parts)}")
 
     finally:
-        csv_fh.close()
+        await asyncio.to_thread(csv_fh.close)
         await client.aclose()
 
     return 0

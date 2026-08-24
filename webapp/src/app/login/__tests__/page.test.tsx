@@ -80,9 +80,7 @@ describe("LoginPage", () => {
     await userEvent.type(screen.getByLabelText(/contraseña/i), "wrong");
     await userEvent.click(screen.getByRole("button", { name: /ingresar/i }));
 
-    await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent(/invalid credentials/i);
-    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(/invalid credentials/i);
   });
 
   it("does not redirect on error", async () => {
@@ -93,7 +91,7 @@ describe("LoginPage", () => {
     await userEvent.type(screen.getByLabelText(/contraseña/i), "wrong");
     await userEvent.click(screen.getByRole("button", { name: /ingresar/i }));
 
-    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(mockPush).not.toHaveBeenCalled();
   });
 

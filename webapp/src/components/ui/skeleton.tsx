@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-function Skeleton({ className, ...props }: SkeletonProps) {
+function Skeleton({ className, ...props }: Readonly<SkeletonProps>) {
   return (
     <div
       className={cn(

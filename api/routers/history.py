@@ -47,7 +47,7 @@ router = APIRouter(tags=["history"])
 _MAX_LIMIT = 100
 
 
-@router.get("/history", response_model=ComprobanteListResponse)
+@router.get("/history")
 async def history(
     session: AsyncSession = Depends(get_session),
     usuario: Usuario = Depends(require_api_key),
@@ -146,7 +146,7 @@ async def history(
     )
 
 
-@router.get("/comprobante/{id_comprobante}", response_model=ComprobanteResponse)
+@router.get("/comprobante/{id_comprobante}")
 async def get_comprobante(
     id_comprobante: uuid.UUID,
     session: AsyncSession = Depends(get_session),

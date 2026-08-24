@@ -9,9 +9,9 @@ import { Topbar } from "@/components/layout/Topbar";
 
 export default function DashboardLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--color-background)]">
       <Sidebar />

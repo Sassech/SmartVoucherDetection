@@ -7,8 +7,7 @@
  * useSearchParams() must be inside a <Suspense> boundary for Next.js static export.
  */
 
-import { Suspense } from "react";
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchApi } from "@/lib/api";
 import { FilterBar } from "@/components/historial/FilterBar";
@@ -65,7 +64,7 @@ function HistorialContent() {
   );
   const [page, setPage] = useState<number>(() => {
     const p = searchParams.get("page");
-    return p ? parseInt(p, 10) : 1;
+    return p ? Number.parseInt(p, 10) : 1;
   });
   const [data, setData] = useState<WebListResponse | null>(null);
   const [loading, setLoading] = useState(true);

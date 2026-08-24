@@ -135,18 +135,18 @@
     border: 1px solid #dde3ee;
     border-top: none;
   }
-  .data-table tr:nth-child(even) td { background: #f8faff; }
-  .data-table td {
+  .data-table tr:nth-child(even) td, .data-table tr:nth-child(even) th { background: #f8faff; }
+  .data-table td, .data-table th {
     padding: 7px 12px;
     border-bottom: 1px solid #e8ecf4;
     vertical-align: top;
   }
-  .data-table td:first-child {
+  .data-table td:first-child, .data-table th:first-child {
     color: #555;
     width: 42%;
     white-space: nowrap;
   }
-  .data-table td:last-child {
+  .data-table td:last-child, .data-table th:last-child {
     color: #111;
     font-weight: 600;
     word-break: break-all;
@@ -203,13 +203,13 @@
   <div class="section">
     <div class="sec-header">Datos de la operación</div>
     <table class="data-table">
-      <tr><td>Clave de rastreo SPEI</td><td>{{ clave_rastreo }}</td></tr>
-      <tr><td>Concepto</td><td>{{ concepto }}</td></tr>
-      <tr><td>Referencia</td><td>{{ numero_referencia }}</td></tr>
-      <tr><td>Tipo de operación</td><td>{{ tipo_operacion }}</td></tr>
-      <tr><td>Fecha</td><td>{{ fecha_display }}</td></tr>
-      <tr><td>Hora</td><td>{{ hora }}</td></tr>
-      <tr><td>Estatus</td><td>{{ estatus }}</td></tr>
+      <tr><th scope="row">Clave de rastreo SPEI</th><td>{{ clave_rastreo }}</td></tr>
+      <tr><th scope="row">Concepto</th><td>{{ concepto }}</td></tr>
+      <tr><th scope="row">Referencia</th><td>{{ numero_referencia }}</td></tr>
+      <tr><th scope="row">Tipo de operación</th><td>{{ tipo_operacion }}</td></tr>
+      <tr><th scope="row">Fecha</th><td>{{ fecha_display }}</td></tr>
+      <tr><th scope="row">Hora</th><td>{{ hora }}</td></tr>
+      <tr><th scope="row">Estatus</th><td>{{ estatus }}</td></tr>
     </table>
   </div>
 
@@ -217,9 +217,9 @@
   <div class="section">
     <div class="sec-header">Cuenta origen</div>
     <table class="data-table">
-      <tr><td>Banco</td><td>{{ banco_emisor }}</td></tr>
-      <tr><td>CLABE</td><td>{{ clabe_emisor_mascara }}</td></tr>
-      <tr><td>Titular</td><td>{{ nombre_ordenante }}</td></tr>
+      <tr><th scope="row">Banco</th><td>{{ banco_emisor }}</td></tr>
+      <tr><th scope="row">CLABE</th><td>{{ clabe_emisor_mascara }}</td></tr>
+      <tr><th scope="row">Titular</th><td>{{ nombre_ordenante }}</td></tr>
     </table>
   </div>
 
@@ -227,9 +227,9 @@
   <div class="section">
     <div class="sec-header">Cuenta destino</div>
     <table class="data-table">
-      <tr><td>Banco</td><td>{{ banco_receptor }}</td></tr>
-      <tr><td>CLABE</td><td>{{ clabe_receptor_mascara }}</td></tr>
-      <tr><td>Beneficiario</td><td>{{ nombre_beneficiario }}</td></tr>
+      <tr><th scope="row">Banco</th><td>{{ banco_receptor }}</td></tr>
+      <tr><th scope="row">CLABE</th><td>{{ clabe_receptor_mascara }}</td></tr>
+      <tr><th scope="row">Beneficiario</th><td>{{ nombre_beneficiario }}</td></tr>
     </table>
   </div>
 

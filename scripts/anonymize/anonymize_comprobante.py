@@ -33,6 +33,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import math
 import re
 import subprocess
 import sys
@@ -73,7 +74,7 @@ _RE_REFERENCIA_NUM = re.compile(
 _RE_HORA = re.compile(r"\b(\d{1,2}:\d{2})(?::\d{2})?\b")
 
 # Motivo / concepto: línea que sigue a "Motivo:" o "Concepto:"
-_RE_MOTIVO = re.compile(r"(?:Motivo|Concepto)[:\s]+(.+?)(?:\n|$)", re.IGNORECASE)
+_RE_MOTIVO = re.compile(r"(?:Motivo|Concepto)[:\s]+([^\n]+)", re.IGNORECASE)
 
 # CLABE enmascarada por MercadoPago: **** o ****NNNN
 _RE_CLABE_MASK = re.compile(r"\*{4,7}(\d{4})")
@@ -84,12 +85,12 @@ _RE_CLAVE_RASTREO = re.compile(r"(?:Clave de rastreo|CLABE rastreo|clave_rastreo
 # Comisión: cubre "Comisión:", "COMISION DEL BANCO:", "TOTAL COMISION:"
 # También tolera prefijos de moneda como "M.N. $" antes del número (OXXO).
 _RE_COMISION = re.compile(
-    r"(?:(?:TOTAL\s+)?COMISI[OÓ]N(?:\s+DEL\s+BANCO)?)[:\s]+(?:M\.?N\.?\s*)?\$?\s*([\d,]+\.?\d*)",
+    r"(?:TOTAL\s+)?COMISI[OÓ]N(?:\s+DEL\s+BANCO)?[:\s]+(?:M\.?N\.?\s*)?\$?\s*(\d[\d,]*\.?\d*)",  # NOSONAR - S8786/S5843: dataset tooling, bounded input
     re.IGNORECASE,
 )
 
 # IVA: número decimal precedido de "IVA:"
-_RE_IVA = re.compile(r"\bIVA[:\s]+\$?\s*([\d,]+\.?\d*)", re.IGNORECASE)
+_RE_IVA = re.compile(r"\bIVA[:\s]+\$?\s*(\d[\d,]*\.?\d*)", re.IGNORECASE)  # NOSONAR - S8786: dataset tooling, bounded input
 
 # Folio: número precedido de "Folio", "Folio de internet", "FOLIO NUMERO", etc.
 _RE_FOLIO = re.compile(r"(?:Folio(?:\s+de\s+internet)?|FOLIO(?:\s+NUMERO)?)[:\s#]+([A-Z0-9]{4,20})", re.IGNORECASE)
@@ -102,24 +103,24 @@ _RE_NUM_TRANSACCION = re.compile(
 )
 
 # Tipo de operación: línea que sigue a "Tipo de operación:" o "Operación:"
-_RE_TIPO_OP = re.compile(r"(?:Tipo de operaci[oó]n|Operaci[oó]n)[:\s]+(.+?)(?:\n|$)", re.IGNORECASE)
+_RE_TIPO_OP = re.compile(r"(?:Tipo de operaci[oó]n|Operaci[oó]n)[:\s]+([^\n]+)", re.IGNORECASE)
 
 # Concepto de pago
-_RE_CONCEPTO = re.compile(r"(?:Concepto(?:\s+de\s+pago)?|Descripci[oó]n)[:\s]+(.+?)(?:\n|$)", re.IGNORECASE)
+_RE_CONCEPTO = re.compile(r"(?:Concepto(?:\s+de\s+pago)?|Descripci[oó]n)[:\s]+([^\n]+)", re.IGNORECASE)
 
 # Estatus de operación
-_RE_ESTATUS = re.compile(r"(?:Estatus|Estado|Status)[:\s]+(.+?)(?:\n|$)", re.IGNORECASE)
+_RE_ESTATUS = re.compile(r"(?:Estatus|Estado|Status)[:\s]+([^\n]+)", re.IGNORECASE)
 
 # Monto genérico desde PDF text: captura cualquier etiqueta de importe/monto
 # cuando el OCR devuelve null — fallback para layouts no estándar (BanCoppel, etc.)
 _RE_MONTO_PDF = re.compile(
-    r"(?:Monto|Importe|Amount)[:\s]+\$?\s*([\d,\.]+)\s*(?:MXN|MN|USD)?",
+    r"(?:Monto|Importe|Amount)[:\s]+\$?\s*(\d[\d,]*\.?\d*)",  # NOSONAR - S8786: dataset tooling, bounded input
     re.IGNORECASE,
 )
 
 # Importe transferido: etiqueta "Importe transferido" o "Importe giro" (BBVA, Banorte)
 _RE_IMPORTE_TRANSFERIDO = re.compile(
-    r"(?:Importe\s+transferido|Importe\s+giro)[:\s]+\$?\s*([\d,]+\.?\d*)",
+    r"(?:Importe\s+transferido|Importe\s+giro)[:\s]+\$?\s*(\d[\d,]*\.?\d*)",  # NOSONAR - S8786: dataset tooling, bounded input
     re.IGNORECASE,
 )
 
@@ -127,7 +128,7 @@ _RE_IMPORTE_TRANSFERIDO = re.compile(
 # Patrón específico: "MONTO" seguido de separadores y opcionalmente "M.N. $".
 # Se diferencia del monto principal porque en OXXO la etiqueta es exactamente "MONTO".
 _RE_MONTO_BASE_OXXO = re.compile(
-    r"^[\s\-]*MONTO\s*[:\s]+(?:M\.?N\.?\s*)?\$?\s*([\d,]+\.?\d*)",
+    r"^[\s\-]*MONTO\s*[:\s]+(?:M\.?N\.?\s*)?\$?\s*(\d[\d,]*\.?\d*)",  # NOSONAR - S8786/S5843: dataset tooling, bounded input
     re.IGNORECASE | re.MULTILINE,
 )
 
@@ -139,7 +140,7 @@ _RE_MONTO_BASE_OXXO = re.compile(
 # Usa negative lookahead para excluir "TOTAL COMISION" y "TOTAL COMISION DEL BANCO".
 _RE_IMPORTE_TOTAL = re.compile(
     r"(?:PAGO\s+TOTAL|Cantidad\s+Total|Importe\s+a\s+debitar)"
-    r"[.:\s]+(?:M\.?N\.?\s*)?\$?\s*([\d,]+\.?\d*)",
+    r"[.:\s]+(?:M\.?N\.?\s*)?\$?\s*(\d[\d,]*\.?\d*)",
     re.IGNORECASE,
 )
 
@@ -238,7 +239,7 @@ def _safe_float(value: object) -> float:
         return 0.0
     s = str(value).strip()
     # Eliminar sufijos de moneda (MXN, USD, MN, CLP, ARS, etc.) al final
-    s = re.sub(r"\s*[A-Z]{2,3}$", "", s).strip()
+    s = re.sub(r"[A-Z]{2,3}$", "", s).strip()
     # Eliminar prefijo/sufijo de símbolo monetario
     s = s.replace("$", "").replace("¢", "").strip()
     # Detectar formato europeo: si hay punto de miles y coma decimal (ej. "3.675,00")
@@ -308,6 +309,55 @@ def _extract_extra_fields(ocr_fields: dict, pdf_text: str = "") -> dict:
     }
 
 
+def _extract_importe_transferido(ocr_fields: dict, raw_text: str) -> float:
+    ocr_importe_base = _safe_float(ocr_fields.get("importe_base")) if ocr_fields.get("importe_base") else None
+    imp_trans_m = _RE_IMPORTE_TRANSFERIDO.search(raw_text)
+    monto_oxxo_m = _RE_MONTO_BASE_OXXO.search(raw_text)
+    if ocr_importe_base:
+        return ocr_importe_base
+    if imp_trans_m:
+        return _safe_float(imp_trans_m.group(1))
+    if monto_oxxo_m:
+        return _safe_float(monto_oxxo_m.group(1))
+    return _safe_float(ocr_fields.get("monto"))
+
+
+def _extract_importe_total(ocr_fields: dict, raw_text: str, importe_transferido: float) -> float:
+    imp_total_m = _RE_IMPORTE_TOTAL.search(raw_text)
+    ocr_monto = _safe_float(ocr_fields.get("monto"))
+    if imp_total_m:
+        return _safe_float(imp_total_m.group(1))
+    if ocr_monto and not math.isclose(ocr_monto, importe_transferido):
+        return ocr_monto
+    return importe_transferido
+
+
+def _extract_extended_simple(ocr_fields: dict, raw_text: str) -> dict:
+    cr_m = _RE_CLAVE_RASTREO.search(raw_text)
+    clave_rastreo = cr_m.group(1) if cr_m else str(ocr_fields.get("clave_rastreo") or "")
+    concepto_m = _RE_CONCEPTO.search(raw_text)
+    concepto = concepto_m.group(1).strip() if concepto_m else ""
+    comision_m = _RE_COMISION.search(raw_text)
+    comision = _safe_float(comision_m.group(1)) if comision_m else 0.0
+    iva_m = _RE_IVA.search(raw_text)
+    iva = _safe_float(iva_m.group(1)) if iva_m else 0.0
+    folio_m = _RE_FOLIO.search(raw_text)
+    folio = folio_m.group(1) if folio_m else str(ocr_fields.get("folio") or "")
+    estatus_m = _RE_ESTATUS.search(raw_text)
+    estatus = estatus_m.group(1).strip() if estatus_m else "exitosa"
+    tipo_op_m = _RE_TIPO_OP.search(raw_text)
+    tipo_operacion = tipo_op_m.group(1).strip() if tipo_op_m else ""
+    return {
+        "clave_rastreo": clave_rastreo,
+        "concepto": concepto,
+        "comision": comision,
+        "iva": iva,
+        "folio": folio,
+        "estatus": estatus,
+        "tipo_operacion": tipo_operacion,
+    }
+
+
 def _extract_extended_fields(ocr_fields: dict, raw_text: str) -> dict:
     """Extrae el bloque 'extended' del schema v2.0 desde los campos OCR y texto crudo.
 
@@ -315,77 +365,22 @@ def _extract_extended_fields(ocr_fields: dict, raw_text: str) -> dict:
     Los campos de nombre/RFC siempre quedan vacíos: son datos personales que no
     se extraen ni almacenan (solo se anotan para revisión manual si fuera necesario).
     """
-    # clave_rastreo: regex sobre raw_text, fallback al campo OCR directo
-    cr_m = _RE_CLAVE_RASTREO.search(raw_text)
-    clave_rastreo = cr_m.group(1) if cr_m else str(ocr_fields.get("clave_rastreo") or "")
-
-    # concepto de pago
-    concepto_m = _RE_CONCEPTO.search(raw_text)
-    concepto = concepto_m.group(1).strip() if concepto_m else ""
-
-    # comisión e IVA: numéricos vía _safe_float
-    comision_m = _RE_COMISION.search(raw_text)
-    comision = _safe_float(comision_m.group(1)) if comision_m else 0.0
-
-    iva_m = _RE_IVA.search(raw_text)
-    iva = _safe_float(iva_m.group(1)) if iva_m else 0.0
-
-    # folio: regex sobre raw_text, fallback al campo OCR directo
-    folio_m = _RE_FOLIO.search(raw_text)
-    folio = folio_m.group(1) if folio_m else str(ocr_fields.get("folio") or "")
-
-    # estatus de operación
-    estatus_m = _RE_ESTATUS.search(raw_text)
-    estatus = estatus_m.group(1).strip() if estatus_m else "exitosa"
-
-    # tipo de operación
-    tipo_op_m = _RE_TIPO_OP.search(raw_text)
-    tipo_operacion = tipo_op_m.group(1).strip() if tipo_op_m else ""
-
-    # importe_transferido: monto neto sin comisión.
-    # Prioridad:
-    #   1) campo directo OCR "importe_base" (prompt v2 — modelo lo extrae cuando lo ve claro)
-    #   2) regex "Importe transferido / Importe giro" en raw_text (BBVA JUSTIFICANTE, Banorte)
-    #   3) regex "MONTO : M.N. $ X" en raw_text (patrón OXXO — línea antes de comisión)
-    #   4) fallback al campo monto del OCR
-    ocr_importe_base = _safe_float(ocr_fields.get("importe_base")) if ocr_fields.get("importe_base") else None
-    imp_trans_m = _RE_IMPORTE_TRANSFERIDO.search(raw_text)
-    monto_oxxo_m = _RE_MONTO_BASE_OXXO.search(raw_text)
-    if ocr_importe_base:
-        importe_transferido = ocr_importe_base
-    elif imp_trans_m:
-        importe_transferido = _safe_float(imp_trans_m.group(1))
-    elif monto_oxxo_m:
-        importe_transferido = _safe_float(monto_oxxo_m.group(1))
-    else:
-        importe_transferido = _safe_float(ocr_fields.get("monto"))
-
-    # importe_total: total cobrado incluyendo comisión.
-    # Prioridad:
-    #   1) regex "PAGO TOTAL / Cantidad Total / Importe a debitar" en raw_text
-    #   2) monto OCR cuando difiere del importe_transferido (OCR captura el total)
-    #   3) igual a importe_transferido (sin comisión)
-    imp_total_m = _RE_IMPORTE_TOTAL.search(raw_text)
-    ocr_monto = _safe_float(ocr_fields.get("monto"))
-    if imp_total_m:
-        importe_total = _safe_float(imp_total_m.group(1))
-    elif ocr_monto and ocr_monto != importe_transferido:
-        importe_total = ocr_monto
-    else:
-        importe_total = importe_transferido
+    simple = _extract_extended_simple(ocr_fields, raw_text)
+    importe_transferido = _extract_importe_transferido(ocr_fields, raw_text)
+    importe_total = _extract_importe_total(ocr_fields, raw_text, importe_transferido)
 
     return {
-        "clave_rastreo": clave_rastreo,
-        "concepto": concepto,
-        "comision": comision,
-        "iva": iva,
+        "clave_rastreo": simple["clave_rastreo"],
+        "concepto": simple["concepto"],
+        "comision": simple["comision"],
+        "iva": simple["iva"],
         "iva_comision": 0.0,          # campo raro — solo vía revisión manual
-        "folio": folio,
+        "folio": simple["folio"],
         "nombre_ordenante": "",       # siempre anonimizado — nunca extraído
         "nombre_beneficiario": "",    # siempre anonimizado — nunca extraído
         "rfc_ordenante": "",          # siempre anonimizado — nunca extraído
-        "estatus": estatus,
-        "tipo_operacion": tipo_operacion,
+        "estatus": simple["estatus"],
+        "tipo_operacion": simple["tipo_operacion"],
         "importe_transferido": importe_transferido,
         "importe_total": importe_total,
         "pais": "MX",                 # default MX — cambiar solo vía revisión manual
@@ -411,7 +406,7 @@ def _build_gt_stub(image_id: str, ocr_fields: dict, pdf_text: str = "") -> dict:
 
     # monto: OCR primero; si es null o 0 intentamos recuperarlo del pdf_text.
     monto_ocr = _safe_float(ocr_fields.get("monto"))
-    if monto_ocr == 0.0 and pdf_text:
+    if math.isclose(monto_ocr, 0.0) and pdf_text:
         m = _RE_MONTO_PDF.search(pdf_text)
         monto_ocr = _safe_float(m.group(1)) if m else 0.0
 
@@ -452,9 +447,9 @@ def _build_gt_stub(image_id: str, ocr_fields: dict, pdf_text: str = "") -> dict:
         "motivo": extra["motivo"],
         "clabe_emisor_mascara": extra["clabe_emisor_mascara"],
         "clabe_receptor_mascara": extra["clabe_receptor_mascara"],
-        "tipo": "spei_recibido",           # TODO: revisar manualmente
-        "formato_origen": "screenshot_movil",  # TODO: revisar manualmente
-        "calidad": "buena",                # TODO: ajustar según imagen
+        "tipo": "spei_recibido",           # NOTE: valor por defecto - revisar manualmente si aplica
+        "formato_origen": "screenshot_movil",  # NOTE: valor por defecto - revisar manualmente si aplica
+        "calidad": "buena",                # NOTE: valor por defecto - ajustar segun imagen si aplica
         "notas": "",
         "synthetic": None,
         "extended": _extract_extended_fields(ocr_fields, raw_text),

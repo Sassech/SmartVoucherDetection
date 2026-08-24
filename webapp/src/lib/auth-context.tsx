@@ -13,6 +13,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -81,9 +82,9 @@ export function useAuth(): AuthContextValue {
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setTokenState] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   // isReady flips to true once the silent refresh attempt completes (success OR fail).
   // Pages should wait for isReady before making authenticated requests to avoid
   // race conditions where fetchApi runs before the access token is in memory.
@@ -92,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sync module-level store with React state.
   const updateToken = useCallback((newToken: string | null) => {
     setAccessToken(newToken);
-    setTokenState(newToken);
+    setToken(newToken);
   }, []);
 
   // On mount: attempt a silent refresh so users with a valid refresh_token
@@ -181,8 +182,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [updateToken]);
 
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, token, isReady, login, logout }),
+    [user, token, isReady, login, logout],
+  );
+
   return (
-    <AuthContext.Provider value={{ user, token, isReady, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

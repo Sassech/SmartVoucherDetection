@@ -89,10 +89,10 @@
     border-collapse: collapse;
     font-size: 12.5px;
   }
-  .info-table tr:nth-child(even) td {
+  .info-table tr:nth-child(even) td, .info-table tr:nth-child(even) th {
     background: #fafafa;
   }
-  .info-table td {
+  .info-table td, .info-table th {
     padding: 8px 12px;
     border: 1px solid #e8e8e8;
     vertical-align: top;
@@ -172,27 +172,27 @@
       <td colspan="2">Datos de la operación</td>
     </tr>
     <tr class="amount-highlight">
-      <td class="label-col">Monto</td>
+      <th scope="row" class="label-col">Monto</th>
       <td class="value-col">{{ monto_fmt }} MXN</td>
     </tr>
     <tr>
-      <td class="label-col">Clave de rastreo</td>
+      <th scope="row" class="label-col">Clave de rastreo</th>
       <td class="value-col">{{ clave_rastreo }}</td>
     </tr>
     <tr>
-      <td class="label-col">Concepto</td>
+      <th scope="row" class="label-col">Concepto</th>
       <td class="value-col">{{ concepto }}</td>
     </tr>
     <tr>
-      <td class="label-col">Tipo de pago</td>
+      <th scope="row" class="label-col">Tipo de pago</th>
       <td class="value-col">{{ tipo_operacion }}</td>
     </tr>
     <tr>
-      <td class="label-col">Fecha</td>
+      <th scope="row" class="label-col">Fecha</th>
       <td class="value-col">{{ fecha_larga }}</td>
     </tr>
     <tr>
-      <td class="label-col">Hora</td>
+      <th scope="row" class="label-col">Hora</th>
       <td class="value-col">{{ hora }}</td>
     </tr>
 
@@ -201,19 +201,19 @@
       <td colspan="2">Datos del ordenante</td>
     </tr>
     <tr>
-      <td class="label-col">Institución</td>
+      <th scope="row" class="label-col">Institución</th>
       <td class="value-col">{{ banco_emisor }}</td>
     </tr>
     <tr>
-      <td class="label-col">CLABE / Cuenta</td>
+      <th scope="row" class="label-col">CLABE / Cuenta</th>
       <td class="value-col">{{ clabe_emisor_mascara }}</td>
     </tr>
     <tr>
-      <td class="label-col">Nombre del ordenante</td>
+      <th scope="row" class="label-col">Nombre del ordenante</th>
       <td class="value-col">{{ nombre_ordenante }}</td>
     </tr>
     <tr>
-      <td class="label-col">RFC</td>
+      <th scope="row" class="label-col">RFC</th>
       <td class="value-col">{{ rfc_ordenante }}</td>
     </tr>
 
@@ -222,19 +222,19 @@
       <td colspan="2">Datos del beneficiario</td>
     </tr>
     <tr>
-      <td class="label-col">Institución receptora</td>
+      <th scope="row" class="label-col">Institución receptora</th>
       <td class="value-col">{{ banco_receptor }}</td>
     </tr>
     <tr>
-      <td class="label-col">CLABE / Cuenta</td>
+      <th scope="row" class="label-col">CLABE / Cuenta</th>
       <td class="value-col">{{ clabe_receptor_mascara }}</td>
     </tr>
     <tr>
-      <td class="label-col">Nombre del beneficiario</td>
+      <th scope="row" class="label-col">Nombre del beneficiario</th>
       <td class="value-col">{{ nombre_beneficiario }}</td>
     </tr>
     <tr>
-      <td class="label-col">Referencia numérica</td>
+      <th scope="row" class="label-col">Referencia numérica</th>
       <td class="value-col">{{ numero_referencia }}</td>
     </tr>
 

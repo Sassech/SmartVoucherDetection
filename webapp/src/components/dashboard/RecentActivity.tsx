@@ -50,7 +50,7 @@ interface RecentActivityProps {
   items: WebComprobanteItem[];
 }
 
-export function RecentActivity({ items }: RecentActivityProps) {
+export function RecentActivity({ items }: Readonly<RecentActivityProps>) {
   return (
     <div className="rounded-xl border border-[var(--color-outline-variant)] bg-white overflow-hidden">
       {/* Card header */}

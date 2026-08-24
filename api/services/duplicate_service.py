@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import TYPE_CHECKING
 
 from Levenshtein import ratio as lev_ratio
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -28,9 +27,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.comprobante import Comprobante
 from services.config_service import DEFAULTS, get_scoring_weights
-
-if TYPE_CHECKING:
-    pass
 
 # ---------------------------------------------------------------------------
 # Pesos del scoring (suman 1.0)

@@ -93,7 +93,7 @@ const ShieldIcon = ({ size = 36, dark = false }: { size?: number; dark?: boolean
       d="M18 7L8 11v8c0 5.25 4.5 10 10 11.5C23.5 29 28 24.25 28 19v-8L18 7Z"
       fill="white" fillOpacity="0.9"
     />
-    <path d="M14 18.5l2.5 2.5 5.5-6" stroke={dark ? "#003d9b" : "#003d9b"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M14 18.5l2.5 2.5 5.5-6" stroke="#003d9b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -135,7 +135,7 @@ export default function RegisterPage() {
     return null;
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 

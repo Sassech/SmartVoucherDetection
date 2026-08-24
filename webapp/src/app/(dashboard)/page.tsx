@@ -79,14 +79,14 @@ export default async function DashboardPage() {
             type="button"
             className="flex items-center gap-1.5 rounded-lg border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-xs font-medium text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-low)] transition-colors"
           >
-            <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+            <span className="material-symbols-outlined text-[16px]">calendar_today</span>{" "}
             Últimos 30 días
           </button>
           <button
             type="button"
             className="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-2 text-xs font-medium text-white hover:opacity-90 transition-opacity"
           >
-            <span className="material-symbols-outlined text-[16px]">download</span>
+            <span className="material-symbols-outlined text-[16px]">download</span>{" "}
             Exportar
           </button>
         </div>
@@ -132,11 +132,11 @@ export default async function DashboardPage() {
             </h2>
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1.5 text-[11px] text-[var(--color-secondary)]">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[var(--color-primary)] inline-block" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-[var(--color-primary)] inline-block" />{" "}
                 Exitosos
               </span>
               <span className="flex items-center gap-1.5 text-[11px] text-[var(--color-secondary)]">
-                <span className="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block" />{" "}
                 Problemas
               </span>
             </div>

@@ -212,7 +212,9 @@ def test_normalize_banco_does_not_confuse_short_aliases():
 
 def test_compute_hash_deterministic():
     payload = b"hola mundo"
-    assert compute_hash(payload) == compute_hash(payload)
+    first = compute_hash(payload)
+    second = compute_hash(payload)
+    assert first == second
 
 
 def test_compute_hash_different_for_different_inputs():

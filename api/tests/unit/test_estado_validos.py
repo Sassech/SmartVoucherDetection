@@ -37,22 +37,17 @@ def test_comprobante_create_accepts_sospechoso_estado() -> None:
     """ComprobanteCreate debe aceptar 'sospechoso' como estado_actual válido."""
     import uuid
 
-    from pydantic import ValidationError
-
     from schemas.comprobante import CamposExtraidos, ComprobanteCreate
 
     campos = CamposExtraidos(banco="BBVA")
-    try:
-        obj = ComprobanteCreate(
-            id_usuario=uuid.uuid4(),
-            imagen_path="/tmp/test.png",
-            hash_documento="a" * 64,
-            campos=campos,
-            estado_actual="sospechoso",
-        )
-        assert obj.estado_actual == "sospechoso"
-    except ValidationError as exc:
-        pytest.fail(f"ComprobanteCreate rejected 'sospechoso': {exc}")
+    obj = ComprobanteCreate(
+        id_usuario=uuid.uuid4(),
+        imagen_path="/tmp/test.png",
+        hash_documento="a" * 64,
+        campos=campos,
+        estado_actual="sospechoso",
+    )
+    assert obj.estado_actual == "sospechoso"
 
 
 def test_comprobante_response_accepts_sospechoso_estado() -> None:
@@ -65,16 +60,13 @@ def test_comprobante_response_accepts_sospechoso_estado() -> None:
     from schemas.comprobante import CamposExtraidos, ComprobanteResponse
 
     campos = CamposExtraidos(banco="BBVA")
-    try:
-        obj = ComprobanteResponse(
-            id_comprobante=uuid.uuid4(),
-            id_usuario=uuid.uuid4(),
-            estado_actual="sospechoso",
-            hash_documento="b" * 64,
-            imagen_path="/tmp/test.png",
-            fecha_registro=datetime.now(timezone.utc),
-            campos_extraidos=campos,
-        )
-        assert obj.estado_actual == "sospechoso"
-    except ValidationError as exc:
-        pytest.fail(f"ComprobanteResponse rejected 'sospechoso': {exc}")
+    obj = ComprobanteResponse(
+        id_comprobante=uuid.uuid4(),
+        id_usuario=uuid.uuid4(),
+        estado_actual="sospechoso",
+        hash_documento="b" * 64,
+        imagen_path="/tmp/test.png",
+        fecha_registro=datetime.now(timezone.utc),
+        campos_extraidos=campos,
+    )
+    assert obj.estado_actual == "sospechoso"

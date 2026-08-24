@@ -257,7 +257,7 @@ def normalize_banco(raw: str | None) -> str:
 # ---------------------------------------------------------------------------
 
 
-def compute_hash(image_bytes: bytes) -> str:
+def compute_hash(image_bytes: bytes | bytearray | memoryview) -> str:
     """SHA-256 hex de los bytes ORIGINALES del archivo (pre-preprocess).
 
     Esto es la Capa 1 de deduplicacion (PROGRESO 2.1): si dos uploads
@@ -268,6 +268,10 @@ def compute_hash(image_bytes: bytes) -> str:
     pipeline de `image_service.preprocess` es deterministico pero
     introduce variaciones (compresion PNG, padding del crop) que romperian
     la equivalencia de hash entre el upload original y un re-upload.
+
+    Acepta cualquier bytes-like (bytes, bytearray, memoryview) — util
+    cuando el upload llega como bytearray desde multipart o como memoryview
+    desde un buffer de red.
     """
     if not isinstance(image_bytes, (bytes, bytearray, memoryview)):
         raise TypeError("compute_hash espera bytes-like")

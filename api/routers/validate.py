@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import uuid
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,14 +35,13 @@ router = APIRouter(prefix="/validate", tags=["validation"])
 
 @router.post(
     "/{comprobante_id}",
-    response_model=ComprobanteResponse,
     status_code=status.HTTP_200_OK,
 )
 async def validate_comprobante(
     comprobante_id: uuid.UUID,
     clasificacion: str,  # Query param: "valido" or "duplicado"
-    session: AsyncSession = Depends(get_session),
-    usuario: Usuario = Depends(require_api_key),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    usuario: Annotated[Usuario, Depends(require_api_key)],
 ) -> ComprobanteResponse:
     """Manually validate a comprobante that is in 'en_revision' state.
 

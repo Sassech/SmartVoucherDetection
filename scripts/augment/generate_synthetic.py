@@ -358,7 +358,7 @@ def main(argv: list[str] | None = None) -> int:
     rng = random.Random(args.seed)
 
     if verbose:
-        print(f"SmartVoucherDetection — Synthetic Voucher Generator")
+        print("SmartVoucherDetection — Synthetic Voucher Generator")
         print(f"  Banks: {', '.join(banks_to_run)}")
         print(f"  Count: {args.count} per bank")
         print(f"  Output: {output_dir}")

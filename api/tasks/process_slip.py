@@ -34,8 +34,8 @@ from celery_app import celery_app
 def process_slip(
     self,
     file_bytes_b64: str,
-    filename: str,
-    content_type: str,
+    _filename: str,
+    _content_type: str,
 ) -> dict[str, Any]:
     """Process a comprobante upload asynchronously.
 
@@ -61,8 +61,8 @@ def process_slip(
 
 async def _run_pipeline(
     file_bytes: bytes,
-    filename: str,
-    content_type: str,
+    _filename: str,
+    _content_type: str,
 ) -> dict[str, Any]:
     """Internal async pipeline — mirrors upload.py logic.
 

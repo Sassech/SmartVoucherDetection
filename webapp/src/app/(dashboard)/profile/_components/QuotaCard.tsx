@@ -11,6 +11,8 @@
  *   resetDate — ISO date string for quota reset (null if unlimited)
  */
 
+import type { ReactNode } from "react";
+
 interface QuotaCardProps {
   plan: string;
   used: number | null;
@@ -42,7 +44,7 @@ function formatResetDate(isoDate: string): string {
   }
 }
 
-export function QuotaCard({ plan, used, limit, resetDate }: QuotaCardProps) {
+export function QuotaCard({ plan, used, limit, resetDate }: Readonly<QuotaCardProps>) {
   const unlimited = limit === -1;
   const loading = used === null;
   const usedVal = used ?? 0;
@@ -52,9 +54,33 @@ export function QuotaCard({ plan, used, limit, resetDate }: QuotaCardProps) {
   const badgeStyle = PLAN_BADGE_STYLES[labelKey] ?? PLAN_BADGE_STYLES.basic;
 
   // Color the bar red when near limit (>= 90%) — only for capped plans
-  const barColor = !unlimited && pct >= 90
-    ? "var(--color-error, #ba1a1a)"
-    : "var(--color-primary, #003d9b)";
+  let barColor: string;
+  if (!unlimited && pct >= 90) {
+    barColor = "var(--color-error, #ba1a1a)";
+  } else {
+    barColor = "var(--color-primary, #003d9b)";
+  }
+
+  let usageDisplay: ReactNode;
+  if (loading) {
+    usageDisplay = (
+      <span className="text-sm font-normal text-[var(--color-on-surface-variant)]">Loading…</span>
+    );
+  } else if (unlimited) {
+    usageDisplay = (
+      <>
+        {usedVal}
+        <span className="text-sm font-normal text-[var(--color-on-surface-variant)]"> / Unlimited</span>
+      </>
+    );
+  } else {
+    usageDisplay = (
+      <>
+        {usedVal}
+        <span className="text-sm font-normal text-[var(--color-on-surface-variant)]"> / {limit}</span>
+      </>
+    );
+  }
 
   return (
     <div
@@ -89,33 +115,20 @@ export function QuotaCard({ plan, used, limit, resetDate }: QuotaCardProps) {
             Uploads this month
           </span>
           <span className="text-base font-semibold text-[var(--color-on-surface)]">
-            {loading ? (
-              <span className="text-sm font-normal text-[var(--color-on-surface-variant)]">
-                Loading…
-              </span>
-            ) : unlimited ? (
-              <>
-                {usedVal}
-                <span className="text-sm font-normal text-[var(--color-on-surface-variant)]"> / Unlimited</span>
-              </>
-            ) : (
-              <>
-                {usedVal}
-                <span className="text-sm font-normal text-[var(--color-on-surface-variant)]"> / {limit}</span>
-              </>
-            )}
+            {usageDisplay}
           </span>
         </div>
 
         {/* Progress bar — hidden for unlimited plans and while loading */}
         {!unlimited && !loading && (
-          <div role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${pct}% of monthly quota used`}>
-            <div className="h-2 w-full bg-[var(--color-surface-container)] rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${pct}%`, backgroundColor: barColor }}
-              />
-            </div>
+          <div>
+            <progress
+              value={pct}
+              max={100}
+              aria-label={`${pct}% of monthly quota used`}
+              className="h-2 w-full rounded-full overflow-hidden"
+              style={{ accentColor: barColor }}
+            />
             <p className="mt-1 text-[11px] text-[var(--color-on-surface-variant)]">
               {pct}% used
             </p>

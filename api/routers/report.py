@@ -10,6 +10,8 @@ Note Fase 4: Replace SYSTEM_USER_ID filter with JWT org/user scope.
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,10 +26,10 @@ from schemas.report import EstadoCount, ReportResponse
 router = APIRouter(prefix="/report", tags=["report"])
 
 
-@router.get("", response_model=ReportResponse)
+@router.get("")
 async def get_report(
-    session: AsyncSession = Depends(get_session),
-    usuario: Usuario = Depends(require_api_key),
+    session: Annotated[AsyncSession, Depends(get_session)],
+    usuario: Annotated[Usuario, Depends(require_api_key)],
 ) -> ReportResponse:
     """Return aggregate counts of comprobantes by estado.
 

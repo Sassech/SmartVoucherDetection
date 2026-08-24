@@ -58,10 +58,12 @@ sys.path.insert(0, str(_SCRIPTS_DIR))
 # Mapa de normalización de nombres de banco
 # ---------------------------------------------------------------------------
 
+_MERCADO_PAGO = "Mercado Pago"
+
 BANCO_NORM: dict[str, str] = {
-    "Mercado Pago WALLET": "Mercado Pago",
-    "WALLET": "Mercado Pago",
-    "Mercado Pago": "Mercado Pago",
+    "Mercado Pago WALLET": _MERCADO_PAGO,
+    "WALLET": _MERCADO_PAGO,
+    "Mercado Pago": _MERCADO_PAGO,
     "BBVA Bancomer": "BBVA",
     "BBVA BANCOMER": "BBVA",
     "BANCOMER": "BBVA",
@@ -291,7 +293,7 @@ def _compute_quotas(sources: list[SourceImage], n: int, floor: int = 30) -> dict
 # ---------------------------------------------------------------------------
 
 
-def _build_augment_pipeline(rng: random.Random):  # type: ignore[return]
+def _build_augment_pipeline(_rng: random.Random):  # type: ignore[return]
     """Construye la lista de transformaciones disponibles con sus parámetros.
 
     Cada degradación está documentada con:
@@ -499,78 +501,83 @@ def _generate(
     for src in sources:
         by_bank.setdefault(src.banco, []).append(src)
 
-    generated: dict[str, int] = {banco: 0 for banco in quotas}
-    total_errors = 0
+    generated: dict[str, int] = dict.fromkeys(quotas, 0)
 
-    # Cache de bytes de imagen cargados: cada archivo fuente se convierte
-    # (PDF→PNG) una sola vez y se reutiliza para todas sus variantes.
-    # Sin caché, un PDF de 21 archivos se reconvertiría ~10× por banco → timeout.
+    # Cache de bytes de imagen cargados
     img_cache: dict[Path, bytes] = {}
 
     for banco, quota in sorted(quotas.items()):
-        banco_sources = by_bank.get(banco, [])
-        if not banco_sources:
-            print(f"  WARN: banco '{banco}' sin imágenes fuente — omitido.", file=sys.stderr)
-            continue
-
-        slug = _banco_slug(banco)
-        print(f"\n  [{banco}] generando {quota} variantes desde {len(banco_sources)} raw...")
-
-        # Pre-cargar todas las fuentes del banco en caché
-        print(f"    Cargando {len(banco_sources)} fuentes...")
-        loaded_sources: list[tuple[SourceImage, bytes]] = []
-        for src in banco_sources:
-            if src.path not in img_cache:
-                try:
-                    img_cache[src.path] = _load_image_bytes(src.path)
-                except Exception as exc:  # noqa: BLE001
-                    print(f"    ERROR cargando {src.path.name}: {exc}", file=sys.stderr)
-                    total_errors += 1
-                    continue
-            loaded_sources.append((src, img_cache[src.path]))
-
-        if not loaded_sources:
-            print(f"    ERROR: no se pudo cargar ninguna fuente para {banco}.", file=sys.stderr)
-            continue
-
-        # Ciclar sobre las fuentes para repartir las variantes homogéneamente
-        variant_counter = 0
-        for i in range(quota):
-            src, img_bytes = loaded_sources[i % len(loaded_sources)]
-
-            # Semilla derivada determinista: base + hash(banco) + variant
-            variant_seed = base_seed + abs(hash(banco)) % 10_000 + i
-
-            try:
-                aug_bytes = _apply_degradations(
-                    img_bytes=img_bytes,
-                    transforms=transforms,
-                    rng=rng,
-                    seed=variant_seed,
-                )
-            except Exception as exc:  # noqa: BLE001
-                print(f"    ERROR augmentando {src.path.name}: {exc}", file=sys.stderr)
-                total_errors += 1
-                continue
-
-            # Nombre de archivo: aug-{banco_slug}-{source_id}-{variant:03d}.jpg
-            variant_counter += 1
-            out_name = f"aug-{slug}-{src.gt_id}-{variant_counter:03d}.jpg"
-            out_path = output_dir / out_name
-
-            try:
-                out_path.write_bytes(aug_bytes)
-            except OSError as exc:
-                print(f"    ERROR guardando {out_name}: {exc}", file=sys.stderr)
-                total_errors += 1
-                continue
-
-            generated[banco] += 1
-
-            if variant_counter % 50 == 0:
-                print(f"    {variant_counter}/{quota} generadas...")
+        _phase_process_banco(
+            banco, quota, by_bank, img_cache, transforms, rng, base_seed, output_dir, generated,
+        )
 
     return generated
+
+
+def _phase_load_banco_sources(
+    banco_sources: list[SourceImage], img_cache: dict[Path, bytes]
+) -> tuple[list[tuple[SourceImage, bytes]], int]:
+    print(f"    Cargando {len(banco_sources)} fuentes...")
+    loaded: list[tuple[SourceImage, bytes]] = []
+    errors = 0
+    for src in banco_sources:
+        if src.path not in img_cache:
+            try:
+                img_cache[src.path] = _load_image_bytes(src.path)
+            except Exception as exc:  # noqa: BLE001
+                print(f"    ERROR cargando {src.path.name}: {exc}", file=sys.stderr)
+                errors += 1
+                continue
+        loaded.append((src, img_cache[src.path]))
+    return loaded, errors
+
+
+def _phase_process_banco(
+    banco: str,
+    quota: int,
+    by_bank: dict[str, list[SourceImage]],
+    img_cache: dict[Path, bytes],
+    transforms: list,
+    rng: random.Random,
+    base_seed: int,
+    output_dir: Path,
+    generated: dict[str, int],
+) -> None:
+    banco_sources = by_bank.get(banco, [])
+    if not banco_sources:
+        print(f"  WARN: banco '{banco}' sin imágenes fuente — omitido.", file=sys.stderr)
+        return
+    slug = _banco_slug(banco)
+    print(f"\n  [{banco}] generando {quota} variantes desde {len(banco_sources)} raw...")
+    loaded_sources, _ = _phase_load_banco_sources(banco_sources, img_cache)
+    if not loaded_sources:
+        print(f"    ERROR: no se pudo cargar ninguna fuente para {banco}.", file=sys.stderr)
+        return
+    variant_counter = 0
+    for i in range(quota):
+        src, img_bytes = loaded_sources[i % len(loaded_sources)]
+        variant_seed = base_seed + abs(hash(banco)) % 10_000 + i
+        try:
+            aug_bytes = _apply_degradations(
+                img_bytes=img_bytes,
+                transforms=transforms,
+                rng=rng,
+                seed=variant_seed,
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"    ERROR augmentando {src.path.name}: {exc}", file=sys.stderr)
+            continue
+        variant_counter += 1
+        out_name = f"aug-{slug}-{src.gt_id}-{variant_counter:03d}.jpg"
+        out_path = output_dir / out_name
+        try:
+            out_path.write_bytes(aug_bytes)
+        except OSError as exc:
+            print(f"    ERROR guardando {out_name}: {exc}", file=sys.stderr)
+            continue
+        generated[banco] += 1
+        if variant_counter % 50 == 0:
+            print(f"    {variant_counter}/{quota} generadas...")
 
 
 # ---------------------------------------------------------------------------

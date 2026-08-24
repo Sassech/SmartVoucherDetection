@@ -82,7 +82,8 @@ async def ping(timeout_s: float = 1.0) -> bool:
     except RedisError as exc:
         logger.warning("redis ping failed: %s", exc)
         return False
-    except Exception as exc:  # noqa: BLE001 — defensivo, el caller no debe romper
+    # Defensivo: el caller no debe romperse por un error inesperado de redis.
+    except Exception as exc:  # noqa: BLE001
         logger.warning("redis ping unexpected error: %s", exc)
         return False
 
@@ -130,7 +131,8 @@ async def check_hash(sha256: str) -> _uuid.UUID | None:
         # Redis almacena con decode_responses=False → bytes o str
         decoded = value.decode() if isinstance(value, bytes) else value
         return _uuid.UUID(decoded)
-    except Exception:  # noqa: BLE001 — defensivo, nunca interrumpir pipeline
+    # Defensivo: nunca interrumpir el pipeline por un fallo de cache.
+    except Exception:  # noqa: BLE001
         return None
 
 
