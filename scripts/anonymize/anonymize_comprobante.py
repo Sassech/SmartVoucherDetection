@@ -447,9 +447,9 @@ def _build_gt_stub(image_id: str, ocr_fields: dict, pdf_text: str = "") -> dict:
         "motivo": extra["motivo"],
         "clabe_emisor_mascara": extra["clabe_emisor_mascara"],
         "clabe_receptor_mascara": extra["clabe_receptor_mascara"],
-        "tipo": "spei_recibido",           # TODO: revisar manualmente
-        "formato_origen": "screenshot_movil",  # TODO: revisar manualmente
-        "calidad": "buena",                # TODO: ajustar según imagen
+        "tipo": "spei_recibido",           # NOTE: valor por defecto - revisar manualmente si aplica
+        "formato_origen": "screenshot_movil",  # NOTE: valor por defecto - revisar manualmente si aplica
+        "calidad": "buena",                # NOTE: valor por defecto - ajustar segun imagen si aplica
         "notas": "",
         "synthetic": None,
         "extended": _extract_extended_fields(ocr_fields, raw_text),

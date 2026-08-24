@@ -2,7 +2,7 @@
  * Auth context tests — R-34, S-21.
  */
 
-import { render, screen, act, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AuthProvider, useAuth, getAccessToken, setAccessToken } from "../auth-context";
@@ -76,9 +76,7 @@ describe("AuthProvider", () => {
 
     await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("null"));
 
-    await act(async () => {
-      await userEvent.click(screen.getByText("Login"));
-    });
+    await userEvent.click(screen.getByText("Login"));
 
     await waitFor(() => {
       expect(screen.getByTestId("token").textContent).toBe("tok-123");
@@ -96,14 +94,10 @@ describe("AuthProvider", () => {
     renderWithProvider();
     await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("null"));
 
-    await act(async () => {
-      await userEvent.click(screen.getByText("Login"));
-    });
+    await userEvent.click(screen.getByText("Login"));
     await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("tok-xyz"));
 
-    await act(async () => {
-      await userEvent.click(screen.getByText("Logout"));
-    });
+    await userEvent.click(screen.getByText("Logout"));
 
     await waitFor(() => {
       expect(screen.getByTestId("token").textContent).toBe("null");
@@ -123,9 +117,7 @@ describe("AuthProvider", () => {
     renderWithProvider();
     await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("null"));
 
-    await act(async () => {
-      await userEvent.click(screen.getByText("Login"));
-    });
+    await userEvent.click(screen.getByText("Login"));
 
     await waitFor(() => expect(screen.getByTestId("token").textContent).toBe("tok-safe"));
 
@@ -143,9 +135,7 @@ describe("AuthProvider", () => {
     renderWithProvider();
     await waitFor(() => expect(screen.getByTestId("user").textContent).toBe("none"));
 
-    await act(async () => {
-      await userEvent.click(screen.getByText("Login"));
-    });
+    await userEvent.click(screen.getByText("Login"));
 
     await waitFor(() => {
       expect(screen.getByTestId("user").textContent).toBe("Carlos");

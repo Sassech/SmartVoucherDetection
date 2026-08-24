@@ -293,7 +293,7 @@ def _compute_quotas(sources: list[SourceImage], n: int, floor: int = 30) -> dict
 # ---------------------------------------------------------------------------
 
 
-def _build_augment_pipeline(rng: random.Random):  # type: ignore[return]
+def _build_augment_pipeline(_rng: random.Random):  # type: ignore[return]
     """Construye la lista de transformaciones disponibles con sus parámetros.
 
     Cada degradación está documentada con:

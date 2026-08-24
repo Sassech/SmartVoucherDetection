@@ -145,7 +145,7 @@ def _mask_clabe(clabe: str) -> str:
     return "•••••••••••••" + clabe[-4:]
 
 
-def _generate_rfc(rng: random.Random, nombre: str | None = None) -> str:
+def _generate_rfc(rng: random.Random, _nombre: str | None = None) -> str:
     """Genera un RFC con formato válido (4 letras + 6 dígitos + 3 alfanumérico)."""
     letters = string.ascii_uppercase
     # 4 letras iniciales (simulando iniciales de nombre)
@@ -416,7 +416,7 @@ def generate_voucher_data(
     }
 
 
-def format_monto(monto: float, currency: str = "MXN") -> str:
+def format_monto(monto: float, _currency: str = "MXN") -> str:
     """Formatea un monto como string de moneda mexicana."""
     return f"${monto:,.2f}"
 

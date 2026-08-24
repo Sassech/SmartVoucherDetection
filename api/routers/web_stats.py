@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -26,13 +27,12 @@ router = APIRouter(prefix="/web/stats", tags=["web-stats"])
 
 @router.get(
     "/",
-    response_model=StatsResponse,
     summary="Org-scoped month-to-date KPI stats",
     dependencies=[Depends(require_jwt)],
 )
 async def get_stats(
-    usuario: Usuario = Depends(require_jwt),
-    db: AsyncSession = Depends(get_session),
+    usuario: Annotated[Usuario, Depends(require_jwt)],
+    db: Annotated[AsyncSession, Depends(get_session)],
 ) -> StatsResponse:
     """Return month-to-date KPI aggregates scoped to the authenticated user's org.
 

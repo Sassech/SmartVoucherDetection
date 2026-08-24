@@ -92,7 +92,6 @@ async def _get_comprobante_for_org(
 
 @router.get(
     "/",
-    response_model=WebListResponse,
     summary="Paginated comprobantes list (org-scoped)",
     dependencies=[Depends(require_jwt)],
 )
@@ -160,7 +159,6 @@ async def list_comprobantes(
 
 @router.get(
     "/{id_comprobante}",
-    response_model=WebComprobanteDetail,
     summary="Comprobante detail (org-scoped)",
     dependencies=[Depends(require_jwt)],
 )
@@ -224,7 +222,6 @@ async def get_comprobante_image(
 
 @router.post(
     "/{id_comprobante}/decision",
-    response_model=DecisionResponse,
     summary="Apply aceptar/rechazar decision (org-scoped)",
     dependencies=[Depends(require_jwt)],
 )
