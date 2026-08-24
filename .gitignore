@@ -14,7 +14,9 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
+webapp/coverage/
 .ruff_cache/
 node_modules/
 .next/
