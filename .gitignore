@@ -1,4 +1,5 @@
-.agents/*
+.vscode/*
+.sonarlint/*
 skills-lock.json
 llama.cpp/
 .atl/
