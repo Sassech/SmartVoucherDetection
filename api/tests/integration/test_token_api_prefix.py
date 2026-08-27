@@ -203,6 +203,10 @@ class TestPrefixLookup:
 
         Verifies the fast-path: when the DB returns no candidates for the
         prefix, bcrypt.checkpw is never called.
+
+        NOTE (sonarqube-final-hardening AD-02): bcrypt.checkpw now lives in
+        services.auth_helpers (dependencies/auth_api_key.py delegates to it
+        and no longer imports bcrypt directly) — patch target moved to match.
         """
         from dependencies.auth_api_key import require_api_key
 
@@ -212,7 +216,7 @@ class TestPrefixLookup:
         mock_db = AsyncMock()
         mock_db.execute = AsyncMock(return_value=mock_result)
 
-        with patch("dependencies.auth_api_key.bcrypt.checkpw") as mock_checkpw:
+        with patch("services.auth_helpers.bcrypt.checkpw") as mock_checkpw:
             with pytest.raises(HTTPException) as exc_info:
                 await require_api_key(x_api_key="XXXXXXXX_missing", db=mock_db)
 
