@@ -86,8 +86,8 @@ def process_slip(
 
 async def _run_pipeline(
     file_bytes: bytes,
-    filename: str,
-    content_type: str,
+    _filename: str,
+    _content_type: str,
 ) -> dict[str, Any]:
     """Internal async pipeline — mirrors upload.py logic.
 
