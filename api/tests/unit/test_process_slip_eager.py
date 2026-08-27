@@ -36,8 +36,13 @@ def test_process_slip_eager_does_not_raise_name_error():
     b64 = _make_b64_png()
 
     # Mock the heavy async pipeline to isolate the NameError bug at the sync boundary
-    with patch("tasks.process_slip._run_pipeline", new_callable=AsyncMock) as mock_pipeline:
-        mock_pipeline.return_value = {"id_comprobante": "test-id", "estado_actual": "valido"}
+    with patch(
+        "tasks.process_slip._run_pipeline", new_callable=AsyncMock
+    ) as mock_pipeline:
+        mock_pipeline.return_value = {
+            "id_comprobante": "test-id",
+            "estado_actual": "valido",
+        }
 
         # Should NOT raise NameError even though original code used undefined `filename`
         # Use keyword args to verify param names are filename/content_type (not _filename)
@@ -62,7 +67,9 @@ def test_process_slip_eager_positional_args():
 
     b64 = _make_b64_png()
 
-    with patch("tasks.process_slip._run_pipeline", new_callable=AsyncMock) as mock_pipeline:
+    with patch(
+        "tasks.process_slip._run_pipeline", new_callable=AsyncMock
+    ) as mock_pipeline:
         mock_pipeline.return_value = {"id_comprobante": "pos-id"}
 
         # Celery calls with positional args: args=[file_b64, filename, content_type]

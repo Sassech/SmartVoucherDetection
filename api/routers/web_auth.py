@@ -315,8 +315,7 @@ async def register(
         )
 
     # Hash password with bcrypt
-    hashed = bcrypt.hashpw(body.contrasena.encode(
-        "utf-8"), bcrypt.gensalt()).decode()
+    hashed = bcrypt.hashpw(body.contrasena.encode("utf-8"), bcrypt.gensalt()).decode()
 
     # Each registration creates its own Organization — proper multi-tenant isolation.
     # nombre_organizacion defaults to the user's name if not provided.
@@ -361,8 +360,7 @@ async def generate_api_key(
     """
     plain_key = secrets.token_urlsafe(32)
     prefix = plain_key[:8]
-    hashed = bcrypt.hashpw(plain_key.encode(
-        "utf-8"), bcrypt.gensalt()).decode()
+    hashed = bcrypt.hashpw(plain_key.encode("utf-8"), bcrypt.gensalt()).decode()
 
     usuario.token_api_prefix = prefix
     usuario.token_api_hash = hashed

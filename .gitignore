@@ -4,8 +4,6 @@ skills-lock.json
 llama.cpp/
 .atl/
 cosas/*
-.vscode/*
-.sonarlint/*
 .codegraph/
 .env
 .env.sonar
