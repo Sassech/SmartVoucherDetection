@@ -55,7 +55,7 @@ async def _authenticate_bearer(auth_header: str, db: AsyncSession) -> Usuario:
 
     Raises HTTP 401 for any invalid token or missing/inactive user.
     """
-    token = auth_header[len("Bearer "):]
+    token = auth_header[len("Bearer ") :]
     try:
         payload = verify_token(token)
     except HTTPException:

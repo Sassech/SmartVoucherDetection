@@ -5,8 +5,10 @@ presentes en la tupla ESTADOS_VALIDOS y en el schema ComprobanteCreate.
 """
 
 from __future__ import annotations
+import uuid
+from datetime import datetime, timezone
 
-import pytest
+from schemas.comprobante import CamposExtraidos, ComprobanteResponse
 
 
 def test_sospechoso_in_estados_validos() -> None:
@@ -52,12 +54,6 @@ def test_comprobante_create_accepts_sospechoso_estado() -> None:
 
 def test_comprobante_response_accepts_sospechoso_estado() -> None:
     """ComprobanteResponse debe aceptar 'sospechoso' como estado_actual válido."""
-    import uuid
-    from datetime import datetime, timezone
-
-    from pydantic import ValidationError
-
-    from schemas.comprobante import CamposExtraidos, ComprobanteResponse
 
     campos = CamposExtraidos(banco="BBVA")
     obj = ComprobanteResponse(

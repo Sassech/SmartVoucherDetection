@@ -66,6 +66,8 @@ addopts = "-ra --ignore=tests/e2e"
 # probados implicitamente cuando se aplica la migracion).
 [tool.coverage.run]
 source = ["."]
+branch = true
+relative_files = true
 core = "sysmon"
 omit = [
     "tests/*",

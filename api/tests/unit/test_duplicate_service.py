@@ -68,20 +68,23 @@ def _make_comp(
     duplicate_service solo accede a atributos planos, no a relaciones.
     cast(Comprobante, ...) satisface al type checker sin instanciar el ORM.
     """
-    return cast(Comprobante, SimpleNamespace(
-        id_comprobante=id_comprobante or uuid.uuid4(),
-        id_usuario=id_usuario or uuid.uuid4(),
-        referencia=referencia,
-        monto=monto,
-        fecha_deposito=fecha_deposito,
-        texto_extraido=texto_extraido,
-        estado_actual=estado_actual,
-        deleted_at=deleted_at,
-        imagen_path="/tmp/fake.png",
-        hash_documento="aabbccdd" * 8,
-        numero_operacion=None,
-        banco=None,
-    ))
+    return cast(
+        Comprobante,
+        SimpleNamespace(
+            id_comprobante=id_comprobante or uuid.uuid4(),
+            id_usuario=id_usuario or uuid.uuid4(),
+            referencia=referencia,
+            monto=monto,
+            fecha_deposito=fecha_deposito,
+            texto_extraido=texto_extraido,
+            estado_actual=estado_actual,
+            deleted_at=deleted_at,
+            imagen_path="/tmp/fake.png",
+            hash_documento="aabbccdd" * 8,
+            numero_operacion=None,
+            banco=None,
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
