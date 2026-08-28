@@ -1,6 +1,6 @@
 # Pre-commit hooks — https://pre-commit.com
-# Instalacion local: pip install pre-commit && pre-commit install
-# Ejecucion manual: pre-commit run --all-files
+# Instalación local: pip install pre-commit && pre-commit install
+# Ejecución manual: pre-commit run --all-files
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks

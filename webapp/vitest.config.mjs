@@ -1,6 +1,9 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
@@ -22,11 +25,6 @@ export default defineConfig({
         "**/.next/**",
         "**/node_modules/**",
         "**/src/app/layout.tsx",
-        "**/src/app/**/page.tsx",
-        "**/src/app/**/layout.tsx",
-        "**/src/app/**/loading.tsx",
-        "**/src/app/**/error.tsx",
-        "**/src/app/**/not-found.tsx",
         "**/src/test-setup.ts",
         "**/*.d.ts",
         "**/*.stories.tsx",

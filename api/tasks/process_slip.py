@@ -21,6 +21,31 @@ from __future__ import annotations
 import asyncio
 import base64
 from typing import Any
+from datetime import datetime, timezone
+
+from database import SessionLocal
+from models.comprobante import Comprobante
+from models.seed import SYSTEM_USER_ID
+from models.validacion import Validacion
+from schemas.comprobante import ComprobanteResponse
+from services.cache_service import check_hash, set_hash
+from services.duplicate_service import run_capa2, run_capa3
+from services.image_service import (
+    pdf_to_image,
+    preprocess,
+    to_base64,
+    validate_mime,
+)
+from services.ocr_service import extract_fields
+from services.parser_service import (
+    compute_hash,
+    normalize_banco,
+    parse_fecha,
+    parse_monto,
+    parse_referencia,
+)
+from services.state_machine import apply_transition
+from services.storage_service import mime_to_ext, save_upload
 
 from celery_app import celery_app
 
@@ -34,8 +59,8 @@ from celery_app import celery_app
 def process_slip(
     self,
     file_bytes_b64: str,
-    _filename: str,
-    _content_type: str,
+    filename: str,
+    content_type: str,
 ) -> dict[str, Any]:
     """Process a comprobante upload asynchronously.
 
@@ -68,31 +93,6 @@ async def _run_pipeline(
 
     Runs inside asyncio.run() from the sync Celery task.
     """
-    from datetime import datetime, timezone
-
-    from database import SessionLocal
-    from models.comprobante import Comprobante
-    from models.seed import SYSTEM_USER_ID
-    from models.validacion import Validacion
-    from schemas.comprobante import ComprobanteResponse
-    from services.cache_service import check_hash, set_hash
-    from services.duplicate_service import run_capa2, run_capa3
-    from services.image_service import (
-        pdf_to_image,
-        preprocess,
-        to_base64,
-        validate_mime,
-    )
-    from services.ocr_service import extract_fields
-    from services.parser_service import (
-        compute_hash,
-        normalize_banco,
-        parse_fecha,
-        parse_monto,
-        parse_referencia,
-    )
-    from services.state_machine import apply_transition
-    from services.storage_service import mime_to_ext, save_upload
 
     # 1. Validate MIME via libmagic
     try:

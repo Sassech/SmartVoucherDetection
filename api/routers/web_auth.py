@@ -18,6 +18,7 @@ Design decisions (fase-4-design.md + fase-7-design.md):
 """
 
 from __future__ import annotations
+import os as _os
 
 import secrets
 import uuid
@@ -67,7 +68,6 @@ _REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
 # A pre-computed dummy bcrypt hash for timing-safe S-03.
 # rounds=12 matches production strength (S5344). If tests are slow, override
 # DUMMY_BCRYPT_ROUNDS=4 in the test environment only — never in production.
-import os as _os
 _DUMMY_HASH = bcrypt.hashpw(
     b"dummy",
     bcrypt.gensalt(rounds=int(_os.environ.get("DUMMY_BCRYPT_ROUNDS", "12"))),
@@ -296,9 +296,7 @@ async def me(usuario: Usuario = Depends(require_jwt)) -> UsuarioPublic:
 # ---------------------------------------------------------------------------
 
 
-@router.post(
-    "/register", status_code=status.HTTP_201_CREATED
-)
+@router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
     body: RegisterRequest,
     db: AsyncSession = Depends(get_session),

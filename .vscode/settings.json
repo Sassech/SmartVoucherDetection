@@ -1,6 +1,6 @@
 {
   "sonarlint.connectedMode.project": {
-    "connectionId": "smart-voucher",
+    "connectionId": "https-sonarqube-vantus-site",
     "projectKey": "smartvoucherdetection"
   }
 }
