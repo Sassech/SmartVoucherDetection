@@ -2,6 +2,11 @@
 
 Uses direct dependency calls with mocked AsyncSession / redis / jwt.
 Bcrypt hashes use rounds=4 for speed (DUMMY_BCRYPT_ROUNDS=4).
+
+`verify_token` is patched at `services.auth_helpers.verify_token` (not
+`dependencies.auth_jwt`/`dependencies.auth_any`) because sonarqube-final-hardening
+AD-02 moved the shared credential-verification logic into
+`services/auth_helpers.py`; the dependencies modules now delegate to it.
 """
 
 from __future__ import annotations
@@ -159,7 +164,7 @@ async def test_require_jwt_invalid_token_propagates_401():
     db = _session_scalar_one_or_none(None)
     # verify_token raises HTTPException 401 for invalid token
     with patch(
-        "dependencies.auth_jwt.verify_token",
+        "services.auth_helpers.verify_token",
         side_effect=HTTPException(status_code=401, detail="Invalid token"),
     ):
         with pytest.raises(HTTPException) as exc:
@@ -172,7 +177,7 @@ async def test_require_jwt_missing_sub_401():
     from dependencies.auth_jwt import require_jwt
 
     db = _session_scalar_one_or_none(None)
-    with patch("dependencies.auth_jwt.verify_token", return_value={}):
+    with patch("services.auth_helpers.verify_token", return_value={}):
         with pytest.raises(HTTPException) as exc:
             await require_jwt(token="t", db=db)
         assert exc.value.status_code == 401
@@ -185,7 +190,7 @@ async def test_require_jwt_invalid_uuid_sub_401():
 
     db = _session_scalar_one_or_none(None)
     with patch(
-        "dependencies.auth_jwt.verify_token", return_value={"sub": "not-a-uuid"}
+        "services.auth_helpers.verify_token", return_value={"sub": "not-a-uuid"}
     ):
         with pytest.raises(HTTPException) as exc:
             await require_jwt(token="t", db=db)
@@ -199,7 +204,7 @@ async def test_require_jwt_user_not_found_401():
 
     uid = str(uuid.uuid4())
     db = _session_scalar_one_or_none(None)
-    with patch("dependencies.auth_jwt.verify_token", return_value={"sub": uid}):
+    with patch("services.auth_helpers.verify_token", return_value={"sub": uid}):
         with pytest.raises(HTTPException) as exc:
             await require_jwt(token="t", db=db)
         assert exc.value.status_code == 401
@@ -213,7 +218,7 @@ async def test_require_jwt_valid_returns_user():
     uid = uuid.uuid4()
     user = _make_user(id_usuario=uid)
     db = _session_scalar_one_or_none(user)
-    with patch("dependencies.auth_jwt.verify_token", return_value={"sub": str(uid)}):
+    with patch("services.auth_helpers.verify_token", return_value={"sub": str(uid)}):
         result = await require_jwt(token="t", db=db)
         assert result is user
 
@@ -251,12 +256,12 @@ async def test_auth_any_bearer_valid():
     uid = uuid.uuid4()
     user = _make_user(id_usuario=uid)
     db = _session_scalar_one_or_none(user)
-    with patch("dependencies.auth_any.verify_token", return_value={"sub": str(uid)}):
+    with patch("services.auth_helpers.verify_token", return_value={"sub": str(uid)}):
         result = await _authenticate_bearer("Bearer tkn", db)
         # need proper token format: "Bearer " prefix stripped inside function
         # our patch must handle stripping
     # redo with correct header
-    with patch("dependencies.auth_any.verify_token", return_value={"sub": str(uid)}):
+    with patch("services.auth_helpers.verify_token", return_value={"sub": str(uid)}):
         result = await _authenticate_bearer("Bearer abc123", db)
         assert result is user
 
@@ -267,7 +272,7 @@ async def test_auth_any_bearer_invalid_token_propagates():
 
     db = _session_scalar_one_or_none(None)
     with patch(
-        "dependencies.auth_any.verify_token",
+        "services.auth_helpers.verify_token",
         side_effect=HTTPException(status_code=401, detail="Invalid token"),
     ):
         with pytest.raises(HTTPException) as exc:
@@ -280,7 +285,7 @@ async def test_auth_any_bearer_generic_exception_becomes_401():
     from dependencies.auth_any import _authenticate_bearer
 
     db = _session_scalar_one_or_none(None)
-    with patch("dependencies.auth_any.verify_token", side_effect=ValueError("boom")):
+    with patch("services.auth_helpers.verify_token", side_effect=ValueError("boom")):
         with pytest.raises(HTTPException) as exc:
             await _authenticate_bearer("Bearer bad", db)
         assert exc.value.status_code == 401
@@ -292,7 +297,7 @@ async def test_auth_any_bearer_missing_sub():
     from dependencies.auth_any import _authenticate_bearer
 
     db = _session_scalar_one_or_none(None)
-    with patch("dependencies.auth_any.verify_token", return_value={}):
+    with patch("services.auth_helpers.verify_token", return_value={}):
         with pytest.raises(HTTPException) as exc:
             await _authenticate_bearer("Bearer t", db)
         assert exc.value.status_code == 401
@@ -303,7 +308,7 @@ async def test_auth_any_bearer_invalid_uuid_sub():
     from dependencies.auth_any import _authenticate_bearer
 
     db = _session_scalar_one_or_none(None)
-    with patch("dependencies.auth_any.verify_token", return_value={"sub": "not-uuid"}):
+    with patch("services.auth_helpers.verify_token", return_value={"sub": "not-uuid"}):
         with pytest.raises(HTTPException) as exc:
             await _authenticate_bearer("Bearer t", db)
         assert exc.value.status_code == 401
@@ -315,7 +320,7 @@ async def test_auth_any_bearer_user_not_found():
 
     uid = str(uuid.uuid4())
     db = _session_scalar_one_or_none(None)
-    with patch("dependencies.auth_any.verify_token", return_value={"sub": uid}):
+    with patch("services.auth_helpers.verify_token", return_value={"sub": uid}):
         with pytest.raises(HTTPException) as exc:
             await _authenticate_bearer("Bearer t", db)
         assert exc.value.status_code == 401
@@ -342,7 +347,7 @@ async def test_require_user_bearer_when_no_api_key():
     db = _session_scalar_one_or_none(user)
     req = MagicMock()
     req.headers.get.return_value = "Bearer abc"
-    with patch("dependencies.auth_any.verify_token", return_value={"sub": str(uid)}):
+    with patch("services.auth_helpers.verify_token", return_value={"sub": str(uid)}):
         result = await require_user(request=req, x_api_key="", db=db)
         assert result is user
 

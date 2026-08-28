@@ -15,17 +15,19 @@ Security note:
 Performance impact:
     Prefix miss: 0 bcrypt ops (index short-circuits).
     Prefix match: 1 bcrypt op.
+
+The prefix-lookup + bcrypt verification itself lives in services.auth_helpers
+(shared with auth_any.py — see sonarqube-final-hardening AD-02).
 """
 
 from __future__ import annotations
 
-import bcrypt
 from fastapi import Depends, Header, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_session
 from models.usuario import Usuario
+from services.auth_helpers import authenticate_api_key
 
 
 async def require_api_key(
@@ -48,23 +50,4 @@ async def require_api_key(
             detail="API key required",
         )
 
-    # Fase 4: indexed prefix pre-filter — avoids O(n) full bcrypt scan.
-    # NULL token_api_prefix rows are excluded naturally by equality WHERE.
-    prefix = x_api_key[:8]
-    stmt = select(Usuario).where(
-        Usuario.token_api_prefix == prefix,
-        Usuario.deleted_at.is_(None),
-    )
-    result = await db.execute(stmt)
-    candidates = result.scalars().all()
-
-    key_bytes = x_api_key.encode("utf-8")
-    for user in candidates:
-        stored_hash = user.token_api_hash
-        if stored_hash and bcrypt.checkpw(key_bytes, stored_hash.encode("utf-8")):
-            return user
-
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid API key",
-    )
+    return await authenticate_api_key(x_api_key, db)
