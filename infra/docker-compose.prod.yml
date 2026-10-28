@@ -3,8 +3,8 @@
 # El build de Next.js ocurre dentro del Dockerfile.prod (multi-stage) — no se requiere build manual.
 #
 # ARQUITECTURA llama-server:
-# llama-server corre NATIVO en el host (via llama.cpp/gemma-4-E2B-it.sh)
-# La API lo accede via host-gateway (172.17.0.1:8080 o host.docker.internal:8080)
+# llama-server corre NATIVO en el host (via llama.cpp/gemma-4-E2B-it-qat.sh)
+# La API lo accede via host-gateway (172.17.0.1:9931 o host.docker.internal:9931)
 # Esto evita el problema de binarios compilados para host corriendo en contenedor.
 
 services:
@@ -60,7 +60,7 @@ services:
     env_file: ../.env
     environment:
       # llama-server corre en el host — acceso via host-gateway
-      LLAMA_SERVER_URL: http://host-gateway:8080
+      LLAMA_SERVER_URL: http://host-gateway:9931
       # Ruta de uploads dentro del contenedor (mapeada al volumen uploads_data)
       UPLOAD_DIR: /app/data/uploads
     extra_hosts:
@@ -105,7 +105,7 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
-      LLAMA_SERVER_URL: http://host-gateway:8080
+      LLAMA_SERVER_URL: http://host-gateway:9931
       UPLOAD_DIR: /app/data/uploads
     extra_hosts:
       - "host-gateway:host-gateway"

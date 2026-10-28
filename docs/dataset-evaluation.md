@@ -232,8 +232,8 @@ cd llama.cpp && ./gemma-4-E2B-it-qat.sh
 > 4 GB de VRAM). La corrida original con `-np 8` crasheo con
 > `vk::DeviceLostError` al servir 4 requests simultaneos de eval.
 
-**Paso 4 — Correr el pipeline** (el servidor escucha en 9931; el valor
-por defecto de `.env` es 8080, hay que overridear):
+**Paso 4 — Correr el pipeline** (el servidor escucha en 9931; `.env`
+ya apunta a 9931 — el override queda como cinturón y suspendejas):
 
 ```bash
 LLAMA_SERVER_URL=http://localhost:9931 uv run python \
