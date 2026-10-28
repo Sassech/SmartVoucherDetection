@@ -17,7 +17,7 @@ Decisiones tecnicas (PROGRESO 1.5):
 - `parse_monto`: asume formato US/MX bancario ("$1,234.56" — coma=miles,
   punto=decimal). Heuristicas europeas se evaluan en Fase 5 con dataset real.
 - `normalize_banco`: fuzzy match con `Levenshtein.ratio` >= UMBRAL contra
-  catalogo cerrado. GLM-OCR confunde caracteres (gotcha PROGRESO
+  catalogo cerrado. El modelo OCR confunde caracteres (gotcha PROGRESO
   2026-05-08, MEXICO->MAXICO), un match exacto perderia ~10-15% segun
   pruebas informales.
 - `parse_fecha`: `dateutil.parser` con `dayfirst=True` porque el prompt

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# smoke_test_ocr.sh — prueba de humo para llama-server con GLM-OCR
+# smoke_test_ocr.sh — prueba de humo para llama-server con gemma-4-E2B-it-qat
 #
 # Envía una imagen sintética de comprobante al endpoint multimodal y valida
 # que responda en <5s con texto extraído > 0 caracteres.
@@ -10,7 +10,7 @@
 #   ./infra/scripts/smoke_test_ocr.sh ruta/img.png     # imagen custom
 #
 # Requisitos:
-#   - llama-server corriendo (./llama.cpp/GLM-OCR.sh)
+#   - llama-server corriendo (./llama.cpp/gemma-4-E2B-it-qat.sh)
 #   - curl, jq, base64, awk
 # ============================================================================
 
@@ -18,10 +18,10 @@ set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly DEFAULT_IMAGE="${SCRIPT_DIR}/fixtures/sample_comprobante.png"
-readonly LLAMA_URL="${LLAMA_SERVER_URL:-http://localhost:8080}"
+readonly LLAMA_URL="${LLAMA_SERVER_URL:-http://localhost:9931}"
 readonly TIMEOUT_SEC=30
 readonly TARGET_SEC=5
-readonly MODEL="GLM-OCR"
+readonly MODEL="gemma-4-E2B-it-qat"
 
 IMAGE_PATH="${1:-${DEFAULT_IMAGE}}"
 
@@ -42,7 +42,7 @@ fi
 # Health check --------------------------------------------------------------
 if ! curl -fsS -m 5 "${LLAMA_URL}/health" >/dev/null; then
   echo "[ERROR] llama-server no responde en ${LLAMA_URL}/health" >&2
-  echo "  Levantalo con: ./llama.cpp/GLM-OCR.sh" >&2
+  echo "  Levantalo con: ./llama.cpp/gemma-4-E2B-it-qat.sh" >&2
   exit 3
 fi
 

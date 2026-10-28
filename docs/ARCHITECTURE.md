@@ -2,7 +2,7 @@
 
 ## Overview
 
-SmartVoucherDetection is an OCR-based bank voucher validation service. Users upload payment slips (comprobantes) as images or PDFs via a Next.js dashboard or directly through the REST API. The system extracts structured fields (bank name, amount, reference number, date) using a locally-hosted multimodal language model (GLM-OCR via llama.cpp), then runs three layers of duplicate detection before persisting the result.
+SmartVoucherDetection is an OCR-based bank voucher validation service. Users upload payment slips (comprobantes) as images or PDFs via a Next.js dashboard or directly through the REST API. The system extracts structured fields (bank name, amount, reference number, date) using a locally-hosted multimodal language model (gemma-4-E2B-it-qat via llama.cpp), then runs three layers of duplicate detection before persisting the result.
 
 ## Components
 
@@ -13,16 +13,18 @@ SmartVoucherDetection is an OCR-based bank voucher validation service. Users upl
 | postgres | Primary database | 5432 | postgres:16-alpine |
 | redis | Cache + Celery broker | 6379 | redis:7-alpine |
 | celery-worker | Async OCR tasks | — | python:3.12-slim |
-| llama-server | GLM-OCR inference | 8080 | ubuntu:24.04 (custom) |
+| llama-server | gemma-4-E2B-it-qat inference | 9931 | ubuntu:24.04 (custom) |
 | nginx | Reverse proxy + rate limiting | 80 | nginx:alpine |
 | cloudflared | Cloudflare Tunnel agent | — | cloudflare/cloudflared |
+
+> **Note**: llama-server runs natively on the host (outside Docker) and listens on port **9931**. The API connects to it via the `LLAMA_SERVER_URL` environment variable (e.g. `http://localhost:9931` on the host, `http://host.docker.internal:9931` from a container).
 
 ## Data Flow: Upload Pipeline
 
 1. User uploads image or PDF via webapp (Next.js) or directly to the API endpoint
 2. **nginx** rate-limits the request and proxies to `api:8000` (100 req/min for API paths, 300 req/min for web)
 3. **api** validates the MIME type (`image/jpeg`, `image/png`, `application/pdf`) and preprocesses the image using OpenCV (deskew + adaptive threshold)
-4. **api** calls `llama-server:8080` with the base64-encoded image — GLM-OCR extracts structured fields from the voucher
+4. **api** calls llama-server with the base64-encoded image (via `LLAMA_SERVER_URL`, e.g. `llama-server:9931` from a container) — gemma-4-E2B-it-qat extracts structured fields from the voucher
 5. **api** normalizes extracted fields: `parse_monto` (decimal parsing), `parse_fecha` (date normalization), `normalize_banco` (canonical bank name)
 6. **Duplicate detection** runs in sequence:
    - **Layer 1** — SHA-256 hash exact match via Redis (`<10 ms`)
@@ -79,7 +81,7 @@ Weights for the Layer 3 fuzzy scorer are stored in the `configuracion_sistema` t
                                               smartvoucher-net
                                     ┌──────────────┬────────┴──────────────┐
                                     │              │                       │
-                              postgres:5432   redis:6379         llama-server:8080
+                              postgres:5432   redis:6379         llama-server:9931
                                                    │
                                            celery-worker
 ```

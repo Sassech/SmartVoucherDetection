@@ -37,11 +37,11 @@ class Settings(BaseSettings):
     # --- Redis --------------------------------------------------------------
     redis_url: str
 
-    # --- llama-server (glm-ocr) --------------------------------------------
+    # --- llama-server (gemma-4-E2B-it-qat) ----------------------------------
     llama_server_url: str
-    # Alias del modelo expuesto por llama-server (`-a GLM-OCR` en el script).
+    # Alias del modelo expuesto por llama-server (`-a gemma-4-E2B-it-qat` en el script).
     # Va literal en el campo `model` del request OpenAI-compatible.
-    llama_model_alias: str = "GLM-OCR"
+    llama_model_alias: str = "gemma-4-E2B-it-qat"
     # Timeout total por request HTTP a llama-server (segundos).
     llama_timeout_s: float = 10.0
     # Reintentos ante errores de red o 5xx (NO ante 4xx ni JSON invalido).

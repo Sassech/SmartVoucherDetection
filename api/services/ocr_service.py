@@ -1,4 +1,4 @@
-"""Servicio OCR — cliente async hacia llama-server (modelo GLM-OCR).
+"""Servicio OCR — cliente async hacia llama-server (modelo gemma-4-E2B-it-qat).
 
 Responsabilidad UNICA: tomar una imagen en base64, mandarsela al endpoint
 OpenAI-compatible de llama-server con el prompt del plan §1.3, y devolver un

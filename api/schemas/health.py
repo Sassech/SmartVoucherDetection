@@ -42,7 +42,7 @@ class HealthResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     llama: ServiceCheck = Field(
-        description="llama-server (GLM-OCR) — chequeado via GET /health."
+        description="llama-server (gemma-4-E2B-it-qat) — chequeado via GET /health."
     )
     db: ServiceCheck = Field(description="PostgreSQL — chequeado via SELECT 1 async.")
     redis: ServiceCheck = Field(description="Redis — chequeado via PING.")

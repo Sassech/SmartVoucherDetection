@@ -15,7 +15,7 @@ OCR-based bank voucher validation system with 3-layer duplicate detection. Proce
 | Backend API | FastAPI + Python | 3.12 |
 | Database | PostgreSQL + pg_trgm | 16 |
 | Cache / Queue | Redis + Celery | 7 |
-| OCR Model | GLM-OCR (llama.cpp) | b9264 |
+| OCR Model | gemma-4-E2B-it-qat (llama.cpp) | b11208 |
 | Frontend | Next.js + Tailwind | 15 + 4 |
 | WordPress Plugin | PHP | 8.1+ |
 | Container | Docker + Cloudflare Tunnel | — |
@@ -30,7 +30,7 @@ cd infra && docker compose up -d
 cd api && uv run alembic upgrade head
 
 # 3. Start llama-server (in separate terminal)
-bash llama.cpp/GLM-OCR.sh
+bash llama.cpp/gemma-4-E2B-it-qat.sh
 
 # 4. Start API
 cd api && uv run fastapi dev main.py
@@ -65,9 +65,9 @@ webapp:3000 (Next.js)        api:8000 (FastAPI)
                                    │
                   ┌────────────────┼────────────────┐
                   │                │                │
-             postgres:5432    redis:6379    llama-server:8080
+             postgres:5432    redis:6379    llama-server:9931
                                    │                │
-                             celery-worker     GLM-OCR model
+                             celery-worker     gemma-4-E2B-it-qat model
                                                 (volume mount)
 ```
 

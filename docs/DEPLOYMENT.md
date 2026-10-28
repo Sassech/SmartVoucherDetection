@@ -4,7 +4,7 @@
 
 - **Docker** + **Docker Compose v2** (`docker compose` — not `docker-compose`)
 - **Cloudflare account** with a tunnel configured in Zero Trust dashboard
-- **GLM-OCR model files** (~1.78 GB) — see [llama-server Setup](llama-server.md)
+- **gemma-4-E2B-it-qat model files** (~3.5 GB on disk) — see [llama-server Setup](llama-server.md)
 - **rclone** (optional) — for automated backups to S3, Backblaze B2, or other remotes
 
 ## Environment Setup
@@ -21,8 +21,8 @@ cp .env.example .env
 | `DATABASE_URL` | PostgreSQL async connection URL | `postgresql+asyncpg://user:pass@postgres:5432/db` |
 | `REDIS_URL` | Redis connection URL | `redis://redis:6379` |
 | `LLAMA_SERVER_URL` | llama-server URL (internal Docker network) | `http://llama-server:8080` |
-| `LLAMA_MODEL_DIR` | Host path to the GLM-OCR model directory | `/home/user/llama.cpp/GLM-OCR` |
-| `LLAMA_MODEL_FILE` | Model filename inside `LLAMA_MODEL_DIR` | `GLM-OCR-f16.gguf` |
+| `LLAMA_MODEL_DIR` | Host path to the gemma-4-E2B-it-qat model directory | `/home/user/llama.cpp/gemma-4-E2B-it-qat` |
+| `LLAMA_MODEL_FILE` | Model filename inside `LLAMA_MODEL_DIR` | `gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf` |
 | `SECRET_KEY` | API signing secret — minimum 32 characters | generate with: `openssl rand -hex 32` |
 | `CORS_ORIGINS` | JSON list of allowed CORS origins | `["https://app.yourdomain.com"]` |
 | `POSTGRES_USER` | PostgreSQL username | `smartvoucher` |
@@ -38,8 +38,8 @@ cp .env.example .env
 docker build -f infra/Dockerfile.llama -t smartvoucher-llama infra/
 
 # Set model directory in .env
-LLAMA_MODEL_DIR=/path/to/llama.cpp/GLM-OCR
-LLAMA_MODEL_FILE=GLM-OCR-f16.gguf
+LLAMA_MODEL_DIR=/path/to/llama.cpp/gemma-4-E2B-it-qat
+LLAMA_MODEL_FILE=gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf
 ```
 
 The `llama-server` service in `docker-compose.prod.yml` mounts `${LLAMA_MODEL_DIR}` as `/models` and starts `llama-server` automatically.
@@ -48,10 +48,10 @@ The `llama-server` service in `docker-compose.prod.yml` mounts `${LLAMA_MODEL_DI
 
 ```bash
 # Start llama-server natively on the host
-bash llama.cpp/GLM-OCR.sh
+bash llama.cpp/gemma-4-E2B-it-qat.sh
 
 # Update .env to point the API at the host
-LLAMA_SERVER_URL=http://host.docker.internal:8080
+LLAMA_SERVER_URL=http://host.docker.internal:9931
 ```
 
 > **Note**: When using Option B, add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `api` service in your compose file so the container can reach the host network.
