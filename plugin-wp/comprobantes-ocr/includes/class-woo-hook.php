@@ -31,7 +31,7 @@ class COCR_Woo_Hook {
     /**
      * Register the order-status hook.
      */
-    public function __construct() {
+    public function register(): void {
         add_action( 'woocommerce_order_status_completed', [ $this, 'on_order_completed' ], 10, 1 );
     }
 

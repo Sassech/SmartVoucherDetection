@@ -26,7 +26,7 @@ class COCR_Shortcode {
     /**
      * Register the shortcode and all WordPress hooks.
      */
-    public function __construct() {
+    public function register(): void {
         add_shortcode( 'comprobante_upload', [ $this, 'render' ] );
         add_action( 'wp_enqueue_scripts',       [ $this, 'enqueue_scripts' ] );
         add_action( 'wp_ajax_cocr_upload_slip', [ $this, 'ajax_upload' ] );

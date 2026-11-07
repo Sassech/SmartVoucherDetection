@@ -82,6 +82,9 @@
 		/** @type {boolean} True while a file is being processed. */
 		let processing = false;
 
+		/** Monotonic counter for unique DOM row ids within this page. */
+		let rowSeq = 0;
+
 		/** @type {Array<{file: File, rowId: string}>} Pending items. */
 		const queue = [];
 
@@ -103,7 +106,7 @@
 					return;
 				}
 
-				const rowId = 'cocr-row-' + Date.now() + '-' + Math.random().toString( 36 ).slice( 2 );
+				const rowId = 'cocr-row-' + ( ++rowSeq );
 				addPendingRow( rowId, file.name );
 				queue.push( { file, rowId } );
 			} );
