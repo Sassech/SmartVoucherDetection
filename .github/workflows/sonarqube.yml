@@ -60,6 +60,11 @@ jobs:
           run-id: ${{ steps.api-run.outputs.id }}
           github-token: ${{ github.token }}
 
+      # pytest runs inside api/ with --cov=., so paths are relative to api/.
+      # Sonar resolves them from the repository root: prefix them with api/.
+      - name: Normalize API coverage paths
+        run: sed -E -i 's#filename="(api/)?#filename="api/#g' api/coverage.xml
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
