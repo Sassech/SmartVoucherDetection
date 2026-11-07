@@ -28,7 +28,7 @@
       }
     }
   },
-  "postCreateCommand": "cd /workspaces/SmartVoucherDetection/api && uv sync || true; cd /workspaces/SmartVoucherDetection && uv sync || true; cd /workspaces/SmartVoucherDetection/webapp && corepack enable && corepack prepare pnpm@latest --activate || true; pnpm install || true",
+  "postCreateCommand": "cd /workspaces/SmartVoucherDetection/api && uv sync --frozen && cd /workspaces/SmartVoucherDetection && uv sync --frozen && cd /workspaces/SmartVoucherDetection/webapp && corepack enable && pnpm install --frozen-lockfile",
   "remoteUser": "vscode",
   "remoteEnv": {
     "LLAMA_SERVER_URL": "http://host.docker.internal:9931"
