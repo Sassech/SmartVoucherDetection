@@ -93,24 +93,24 @@ function cocr_init(): void {
 
     // Core classes (always loaded).
     if ( class_exists( 'COCR_Settings' ) ) {
-        new COCR_Settings();
+        ( new COCR_Settings() )->register();
     }
 
     if ( class_exists( 'COCR_Shortcode' ) ) {
-        new COCR_Shortcode();
+        ( new COCR_Shortcode() )->register();
     }
 
     if ( class_exists( 'COCR_History_Widget' ) ) {
-        new COCR_History_Widget();
+        ( new COCR_History_Widget() )->register();
     }
 
     if ( class_exists( 'COCR_Gutenberg' ) ) {
-        new COCR_Gutenberg();
+        ( new COCR_Gutenberg() )->register();
     }
 
     // Optional: WooCommerce integration — only when WooCommerce is active.
     if ( class_exists( 'WooCommerce' ) && class_exists( 'COCR_Woo_Hook' ) ) {
-        new COCR_Woo_Hook();
+        ( new COCR_Woo_Hook() )->register();
     }
 }
 

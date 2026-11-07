@@ -20,7 +20,7 @@ class COCR_History_Widget {
     /**
      * Register the admin_menu hook.
      */
-    public function __construct() {
+    public function register(): void {
         add_action( 'admin_menu', [ $this, 'add_menu' ] );
     }
 

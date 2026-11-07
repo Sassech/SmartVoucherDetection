@@ -138,7 +138,7 @@ def _render_template(template_path: Path, vars_dict: dict[str, str]) -> str:
     evitando imágenes rotas con campos vacíos silenciosos.
     """
     try:
-        from jinja2 import Environment, FileSystemLoader, StrictUndefined  # type: ignore[import-untyped]
+        from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape  # type: ignore[import-untyped]
     except ImportError as exc:
         raise ImportError(
             "jinja2 es requerido. Instalá con: uv add --optional scripts jinja2"
@@ -146,7 +146,7 @@ def _render_template(template_path: Path, vars_dict: dict[str, str]) -> str:
 
     env = Environment(
         loader=FileSystemLoader(str(template_path.parent)),
-        autoescape=False,
+        autoescape=select_autoescape(["html"]),
         undefined=StrictUndefined,
     )
     tpl = env.get_template(template_path.name)

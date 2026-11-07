@@ -1,0 +1,86 @@
+name: SonarQube
+
+# Community Build analyzes only the default branch, so this runs after
+# "API Tests" succeeds on main (reusing its coverage.xml artifact) or on demand.
+on:
+  workflow_run:
+    workflows: ["API Tests"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sonarqube-main
+  cancel-in-progress: true
+
+jobs:
+  sonarqube:
+    name: SonarQube analysis
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Resolve API Tests run
+        id: api-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          if [ -n "$EVENT_RUN_ID" ]; then
+            run_id="$EVENT_RUN_ID"
+          else
+            run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "API Tests" \
+              --branch main --event push --status success --limit 1 \
+              --json databaseId --jq '.[0].databaseId')
+          fi
+          if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
+            echo "::error::No successful 'API Tests' run found on main"
+            exit 1
+          fi
+          echo "id=$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Download API coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: api
+          run-id: ${{ steps.api-run.outputs.id }}
+          github-token: ${{ github.token }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install webapp dependencies
+        working-directory: webapp
+        run: pnpm install --frozen-lockfile
+
+      - name: Run webapp tests with coverage
+        working-directory: webapp
+        run: pnpm vitest run --coverage
+
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarqube.vantus.site
+        with:
+          args: >
+            -Dsonar.qualitygate.wait=true

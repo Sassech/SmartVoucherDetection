@@ -22,7 +22,7 @@ class COCR_Gutenberg {
     /**
      * Register the block on `init`.
      */
-    public function __construct() {
+    public function register(): void {
         add_action( 'init', [ $this, 'register_block' ] );
     }
 
@@ -75,8 +75,7 @@ class COCR_Gutenberg {
             return '';
         }
 
-        // Instantiate shortcode renderer. Does not re-register hooks because
-        // COCR_Shortcode was already bootstrapped in cocr_init().
+        // Render-only instance: hooks are registered once via register() in cocr_init().
         $shortcode = new COCR_Shortcode();
         return $shortcode->render( $attributes );
     }
