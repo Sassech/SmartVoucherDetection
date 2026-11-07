@@ -1,0 +1,47 @@
+services:
+  dev:
+    container_name: smartvoucher-dev
+    image: smartvoucher-dev:local
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile.dev
+    volumes:
+      - ..:/workspaces/SmartVoucherDetection:cached
+      - ../data:/data:cached
+      # Cache de descargas de uv: sobrevive a rebuilds (el .venv queda en el
+      # bind-mount y se regenera con `uv sync`, pero no re-descarga todo).
+      - uv-cache:/home/vscode/.cache/uv
+      # Cache de descargas de pnpm: sobrevive a rebuilds (node_modules queda
+      # en el bind-mount y se regenera con `pnpm install` sin re-descargar).
+      - pnpm-store:/home/vscode/.local/share/pnpm/store
+    working_dir: /workspaces/SmartVoucherDetection
+    command: sleep infinity
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../.env
+
+  # Infra sibling services: reachable over the compose network by hostname —
+  # never bind them to host ports here, or two projects clash on 5432/6379.
+  # (`!reset` needs Compose >= 2.24; validated with `compose config`.)
+  postgres:
+    container_name: smartvoucher-postgres
+    ports: !reset []
+    expose:
+      - "5432"
+  redis:
+    container_name: smartvoucher-redis
+    ports: !reset []
+    expose:
+      - "6379"
+
+volumes:
+  uv-cache:
+    name: smartvoucher_uv_cache
+  pnpm-store:
+    name: smartvoucher_pnpm_store

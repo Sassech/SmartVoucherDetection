@@ -1,0 +1,37 @@
+{
+  "name": "SmartVoucherDetection",
+  "dockerComposeFile": ["../infra/docker-compose.yml", "docker-compose.dev.yml"],
+  "service": "dev",
+  "workspaceFolder": "/workspaces/SmartVoucherDetection",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "username": "vscode"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "astral-sh.ruff",
+        "ms-python.vscode-pylance",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        "ms-playwright.playwright",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  },
+  "postCreateCommand": "cd /workspaces/SmartVoucherDetection/api && uv sync || true; cd /workspaces/SmartVoucherDetection && uv sync || true; cd /workspaces/SmartVoucherDetection/webapp && corepack enable && corepack prepare pnpm@latest --activate || true; pnpm install || true",
+  "remoteUser": "vscode",
+  "remoteEnv": {
+    "LLAMA_SERVER_URL": "http://host.docker.internal:9931"
+  },
+  "forwardPorts": [3000, 8000]
+}
