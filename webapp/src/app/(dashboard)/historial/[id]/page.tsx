@@ -6,6 +6,7 @@
 import { cookies } from "next/headers";
 import { HistorialDetailContent } from "@/components/historial/HistorialDetailContent";
 import type { WebComprobanteItem } from "@/lib/types";
+import { getServerApiBaseUrl } from "@/lib/server-config";
 
 interface Props {
   params: Readonly<Promise<{ id: string }>>;
@@ -19,7 +20,7 @@ async function fetchComprobante(id: string): Promise<{
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("access_token")?.value;
-    const baseUrl = process.env.API_BASE_URL ?? "http://api:8000";
+    const baseUrl = getServerApiBaseUrl();
 
     const headers: Record<string, string> = {};
     if (token) {

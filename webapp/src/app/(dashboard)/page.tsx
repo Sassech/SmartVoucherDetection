@@ -12,6 +12,7 @@ import { cookies } from "next/headers";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import type { StatsResponse, WebListResponse } from "@/lib/types";
+import { getServerApiBaseUrl } from "@/lib/server-config";
 
 async function fetchWithToken<T>(url: string, token: string | undefined): Promise<T> {
   const headers: Record<string, string> = {};
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
     const cookieStore = await cookies();
     const token = cookieStore.get("access_token")?.value;
 
-    const baseUrl = process.env.API_BASE_URL ?? "http://api:8000";
+    const baseUrl = getServerApiBaseUrl();
 
     [stats, recentItems] = await Promise.all([
       fetchWithToken<StatsResponse>(`${baseUrl}/web/stats/`, token),
